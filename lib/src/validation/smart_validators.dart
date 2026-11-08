@@ -14,6 +14,8 @@ enum SmartNumberPolicy { standard, legacy }
 
 enum SmartAmountPolicy { standard, legacy }
 
+enum SmartOtpPolicy { standard, legacy }
+
 enum SmartTextValidationPreset {
   loginUsername(
     key: 'login_username',
@@ -89,6 +91,10 @@ abstract final class SmartValidators {
   static const legacyPhoneExpression = SmartPhoneValidation.legacyExpression;
   static const legacyPhoneComment = SmartPhoneValidation.legacyComment;
   static const legacyPhoneErrorLabel = SmartPhoneValidation.legacyErrorLabel;
+  static const legacyOtpKey = 'opt_token';
+  static const legacyOtpExpression = r'^[0-9]{6}$';
+  static const legacyOtpComment = '6 digits';
+  static const legacyOtpErrorLabel = 'lbl_token_needed';
 
   static final RegExp _standardEmailExpression = RegExp(
     r"^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$",
@@ -102,6 +108,8 @@ abstract final class SmartValidators {
   );
   static final RegExp _legacyNumberExpression = RegExp(legacyNumberExpression);
   static final RegExp _legacyAmountExpression = RegExp(legacyAmountExpression);
+  static final RegExp _asciiDigitsExpression = RegExp(r'^[0-9]+$');
+  static final RegExp _legacyOtpExpression = RegExp(legacyOtpExpression);
 
   static SmartValidator requiredField({
     String message = 'This field is required.',
@@ -234,6 +242,41 @@ abstract final class SmartValidators {
         ),
       };
       return isValid ? null : message;
+    };
+  }
+
+  static SmartValidator otp({
+    required int length,
+    SmartOtpPolicy policy = SmartOtpPolicy.standard,
+    String digitMessage = 'Enter digits only.',
+    String? lengthMessage,
+    String legacyMessage = 'Enter a valid verification code.',
+  }) {
+    if (length <= 0) {
+      throw ArgumentError.value(length, 'length');
+    }
+    if (policy == SmartOtpPolicy.legacy && length != 6) {
+      throw ArgumentError.value(
+        length,
+        'length',
+        'The legacy OTP policy requires a length of 6.',
+      );
+    }
+    return (value) {
+      if (value == null || value.isEmpty) {
+        return null;
+      }
+      if (!_asciiDigitsExpression.hasMatch(value)) {
+        return digitMessage;
+      }
+      if (value.length != length) {
+        return lengthMessage ?? 'Enter exactly $length digits.';
+      }
+      if (policy == SmartOtpPolicy.legacy &&
+          !_legacyOtpExpression.hasMatch(value)) {
+        return legacyMessage;
+      }
+      return null;
     };
   }
 

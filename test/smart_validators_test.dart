@@ -303,6 +303,41 @@ void main() {
     });
   });
 
+  group('OTP validator', () {
+    test('preserves the exact legacy rule and metadata', () {
+      expect(SmartValidators.legacyOtpKey, 'opt_token');
+      expect(SmartValidators.legacyOtpExpression, r'^[0-9]{6}$');
+      expect(SmartValidators.legacyOtpComment, '6 digits');
+      expect(SmartValidators.legacyOtpErrorLabel, 'lbl_token_needed');
+    });
+
+    test(
+      'allows optional empty values and validates ASCII digits and length',
+      () {
+        final validator = SmartValidators.otp(length: 4);
+
+        expect(validator(null), isNull);
+        expect(validator(''), isNull);
+        expect(validator('0123'), isNull);
+        expect(validator('123'), 'Enter exactly 4 digits.');
+        expect(validator('１２３４'), 'Enter digits only.');
+        expect(validator('12a4'), 'Enter digits only.');
+      },
+    );
+
+    test('rejects invalid lengths and legacy configuration conflicts', () {
+      expect(() => SmartValidators.otp(length: 0), throwsArgumentError);
+      expect(
+        () => SmartValidators.otp(length: 4, policy: SmartOtpPolicy.legacy),
+        throwsArgumentError,
+      );
+      expect(
+        SmartValidators.otp(length: 6, policy: SmartOtpPolicy.legacy)('123456'),
+        isNull,
+      );
+    });
+  });
+
   group('amount validator', () {
     test('preserves the supplied legacy expression and metadata', () {
       expect(SmartValidators.legacyAmountExpression, r'^\d+(\.\d{1,2})?$');

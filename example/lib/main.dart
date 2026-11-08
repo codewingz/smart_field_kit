@@ -42,6 +42,16 @@ void main() {
                     useGrouping: true,
                   ),
                   const SizedBox(height: 16),
+                  SmartField.otp(
+                    label: 'Verification code',
+                    onCompleted: (code) {},
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.otp(
+                    label: 'Legacy verification code',
+                    policy: SmartOtpPolicy.legacy,
+                  ),
+                  const SizedBox(height: 16),
                   SmartField.phone(label: 'Phone Number'),
                   const SizedBox(height: 16),
                   SmartField.phone(

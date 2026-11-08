@@ -332,6 +332,93 @@ The legacy policy remains opt-in. The standard policy follows the configured pre
 
 For number and amount fields, validation runs in this order: required, field syntax or selected legacy policy, configured length rules, minimum value, maximum value, then the custom validator. The first error is displayed.
 
+## OTP SmartField
+
+`SmartField.otp()` is a native Flutter verification-code input backed by one `EditableText`, one controller, and one focus node. It displays separate boxes while preserving native selection, replacement, deletion, keyboard paste, controller updates, autofill, and `Form` behavior. It uses six visible ASCII digits by default, remains optional, and does not read SMS, email, or WhatsApp messages.
+
+```dart
+SmartField.otp(
+  label: 'Verification code',
+  onCompleted: (code) {
+    verify(code);
+  },
+)
+```
+
+Set a positive custom length when needed. Invalid lengths throw `ArgumentError`.
+
+```dart
+SmartField.otp(
+  length: 4,
+  isRequired: true,
+  obscureText: true,
+)
+```
+
+OTP-specific options:
+
+| Option | Behavior |
+|---|---|
+| `length` | Positive exact OTP length. Defaults to `6`. |
+| `obscureText` | Replaces displayed digits with bullets without changing the controller value. |
+| `policy` | Selects standard validation or the opt-in six-digit legacy rule. |
+| `digitErrorText` | Customizes the non-ASCII-digit error. |
+| `otpLengthErrorText` | Customizes the exact-length error. |
+| `legacyErrorText` | Customizes the legacy-policy error. |
+| `errorText` | Displays a parent-controlled server error until the parent clears it. |
+| `onCompleted` | Receives locally valid values on incomplete-to-complete transitions. |
+| `notifyOnProgrammaticChanges` | Allows controller-driven changes to call `onChanged` and `onCompleted`. Defaults to `false`. |
+| `style` | Supplies optional box and state styling through `SmartOtpStyle`. |
+
+The common `SmartField` options for label, hint, controller, focus node, autofocus, enabled/read-only state, keyboard action, `onChanged`, `onSaved`, required validation, additional length validation, custom validator, autovalidation, and decoration remain available. For OTP rendering, `decoration` supplies label, hint, error, and their text styles; `SmartOtpStyle` controls the boxes.
+
+The default input formatter accepts only a complete ASCII-digit edit up to the configured length. A malformed or oversized paste is rejected as a whole instead of removing selected characters. Leading zeros are preserved. Programmatic controller updates refresh the boxes and validation but do not call `onChanged` or `onCompleted` by default, matching Flutter's user-change callback convention. Set `notifyOnProgrammaticChanges: true` when controller-driven changes should call both callbacks.
+
+`onCompleted` runs only when the value transitions from incomplete or invalid to complete and locally valid. Rebuilds do not repeat it. Deleting a digit and completing the code again creates a new completion transition. The callback uses the unchanged controller text.
+
+Validation order is required, ASCII digits, exact OTP length, optional legacy policy, developer length rules, then the custom validator. Parent-owned server errors stay visible until the parent clears them:
+
+The reusable `SmartValidators.otp(length: 6)` validator provides the same optional-empty, ASCII-digit, exact-length, and selected-policy checks without the widget. Its `digitMessage`, `lengthMessage`, and `legacyMessage` parameters customize errors.
+
+```dart
+SmartField.otp(
+  errorText: verificationError,
+)
+```
+
+The supplied legacy rule is opt-in and requires `length: 6`. Selecting it with another length throws `ArgumentError`.
+
+```dart
+SmartField.otp(
+  policy: SmartOtpPolicy.legacy,
+)
+```
+
+```json
+"opt_token": {
+  "expression": "^[0-9]{6}$",
+  "comment": "6 digits",
+  "error_lbl": "lbl_token_needed"
+}
+```
+
+Use `SmartOtpStyle` to configure box dimensions, spacing, borders, radius, fill colors, digit text, cursor color, and transition timing. Unset colors come from the active theme, and animations are disabled when the platform requests reduced motion.
+
+`SmartOtpStyle` exposes `boxWidth`, `boxHeight`, `spacing`, `borderWidth`, `focusedBorderWidth`, `borderRadius`, `borderColor`, `focusedBorderColor`, `filledBorderColor`, `errorBorderColor`, `disabledBorderColor`, `fillColor`, `focusedFillColor`, `filledFillColor`, `errorFillColor`, `disabledFillColor`, `textStyle`, `cursorColor`, `animationDuration`, and `animationCurve`.
+
+```dart
+SmartField.otp(
+  style: const SmartOtpStyle(
+    boxWidth: 52,
+    boxHeight: 60,
+    spacing: 10,
+    borderRadius: BorderRadius.all(Radius.circular(16)),
+  ),
+)
+```
+
+The control exposes one semantic text field, supports RTL and text scaling, and shrinks boxes and spacing to avoid horizontal overflow. WhatsApp codes can be pasted by the user or assigned through an app-owned controller; the package requests no message permissions and performs no message retrieval.
+
 ## Phone SmartField
 
 `SmartField.phone()` uses the native phone keyboard and telephone autofill. The simple field has no country or contact picker, no global length limit, and no destructive formatter. It accepts editable international or local text while validation rejects malformed symbols, letters, emoji, and misplaced `+` characters.

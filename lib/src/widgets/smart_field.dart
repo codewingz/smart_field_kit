@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:smart_field_kit/src/formatting/smart_numeric_formatters.dart';
+import 'package:smart_field_kit/src/models/smart_otp_style.dart';
 import 'package:smart_field_kit/src/models/smart_phone_value.dart';
 import 'package:smart_field_kit/src/validation/smart_phone_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
+import 'package:smart_field_kit/src/widgets/smart_otp_field.dart';
 
 class SmartField extends StatefulWidget {
   const SmartField({
@@ -45,6 +47,7 @@ class SmartField extends StatefulWidget {
        _inputFormatters = null,
        _amountFormatter = null,
        _phoneConfig = null,
+       _otpConfig = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -92,6 +95,7 @@ class SmartField extends StatefulWidget {
        _inputFormatters = null,
        _amountFormatter = null,
        _phoneConfig = null,
+       _otpConfig = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -142,6 +146,7 @@ class SmartField extends StatefulWidget {
        _inputFormatters = inputFormatters?.toList(growable: false),
        _amountFormatter = null,
        _phoneConfig = null,
+       _otpConfig = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -192,6 +197,149 @@ class SmartField extends StatefulWidget {
        _inputFormatters = inputFormatters?.toList(growable: false),
        _amountFormatter = null,
        _phoneConfig = null,
+       _otpConfig = null,
+       _isPassword = false,
+       _isAmount = false,
+       assert(minLength == null || minLength >= 0),
+       assert(maxLength == null || maxLength >= 0),
+       assert(minLength == null || maxLength == null || minLength <= maxLength);
+
+  factory SmartField.otp({
+    Key? key,
+    String? label,
+    String? hintText,
+    TextEditingController? controller,
+    FocusNode? focusNode,
+    bool autofocus = false,
+    bool? enabled,
+    bool readOnly = false,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onChanged,
+    ValueChanged<String>? onCompleted,
+    FormFieldSetter<String>? onSaved,
+    bool isRequired = false,
+    String requiredErrorText = 'This field is required.',
+    int length = 6,
+    int? minLength,
+    String? minLengthErrorText,
+    int? maxLength,
+    String? maxLengthErrorText,
+    FormFieldValidator<String>? validator,
+    AutovalidateMode? autovalidateMode,
+    InputDecoration decoration = const InputDecoration(),
+    bool obscureText = false,
+    SmartOtpPolicy policy = SmartOtpPolicy.standard,
+    String digitErrorText = 'Enter digits only.',
+    String? otpLengthErrorText,
+    String legacyErrorText = 'Enter a valid verification code.',
+    String? errorText,
+    bool notifyOnProgrammaticChanges = false,
+    SmartOtpStyle style = const SmartOtpStyle(),
+  }) {
+    if (length <= 0) {
+      throw ArgumentError.value(length, 'length');
+    }
+    if (policy == SmartOtpPolicy.legacy && length != 6) {
+      throw ArgumentError.value(
+        length,
+        'length',
+        'The legacy OTP policy requires a length of 6.',
+      );
+    }
+    return SmartField._otp(
+      key: key,
+      label: label,
+      hintText: hintText,
+      controller: controller,
+      focusNode: focusNode,
+      autofocus: autofocus,
+      enabled: enabled,
+      readOnly: readOnly,
+      textInputAction: textInputAction,
+      onChanged: onChanged,
+      onCompleted: onCompleted,
+      onSaved: onSaved,
+      isRequired: isRequired,
+      requiredErrorText: requiredErrorText,
+      length: length,
+      minLength: minLength,
+      minLengthErrorText: minLengthErrorText,
+      maxLength: maxLength,
+      maxLengthErrorText: maxLengthErrorText,
+      validator: validator,
+      autovalidateMode: autovalidateMode,
+      decoration: decoration,
+      obscureText: obscureText,
+      policy: policy,
+      digitErrorText: digitErrorText,
+      otpLengthErrorText: otpLengthErrorText,
+      legacyErrorText: legacyErrorText,
+      errorText: errorText,
+      notifyOnProgrammaticChanges: notifyOnProgrammaticChanges,
+      style: style,
+    );
+  }
+
+  SmartField._otp({
+    super.key,
+    this.label,
+    this.hintText,
+    this.controller,
+    this.focusNode,
+    this.autofocus = false,
+    this.enabled,
+    this.readOnly = false,
+    this.textInputAction,
+    this.onChanged,
+    required ValueChanged<String>? onCompleted,
+    this.onSaved,
+    this.isRequired = false,
+    this.requiredErrorText = 'This field is required.',
+    required int length,
+    this.minLength,
+    this.minLengthErrorText,
+    this.maxLength,
+    this.maxLengthErrorText,
+    this.validator,
+    this.autovalidateMode,
+    this.decoration = const InputDecoration(),
+    required bool obscureText,
+    required SmartOtpPolicy policy,
+    required String digitErrorText,
+    required String? otpLengthErrorText,
+    required String legacyErrorText,
+    required String? errorText,
+    required bool notifyOnProgrammaticChanges,
+    required SmartOtpStyle style,
+  }) : keyboardType = TextInputType.number,
+       textCapitalization = TextCapitalization.none,
+       autocorrect = false,
+       enableSuggestions = false,
+       autofillHints = const [AutofillHints.oneTimeCode],
+       showVisibilityToggle = false,
+       onRawChanged = null,
+       onRawSaved = null,
+       _fieldValidator = SmartValidators.otp(
+         length: length,
+         policy: policy,
+         digitMessage: digitErrorText,
+         lengthMessage: otpLengthErrorText,
+         legacyMessage: legacyErrorText,
+       ),
+       _valueNormalizer = null,
+       _minValueValidator = null,
+       _maxValueValidator = null,
+       _inputFormatters = null,
+       _amountFormatter = null,
+       _phoneConfig = null,
+       _otpConfig = SmartOtpConfiguration(
+         length: length,
+         obscureText: obscureText,
+         onCompleted: onCompleted,
+         errorText: errorText,
+         notifyOnProgrammaticChanges: notifyOnProgrammaticChanges,
+         style: style,
+       ),
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -267,6 +415,7 @@ class SmartField extends StatefulWidget {
          countryPlaceholder: countryPlaceholder,
          countryPadding: countryPadding,
        ),
+       _otpConfig = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -316,6 +465,7 @@ class SmartField extends StatefulWidget {
        _inputFormatters = null,
        _amountFormatter = null,
        _phoneConfig = null,
+       _otpConfig = null,
        _isPassword = true,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -375,6 +525,7 @@ class SmartField extends StatefulWidget {
        ],
        _amountFormatter = null,
        _phoneConfig = null,
+       _otpConfig = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -526,6 +677,7 @@ class SmartField extends StatefulWidget {
        _inputFormatters = [formatter],
        _amountFormatter = formatter,
        _phoneConfig = null,
+       _otpConfig = null,
        _isPassword = false,
        _isAmount = true,
        assert(minLength == null || minLength >= 0),
@@ -566,6 +718,7 @@ class SmartField extends StatefulWidget {
   final List<TextInputFormatter>? _inputFormatters;
   final SmartAmountFormatter? _amountFormatter;
   final _SmartPhoneConfig? _phoneConfig;
+  final SmartOtpConfiguration? _otpConfig;
   final bool _isPassword;
   final bool _isAmount;
 
@@ -1254,6 +1407,25 @@ class _SmartFieldState extends State<SmartField> {
 
   @override
   Widget build(BuildContext context) {
+    final otpConfig = widget._otpConfig;
+    if (otpConfig != null) {
+      return SmartOtpField(
+        configuration: otpConfig,
+        label: widget.label,
+        hintText: widget.hintText,
+        controller: widget.controller,
+        focusNode: widget.focusNode,
+        autofocus: widget.autofocus,
+        enabled: widget.enabled,
+        readOnly: widget.readOnly,
+        textInputAction: widget.textInputAction,
+        onChanged: widget.onChanged,
+        onSaved: widget.onSaved,
+        validator: _effectiveValidator,
+        autovalidateMode: widget.autovalidateMode,
+        decoration: widget.decoration,
+      );
+    }
     return TextFormField(
       key: widget._isPhone ? _phoneFieldKey : null,
       controller: _effectiveController,
