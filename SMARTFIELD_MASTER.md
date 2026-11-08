@@ -106,3 +106,28 @@ I initialized the local repository on `main` and created the first commit. I cou
 
 - Confirmed on 2026-11-08: GitHub Free supports protected branches for public repositories: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
 - Confirmed on 2026-11-08: GitHub Free supports repository rulesets for public repositories: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets
+
+### User
+
+# Context from my IDE setup:
+
+## Open tabs:
+- SMARTFIELD_MASTER.md: SMARTFIELD_MASTER.md
+- smart_field_kit.dart: lib/smart_field_kit.dart
+
+## My request:
+if any one clon and try to work on main and try to puch what they got just tell me are what if they create new branch and rise pr then
+
+### Assistant
+
+I’ll append this clarification to the master reference, then answer briefly.
+
+### Assistant
+
+Anyone can clone a public repository and edit their local `main`, but they cannot push to your GitHub repository unless you grant them write access.
+
+With protected `main`:
+
+- A direct push to `main` is rejected.
+- A collaborator creates and pushes a branch; an outsider normally uses a fork. They then open a pull request.
+- The pull request can merge only after your configured rules pass, such as approval and CI checks.
