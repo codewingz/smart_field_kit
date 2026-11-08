@@ -4,7 +4,7 @@
 
 ## Normal SmartField
 
-`SmartField` is a normal text field by default. It allows empty input and unrestricted normal text, including letters, numbers, spaces, punctuation, Unicode, and emoji. It adds no automatic validators, character filters, or length limits.
+`SmartField` is a normal text field by default. It allows empty input and unrestricted normal text, including letters, numbers, spaces, punctuation, Unicode, and emoji. Required and length validation are opt-in. It adds no character filters or default length limits.
 
 ```dart
 import 'package:flutter/material.dart';
@@ -30,7 +30,14 @@ SmartField(
 | `textInputAction` | Forwards the requested keyboard action. |
 | `onChanged` | Receives native user-initiated text changes. |
 | `onSaved` | Runs when the surrounding `Form` is saved. |
-| `validator` | Runs through native `Form` validation when supplied. |
+| `isRequired` | Rejects null, empty, and whitespace-only values when `true`. Defaults to `false`. |
+| `requiredErrorText` | Sets the required-field error message. |
+| `minLength` | Sets an optional minimum user-visible character count. |
+| `minLengthErrorText` | Sets the minimum-length error message. |
+| `maxLength` | Sets an optional maximum user-visible character count without filtering input. |
+| `maxLengthErrorText` | Sets the maximum-length error message. |
+| `validator` | Runs after required and length validation when supplied. |
+| `autovalidateMode` | Uses Flutter's native automatic validation behavior. |
 | `decoration` | Customizes the native `InputDecoration`. Defaults to an empty decoration. |
 
 `label` and `hintText` fill missing values in `decoration`. Values already supplied by `decoration` take precedence.
@@ -39,7 +46,7 @@ Controllers and focus nodes supplied by the developer remain developer-owned and
 
 ## Form validation
 
-`SmartField` has no built-in validation. Supply a validator when the application needs one.
+Validation runs in this order: required, minimum length, maximum length, then the custom validator. The first error is displayed. Optional blank values skip length validation. Length validation uses Unicode grapheme clusters, so a visible emoji is counted as one character.
 
 ```dart
 final formKey = GlobalKey<FormState>();
@@ -48,9 +55,13 @@ Form(
   key: formKey,
   child: SmartField(
     label: 'Display name',
+    isRequired: true,
+    requiredErrorText: 'Enter a display name',
+    minLength: 2,
+    maxLength: 50,
     validator: (value) {
-      if (value == null || value.isEmpty) {
-        return 'Enter a display name';
+      if (value == 'Unknown') {
+        return 'Please enter a valid name';
       }
       return null;
     },
@@ -59,3 +70,19 @@ Form(
 ```
 
 The field uses the inherited `ThemeData`, `InputDecorationTheme`, Material version, keyboard behavior, and `Form` lifecycle.
+
+## Standalone validators
+
+`SmartValidators` can be used independently of `SmartField`.
+
+```dart
+final validator = SmartValidators.compose([
+  SmartValidators.requiredField(message: 'Value required'),
+  SmartValidators.minLength(2),
+  SmartValidators.maxLength(50),
+]);
+
+final error = validator('value');
+```
+
+Validation does not remove or rewrite input. Client-side validation is not SQL-injection protection; backend systems must use parameterized queries and trusted server-side validation.

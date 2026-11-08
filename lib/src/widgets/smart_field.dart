@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_field_kit/src/validation/smart_validators.dart';
 
 class SmartField extends StatelessWidget {
   const SmartField({
@@ -13,9 +14,18 @@ class SmartField extends StatelessWidget {
     this.textInputAction,
     this.onChanged,
     this.onSaved,
+    this.isRequired = false,
+    this.requiredErrorText = 'This field is required.',
+    this.minLength,
+    this.minLengthErrorText,
+    this.maxLength,
+    this.maxLengthErrorText,
     this.validator,
+    this.autovalidateMode,
     this.decoration = const InputDecoration(),
-  });
+  }) : assert(minLength == null || minLength >= 0),
+       assert(maxLength == null || maxLength >= 0),
+       assert(minLength == null || maxLength == null || minLength <= maxLength);
 
   final String? label;
   final String? hintText;
@@ -27,7 +37,14 @@ class SmartField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onChanged;
   final FormFieldSetter<String>? onSaved;
+  final bool isRequired;
+  final String requiredErrorText;
+  final int? minLength;
+  final String? minLengthErrorText;
+  final int? maxLength;
+  final String? maxLengthErrorText;
   final FormFieldValidator<String>? validator;
+  final AutovalidateMode? autovalidateMode;
   final InputDecoration decoration;
 
   InputDecoration get _effectiveDecoration {
@@ -41,6 +58,27 @@ class SmartField extends StatelessWidget {
     );
   }
 
+  SmartValidator get _effectiveValidator {
+    final validators = <SmartValidator>[];
+    if (isRequired) {
+      validators.add(SmartValidators.requiredField(message: requiredErrorText));
+    }
+    if (minLength != null) {
+      validators.add(
+        SmartValidators.minLength(minLength!, message: minLengthErrorText),
+      );
+    }
+    if (maxLength != null) {
+      validators.add(
+        SmartValidators.maxLength(maxLength!, message: maxLengthErrorText),
+      );
+    }
+    if (validator != null) {
+      validators.add(validator!);
+    }
+    return SmartValidators.compose(validators);
+  }
+
   @override
   Widget build(BuildContext context) {
     return TextFormField(
@@ -52,7 +90,8 @@ class SmartField extends StatelessWidget {
       textInputAction: textInputAction,
       onChanged: onChanged,
       onSaved: onSaved,
-      validator: validator,
+      validator: _effectiveValidator,
+      autovalidateMode: autovalidateMode,
       decoration: _effectiveDecoration,
     );
   }

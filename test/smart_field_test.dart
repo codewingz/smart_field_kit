@@ -147,6 +147,146 @@ void main() {
     expect(formKey.currentState!.validate(), isTrue);
   });
 
+  testWidgets('validates required values with a custom message', (
+    tester,
+  ) async {
+    final formKey = GlobalKey<FormState>();
+
+    await tester.pumpWidget(
+      _app(
+        Form(
+          key: formKey,
+          child: const SmartField(
+            isRequired: true,
+            requiredErrorText: 'Full name is required',
+          ),
+        ),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextFormField), '   ');
+    expect(formKey.currentState!.validate(), isFalse);
+    await tester.pump();
+    expect(find.text('Full name is required'), findsOneWidget);
+  });
+
+  testWidgets('validates optional length limits without filtering input', (
+    tester,
+  ) async {
+    final formKey = GlobalKey<FormState>();
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _app(
+        Form(
+          key: formKey,
+          child: SmartField(controller: controller, minLength: 2, maxLength: 3),
+        ),
+      ),
+    );
+
+    expect(formKey.currentState!.validate(), isTrue);
+
+    await tester.enterText(find.byType(TextFormField), '👨‍👩‍👦');
+    expect(formKey.currentState!.validate(), isFalse);
+    await tester.pump();
+    expect(find.text('Enter at least 2 characters.'), findsOneWidget);
+
+    const longValue = 'abcd';
+    await tester.enterText(find.byType(TextFormField), longValue);
+    expect(formKey.currentState!.validate(), isFalse);
+    await tester.pump();
+    expect(find.text('Enter no more than 3 characters.'), findsOneWidget);
+    expect(controller.text, longValue);
+  });
+
+  testWidgets('runs validators in required length custom order', (
+    tester,
+  ) async {
+    final formKey = GlobalKey<FormState>();
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    var customCalls = 0;
+
+    await tester.pumpWidget(
+      _app(
+        Form(
+          key: formKey,
+          child: SmartField(
+            controller: controller,
+            isRequired: true,
+            minLength: 3,
+            maxLength: 5,
+            validator: (value) {
+              customCalls++;
+              return value == 'valid' ? null : 'Custom error';
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(formKey.currentState!.validate(), isFalse);
+    expect(customCalls, 0);
+
+    controller.text = 'ab';
+    expect(formKey.currentState!.validate(), isFalse);
+    expect(customCalls, 0);
+
+    controller.text = 'abcdef';
+    expect(formKey.currentState!.validate(), isFalse);
+    expect(customCalls, 0);
+
+    controller.text = 'name';
+    expect(formKey.currentState!.validate(), isFalse);
+    expect(customCalls, 1);
+
+    controller.text = 'valid';
+    expect(formKey.currentState!.validate(), isTrue);
+    expect(customCalls, 2);
+  });
+
+  testWidgets('preserves autovalidate and native Form error display', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        const SmartField(
+          isRequired: true,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+        ),
+      ),
+    );
+
+    expect(find.text('This field is required.'), findsNothing);
+    await tester.enterText(find.byType(TextFormField), 'value');
+    await tester.pump();
+    await tester.enterText(find.byType(TextFormField), '');
+    await tester.pump();
+    expect(find.text('This field is required.'), findsOneWidget);
+  });
+
+  testWidgets('preserves unrestricted text during validation', (tester) async {
+    final formKey = GlobalKey<FormState>();
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    const value = "Robert'); DROP TABLE users;-- 中文 😀";
+
+    await tester.pumpWidget(
+      _app(
+        Form(
+          key: formKey,
+          child: SmartField(controller: controller, minLength: 1),
+        ),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextFormField), value);
+    expect(formKey.currentState!.validate(), isTrue);
+    expect(controller.text, value);
+  });
+
   testWidgets('uses externally owned controller and focus node', (
     tester,
   ) async {
