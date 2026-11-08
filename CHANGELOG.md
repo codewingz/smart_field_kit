@@ -6,3 +6,4 @@
 * Add SmartField.password with optional legacy policies and accessible visibility control.
 * Add SmartField.number with exact optional value bounds and legacy validation.
 * Add SmartField.amount with exact decimal formatting, raw callbacks, grouping, currency, and legacy validation.
+* Add SmartField.phone with optional country selection, metadata validation, safe E.164 values, native contact selection, and legacy validation.

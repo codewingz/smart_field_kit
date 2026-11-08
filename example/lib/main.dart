@@ -7,31 +7,46 @@ void main() {
       home: Scaffold(
         body: Padding(
           padding: const EdgeInsets.all(24),
-          child: Form(
-            child: Column(
-              children: [
-                SmartField.email(label: 'Email Address', isRequired: true),
-                const SizedBox(height: 16),
-                SmartField.email(
-                  label: 'Legacy Email',
-                  policy: SmartEmailPolicy.legacy,
-                ),
-                const SizedBox(height: 16),
-                SmartField.password(label: 'Password', isRequired: true),
-                const SizedBox(height: 16),
-                SmartField.password(
-                  label: 'Strong Password',
-                  policy: SmartPasswordPolicy.strong,
-                ),
-                const SizedBox(height: 16),
-                SmartField.number(label: 'Quantity'),
-                const SizedBox(height: 16),
-                SmartField.amount(
-                  label: 'Amount',
-                  decimalPlaces: 2,
-                  useGrouping: true,
-                ),
-              ],
+          child: SingleChildScrollView(
+            child: Form(
+              child: Column(
+                children: [
+                  SmartField.email(label: 'Email Address', isRequired: true),
+                  const SizedBox(height: 16),
+                  SmartField.email(
+                    label: 'Legacy Email',
+                    policy: SmartEmailPolicy.legacy,
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.password(label: 'Password', isRequired: true),
+                  const SizedBox(height: 16),
+                  SmartField.password(
+                    label: 'Strong Password',
+                    policy: SmartPasswordPolicy.strong,
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.number(label: 'Quantity'),
+                  const SizedBox(height: 16),
+                  SmartField.amount(
+                    label: 'Amount',
+                    decimalPlaces: 2,
+                    useGrouping: true,
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.phone(label: 'Phone Number'),
+                  const SizedBox(height: 16),
+                  SmartField.phone(
+                    label: 'Phone With Country',
+                    isRequired: true,
+                    showCountryPicker: true,
+                    initialCountryCode: 'PK',
+                    allowedCountryCodes: const ['PK', 'US', 'GB'],
+                    favoriteCountryCodes: const ['PK'],
+                    showContactPicker: true,
+                    showClearButton: true,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

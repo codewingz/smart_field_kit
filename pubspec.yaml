@@ -5,12 +5,15 @@ homepage:
 
 environment:
   sdk: ^3.13.7
-  flutter: ">=1.17.0"
+  flutter: ">=3.44.0"
 
 dependencies:
   characters: ^1.4.1
+  country_picker: ^2.0.28
   flutter:
     sdk: flutter
+  flutter_native_contact_picker: ^0.0.13
+  phone_numbers_parser: ^9.0.29
 
 dev_dependencies:
   flutter_test:

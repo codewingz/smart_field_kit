@@ -1,5 +1,7 @@
 import 'package:characters/characters.dart';
 import 'package:smart_field_kit/src/formatting/smart_numeric_formatters.dart';
+import 'package:smart_field_kit/src/models/smart_phone_value.dart';
+import 'package:smart_field_kit/src/validation/smart_phone_validation.dart';
 
 typedef SmartValidator = String? Function(String? value);
 typedef SmartValueNormalizer = String? Function(String value);
@@ -32,6 +34,9 @@ abstract final class SmartValidators {
   static const legacyAmountComment =
       'Please enter a valid amount (e.g., 123.45)';
   static const legacyAmountErrorLabel = '';
+  static const legacyPhoneExpression = SmartPhoneValidation.legacyExpression;
+  static const legacyPhoneComment = SmartPhoneValidation.legacyComment;
+  static const legacyPhoneErrorLabel = SmartPhoneValidation.legacyErrorLabel;
 
   static final RegExp _standardEmailExpression = RegExp(
     r"^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$",
@@ -178,6 +183,19 @@ abstract final class SmartValidators {
       };
       return isValid ? null : message;
     };
+  }
+
+  static SmartValidator phone({
+    SmartPhonePolicy policy = SmartPhonePolicy.auto,
+    SmartPhoneCountry? country,
+    String message = 'Enter a valid phone number.',
+  }) {
+    return (value) => SmartPhoneValidation.validate(
+      value,
+      policy: policy,
+      country: country,
+      message: message,
+    );
   }
 
   static SmartValidator minValue(
