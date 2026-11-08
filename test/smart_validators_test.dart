@@ -51,6 +51,110 @@ void main() {
     });
   });
 
+  group('text validation presets', () {
+    test('preserve all supplied keys expressions and metadata', () {
+      expect(
+        SmartTextValidationPreset.values
+            .map(
+              (preset) => (
+                preset.key,
+                preset.expression,
+                preset.comment,
+                preset.errorLabel,
+              ),
+            )
+            .toList(),
+        [
+          (
+            'login_username',
+            r'^[a-zA-Z0-9]{5,}$',
+            'at least 5 chars alphanumeric',
+            'lbl_username',
+          ),
+          (
+            'beneficiary_nickname',
+            r'^[a-zA-Z0-9]{3,}$',
+            'At least 3 chars alphanumeric',
+            'beneficiary_nickname',
+          ),
+          (
+            'min_text_field',
+            r'^[a-zA-Z]{1,}$',
+            'at least 1 chars',
+            'lbl_provide',
+          ),
+          ('street_name', r'^[a-zA-Z]{1,}$', 'at least 1 chars', 'lbl_provide'),
+          (
+            'alphanumeric_3',
+            r'^[a-zA-Z0-9]{1,}$',
+            'at least 1 chars alphanumeric',
+            'lbl_provide',
+          ),
+        ],
+      );
+    });
+
+    test('login username follows the five-character ASCII expression', () {
+      final validator = SmartValidators.textPreset(
+        SmartTextValidationPreset.loginUsername,
+      );
+      expect(validator('abcd'), isNotNull);
+      expect(validator('abcde'), isNull);
+      expect(validator('A1b2C'), isNull);
+      expect(validator('abc_1'), isNotNull);
+      expect(validator(' José'), isNotNull);
+      expect(validator('abcde '), isNotNull);
+    });
+
+    test('beneficiary nickname follows the three-character boundary', () {
+      final validator = SmartValidators.textPreset(
+        SmartTextValidationPreset.beneficiaryNickname,
+      );
+      expect(validator('ab'), isNotNull);
+      expect(validator('abc'), isNull);
+      expect(validator('a1B'), isNull);
+      expect(validator('a b'), isNotNull);
+    });
+
+    test('letter-only presets preserve identical restrictive behavior', () {
+      for (final preset in [
+        SmartTextValidationPreset.minTextField,
+        SmartTextValidationPreset.streetName,
+      ]) {
+        final validator = SmartValidators.textPreset(preset);
+        expect(validator('A'), isNull);
+        expect(validator('John'), isNull);
+        expect(validator('John Doe'), isNotNull);
+        expect(validator("O'Neil"), isNotNull);
+        expect(validator('José'), isNotNull);
+        expect(validator('Street1'), isNotNull);
+      }
+    });
+
+    test('alphanumeric 3 accepts one character despite its key', () {
+      final validator = SmartValidators.textPreset(
+        SmartTextValidationPreset.alphanumeric3,
+      );
+      expect(validator(''), isNull);
+      expect(validator('A'), isNull);
+      expect(validator('1'), isNull);
+      expect(validator('A1'), isNull);
+      expect(validator('_'), isNotNull);
+      expect(validator('é'), isNotNull);
+    });
+
+    test('skip optional blank values and support custom messages', () {
+      final validator = SmartValidators.textPreset(
+        SmartTextValidationPreset.loginUsername,
+        message: 'Use the legacy format',
+      );
+      expect(validator(null), isNull);
+      expect(validator(''), isNull);
+      expect(validator('   '), isNull);
+      expect(validator('abc'), 'Use the legacy format');
+    });
+  });
+
   group('email validator', () {
     test('preserves the supplied legacy expression and metadata', () {
       expect(

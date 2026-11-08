@@ -14,6 +14,58 @@ enum SmartNumberPolicy { standard, legacy }
 
 enum SmartAmountPolicy { standard, legacy }
 
+enum SmartTextValidationPreset {
+  loginUsername(
+    key: 'login_username',
+    expression: r'^[a-zA-Z0-9]{5,}$',
+    comment: 'at least 5 chars alphanumeric',
+    errorLabel: 'lbl_username',
+    defaultMessage: 'Enter at least 5 ASCII letters or numbers.',
+  ),
+  beneficiaryNickname(
+    key: 'beneficiary_nickname',
+    expression: r'^[a-zA-Z0-9]{3,}$',
+    comment: 'At least 3 chars alphanumeric',
+    errorLabel: 'beneficiary_nickname',
+    defaultMessage: 'Enter at least 3 ASCII letters or numbers.',
+  ),
+  minTextField(
+    key: 'min_text_field',
+    expression: r'^[a-zA-Z]{1,}$',
+    comment: 'at least 1 chars',
+    errorLabel: 'lbl_provide',
+    defaultMessage: 'Enter ASCII letters only.',
+  ),
+  streetName(
+    key: 'street_name',
+    expression: r'^[a-zA-Z]{1,}$',
+    comment: 'at least 1 chars',
+    errorLabel: 'lbl_provide',
+    defaultMessage: 'Enter ASCII letters only.',
+  ),
+  alphanumeric3(
+    key: 'alphanumeric_3',
+    expression: r'^[a-zA-Z0-9]{1,}$',
+    comment: 'at least 1 chars alphanumeric',
+    errorLabel: 'lbl_provide',
+    defaultMessage: 'Enter ASCII letters or numbers.',
+  );
+
+  const SmartTextValidationPreset({
+    required this.key,
+    required this.expression,
+    required this.comment,
+    required this.errorLabel,
+    required this.defaultMessage,
+  });
+
+  final String key;
+  final String expression;
+  final String comment;
+  final String errorLabel;
+  final String defaultMessage;
+}
+
 abstract final class SmartValidators {
   static const legacyEmailExpression =
       r"""^[A-Za-z0-9][A-Za-z0-9.!#$%&'*+\-/=?^_`{|}~]*@[A-Za-z0-9-]+\.[A-Za-z]+$""";
@@ -196,6 +248,21 @@ abstract final class SmartValidators {
       country: country,
       message: message,
     );
+  }
+
+  static SmartValidator textPreset(
+    SmartTextValidationPreset preset, {
+    String? message,
+  }) {
+    final expression = RegExp(preset.expression);
+    return (value) {
+      if (_isBlank(value)) {
+        return null;
+      }
+      return expression.hasMatch(value!)
+          ? null
+          : message ?? preset.defaultMessage;
+    };
   }
 
   static SmartValidator minValue(

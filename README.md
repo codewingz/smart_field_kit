@@ -92,6 +92,72 @@ final error = validator('value');
 
 Validation does not remove or rewrite input. Client-side validation is not SQL-injection protection; backend systems must use parameterized queries and trusted server-side validation.
 
+## Name and username SmartFields
+
+`SmartField.name()` uses Flutter's name keyboard, word-capitalization suggestion, and name autofill hint. It does not change capitalization or rewrite stored text. International names, non-Latin scripts, combining marks, spaces, apostrophes, hyphens, punctuation, and emoji remain available by default with no minimum or maximum length.
+
+```dart
+SmartField.name(
+  label: 'Full name',
+)
+```
+
+`SmartField.username()` uses the normal text keyboard and username autofill hint with automatic capitalization, autocorrect, and suggestions disabled. It preserves exact case and characters. No default username length, allowed-character, lowercase, or uniqueness policy is imposed.
+
+```dart
+SmartField.username(
+  label: 'Username',
+  isRequired: true,
+)
+```
+
+Applications can add their own `validator`, `minLength`, `maxLength`, error messages, autofill hints, and `inputFormatters`. Input formatters are opt-in because they can reject text while typing. Backend systems remain responsible for username uniqueness, authorization, SQL safety, output encoding, and impersonation controls.
+
+The five original ASCII-only rules are available through the optional `validationPreset` parameter:
+
+```dart
+SmartField.username(
+  label: 'Legacy username',
+  validationPreset: SmartTextValidationPreset.loginUsername,
+  validationPresetErrorText: 'Use at least five letters or numbers',
+)
+```
+
+Validation runs in this order: required, selected preset, configured length rules, then the custom validator. Presets report errors without filtering or rewriting the field text. Their `errorLabel` values preserve legacy identifiers and are not translated user-facing messages.
+
+```json
+"login_username": {
+  "expression": "^[a-zA-Z0-9]{5,}$",
+  "comment": "at least 5 chars alphanumeric",
+  "error_lbl": "lbl_username"
+},
+"beneficiary_nickname": {
+  "expression": "^[a-zA-Z0-9]{3,}$",
+  "comment": "At least 3 chars alphanumeric",
+  "error_lbl": "beneficiary_nickname"
+},
+"min_text_field": {
+  "expression": "^[a-zA-Z]{1,}$",
+  "comment": "at least 1 chars",
+  "error_lbl": "lbl_provide"
+},
+"street_name": {
+  "expression": "^[a-zA-Z]{1,}$",
+  "comment": "at least 1 chars",
+  "error_lbl": "lbl_provide"
+},
+"alphanumeric_3": {
+  "expression": "^[a-zA-Z0-9]{1,}$",
+  "comment": "at least 1 chars alphanumeric",
+  "error_lbl": "lbl_provide"
+}
+```
+
+- `loginUsername` accepts only ASCII letters and digits with a minimum of five characters.
+- `beneficiaryNickname` accepts only ASCII letters and digits with a minimum of three characters.
+- `minTextField` and `streetName` accept one or more ASCII letters, rejecting spaces, digits, apostrophes, accents, and hyphens. They are too restrictive for many modern names and streets and are never defaults.
+- `alphanumeric3` accepts one or more ASCII letters or digits. Despite its legacy key suggesting three, its exact expression has a minimum of one.
+
 ## Email SmartField
 
 `SmartField.email()` uses Flutter's email keyboard and autofill hint, disables autocorrect, and applies no capitalization. Empty input remains optional unless `isRequired` is enabled. The default policy accepts practical formats including plus-addressing and subdomains without changing the stored value.

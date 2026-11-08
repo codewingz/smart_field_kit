@@ -11,6 +11,15 @@ void main() {
             child: Form(
               child: Column(
                 children: [
+                  SmartField.name(label: 'Full name'),
+                  const SizedBox(height: 16),
+                  SmartField.username(label: 'Username', isRequired: true),
+                  const SizedBox(height: 16),
+                  SmartField.username(
+                    label: 'Legacy Username',
+                    validationPreset: SmartTextValidationPreset.loginUsername,
+                  ),
+                  const SizedBox(height: 16),
                   SmartField.email(label: 'Email Address', isRequired: true),
                   const SizedBox(height: 16),
                   SmartField.email(
