@@ -109,6 +109,67 @@ void main() {
     });
   });
 
+  group('password validator', () {
+    test('preserves the supplied expressions and metadata', () {
+      expect(SmartValidators.legacyWeakPasswordExpression, r'^.{5,}$');
+      expect(
+        SmartValidators.legacyWeakPasswordComment,
+        'any chars, at least 6',
+      );
+      expect(
+        SmartValidators.legacyWeakPasswordErrorLabel,
+        'msg_confirm_password',
+      );
+      expect(
+        SmartValidators.legacyStrongPasswordExpression,
+        r'^(?=.*?[A-Z])(?=(.*[a-z]){1,})(?=(.*[\d]){1,})(?=(.*[\W]){1,})(?!.*\s).{8,}$',
+      );
+      expect(
+        SmartValidators.legacyStrongPasswordComment,
+        'Password should have,at least a upper case letter, a lower case letter, a digit, a special character [@#\$%^&+=] length of at least 4no white space allowed',
+      );
+      expect(
+        SmartValidators.legacyStrongPasswordErrorLabel,
+        'msg_confirm_password',
+      );
+    });
+
+    test('weak policy follows the five-character expression', () {
+      final validator = SmartValidators.password(
+        policy: SmartPasswordPolicy.weak,
+      );
+
+      expect(validator('1234'), 'Password does not meet the selected policy.');
+      expect(validator('12345'), isNull);
+      expect(validator('abcde'), isNull);
+    });
+
+    test('strong policy enforces every source expression condition', () {
+      final validator = SmartValidators.password(
+        policy: SmartPasswordPolicy.strong,
+      );
+
+      expect(validator('Abcdef1!'), isNull);
+      expect(validator('abcdef1!'), isNotNull);
+      expect(validator('ABCDEF1!'), isNotNull);
+      expect(validator('Abcdefgh!'), isNotNull);
+      expect(validator('Abcdef12'), isNotNull);
+      expect(validator('Abcd 1!x'), isNotNull);
+      expect(validator('Abc1!xy'), isNotNull);
+    });
+
+    test('policies allow optional empty values and custom errors', () {
+      final validator = SmartValidators.password(
+        policy: SmartPasswordPolicy.strong,
+        message: 'Use a stronger password',
+      );
+
+      expect(validator(null), isNull);
+      expect(validator(''), isNull);
+      expect(validator('password'), 'Use a stronger password');
+    });
+  });
+
   test('compose returns the first error and stops', () {
     var laterCalls = 0;
     final validator = SmartValidators.compose([

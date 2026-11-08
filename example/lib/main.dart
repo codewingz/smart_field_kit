@@ -16,6 +16,13 @@ void main() {
                   label: 'Legacy Email',
                   policy: SmartEmailPolicy.legacy,
                 ),
+                const SizedBox(height: 16),
+                SmartField.password(label: 'Password', isRequired: true),
+                const SizedBox(height: 16),
+                SmartField.password(
+                  label: 'Strong Password',
+                  policy: SmartPasswordPolicy.strong,
+                ),
               ],
             ),
           ),

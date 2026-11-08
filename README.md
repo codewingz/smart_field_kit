@@ -30,6 +30,7 @@ SmartField(
 | `keyboardType` | Forwards the requested `TextInputType`. |
 | `textCapitalization` | Forwards native text capitalization behavior. |
 | `autocorrect` | Enables native autocorrection for normal fields by default. |
+| `enableSuggestions` | Enables native keyboard suggestions for normal fields by default. |
 | `autofillHints` | Forwards native platform autofill hints. |
 | `textInputAction` | Forwards the requested keyboard action. |
 | `onChanged` | Receives native user-initiated text changes. |
@@ -122,3 +123,45 @@ Original legacy preset:
 ```
 
 The default email validator is intentionally practical rather than a complete implementation of every valid internationalized or quoted email-address form. No global email length limit is imposed. Configure `minLength` or `maxLength` only when the application requires them.
+
+## Password SmartField
+
+`SmartField.password()` obscures text by default, uses Flutter's password keyboard and autofill hint, and disables capitalization, autocorrect, and keyboard suggestions. Its accessible show/hide control can be removed with `showVisibilityToggle: false`. Toggling visibility does not change the password, selection, controller, or focus.
+
+No complexity or length rule is enabled by default. Empty input remains optional unless `isRequired` is enabled.
+
+```dart
+SmartField.password(
+  label: 'Password',
+  isRequired: true,
+)
+```
+
+The supplied legacy policies are explicitly opt-in:
+
+```dart
+SmartField.password(
+  label: 'Password',
+  isRequired: true,
+  policy: SmartPasswordPolicy.strong,
+)
+```
+
+Validation runs in this order: required, selected password policy, configured length limits, then the custom validator. The first error is displayed. Password text is never trimmed, replaced, or filtered.
+
+Original legacy presets:
+
+```json
+"login_password_weak": {
+  "expression": "^.{5,}$",
+  "comment": "any chars, at least 6",
+  "error_lbl": "msg_confirm_password"
+},
+"login_password": {
+  "expression": "^(?=.*?[A-Z])(?=(.*[a-z]){1,})(?=(.*[\\d]){1,})(?=(.*[\\W]){1,})(?!.*\\s).{8,}$",
+  "comment": "Password should have,at least a upper case letter, a lower case letter, a digit, a special character [@#$%^&+=] length of at least 4no white space allowed",
+  "error_lbl": "msg_confirm_password"
+}
+```
+
+The weak expression accepts five or more characters even though its comment says six. The strong expression requires at least eight characters even though its comment says four. The expressions and metadata are preserved without correcting those mismatches.
