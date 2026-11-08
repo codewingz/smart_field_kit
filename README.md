@@ -165,3 +165,103 @@ Original legacy presets:
 ```
 
 The weak expression accepts five or more characters even though its comment says six. The strong expression requires at least eight characters even though its comment says four. The expressions and metadata are preserved without correcting those mismatches.
+
+## Number SmartField
+
+`SmartField.number()` accepts normal multi-digit integers, `0`, leading zeros, deletion, selection, and paste. It does not convert the text to an integer, so identifier-like values such as `000123` remain unchanged. Negative values, length limits, numeric value limits, and required validation are opt-in.
+
+```dart
+SmartField.number(
+  label: 'Quantity',
+)
+```
+
+Numeric bounds use exact decimal strings and do not use `double` arithmetic:
+
+```dart
+SmartField.number(
+  label: 'Quantity',
+  allowNegative: true,
+  minValue: '-100',
+  maxValue: '1000000000000000000000000000000',
+)
+```
+
+The optional legacy policy preserves the supplied rule exactly:
+
+```dart
+SmartField.number(
+  policy: SmartNumberPolicy.legacy,
+)
+```
+
+```json
+"number": {
+  "expression": "^[0-9]$",
+  "comment": "8 digits",
+  "error_lbl": "lbl_phone_8"
+}
+```
+
+The expression accepts exactly one digit although its comment says eight. Normal number fields use the multi-digit standard policy.
+
+## Amount SmartField
+
+`SmartField.amount()` accepts exact decimal text without converting through `double`. No currency, grouping, decimal limit, fixed fractional suffix, value bound, or digit limit is applied unless configured.
+
+```dart
+SmartField.amount(
+  label: 'Amount',
+  decimalPlaces: 2,
+  useGrouping: true,
+)
+```
+
+With that configuration, `50000.00` is editable while focused and displays as `50,000.00` after focus leaves the field. Partial values remain editable without repeated grouping. Invalid text such as `5,000.oo` is rejected rather than cleaned into a valid amount.
+
+Currency text, separators, position, negative values, and exact value bounds are optional:
+
+```dart
+SmartField.amount(
+  label: 'Balance',
+  decimalPlaces: 2,
+  useGrouping: true,
+  currencySymbol: ' USD',
+  currencyPosition: SmartCurrencyPosition.suffix,
+  allowNegative: true,
+  minValue: '-1000000.00',
+  maxValue: '1000000.00',
+)
+```
+
+`currencySymbol` accepts a symbol or code exactly as supplied. Include a space in that string when separation is wanted.
+
+### Display and raw amount values
+
+- The controller, `onChanged`, custom `validator`, and `onSaved` preserve Flutter's display-text behavior.
+- While focused, the display text is ungrouped and has no configured currency text.
+- When focus leaves, configured grouping, decimal padding, and currency text are displayed.
+- `onRawChanged` receives normalized ungrouped numeric text during user edits.
+- `onRawSaved` receives normalized ungrouped numeric text when the `Form` is saved, or `null` when the display is not a complete valid amount.
+- `SmartAmountFormatter` provides the same exact normalization and formatting independently of the widget.
+
+The optional legacy amount policy is evaluated against normalized, ungrouped text:
+
+```dart
+SmartField.amount(
+  decimalPlaces: 2,
+  policy: SmartAmountPolicy.legacy,
+)
+```
+
+```json
+"amount_of_money": {
+  "expression": "^\\d+(\\.\\d{1,2})?$",
+  "comment": "Please enter a valid amount (e.g., 123.45)",
+  "error_lbl": ""
+}
+```
+
+The legacy policy remains opt-in. The standard policy follows the configured precision instead of forcing one or two decimal places.
+
+For number and amount fields, validation runs in this order: required, field syntax or selected legacy policy, configured length rules, minimum value, maximum value, then the custom validator. The first error is displayed.

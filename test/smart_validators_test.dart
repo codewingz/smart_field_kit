@@ -170,6 +170,100 @@ void main() {
     });
   });
 
+  group('number validator', () {
+    test('preserves the supplied legacy expression and metadata', () {
+      expect(SmartValidators.legacyNumberExpression, r'^[0-9]$');
+      expect(SmartValidators.legacyNumberComment, '8 digits');
+      expect(SmartValidators.legacyNumberErrorLabel, 'lbl_phone_8');
+    });
+
+    test('standard accepts integers and configured negatives', () {
+      expect(SmartValidators.number()(''), isNull);
+      expect(SmartValidators.number()('000123'), isNull);
+      expect(
+        SmartValidators.number()('123456789012345678901234567890'),
+        isNull,
+      );
+      expect(SmartValidators.number()('-1'), isNotNull);
+      expect(SmartValidators.number(allowNegative: true)('-1'), isNull);
+      expect(SmartValidators.number()('1.5'), isNotNull);
+    });
+
+    test('legacy accepts exactly one digit despite its comment', () {
+      final validator = SmartValidators.number(
+        policy: SmartNumberPolicy.legacy,
+      );
+
+      expect(validator('8'), isNull);
+      expect(validator('88'), isNotNull);
+    });
+  });
+
+  group('amount validator', () {
+    test('preserves the supplied legacy expression and metadata', () {
+      expect(SmartValidators.legacyAmountExpression, r'^\d+(\.\d{1,2})?$');
+      expect(
+        SmartValidators.legacyAmountComment,
+        'Please enter a valid amount (e.g., 123.45)',
+      );
+      expect(SmartValidators.legacyAmountErrorLabel, '');
+    });
+
+    test('legacy uses normalized ungrouped text', () {
+      final formatter = SmartAmountFormatter(
+        decimalPlaces: 2,
+        useGrouping: true,
+      );
+      final validator = SmartValidators.amount(
+        formatter: formatter,
+        policy: SmartAmountPolicy.legacy,
+      );
+
+      expect(validator('50,000.00'), isNull);
+      expect(validator('50,000'), isNull);
+      expect(validator('50,000.000'), isNotNull);
+      expect(validator('5,000.oo'), isNotNull);
+    });
+
+    test(
+      'standard follows configured precision instead of legacy precision',
+      () {
+        final formatter = SmartAmountFormatter(decimalPlaces: 3);
+
+        expect(SmartValidators.amount(formatter: formatter)('1.234'), isNull);
+        expect(
+          SmartValidators.amount(
+            formatter: formatter,
+            policy: SmartAmountPolicy.legacy,
+          )('1.234'),
+          isNotNull,
+        );
+      },
+    );
+  });
+
+  group('value validators', () {
+    test('compare very large integers without precision loss', () {
+      final min = SmartValidators.minValue('999999999999999999999999999999');
+      final max = SmartValidators.maxValue('1000000000000000000000000000001');
+
+      expect(min('999999999999999999999999999998'), isNotNull);
+      expect(min('999999999999999999999999999999'), isNull);
+      expect(max('1000000000000000000000000000002'), isNotNull);
+      expect(max('1000000000000000000000000000001'), isNull);
+    });
+
+    test('compare exact decimals and negative values', () {
+      final min = SmartValidators.minValue('-1.20');
+      final max = SmartValidators.maxValue('0.1000000000000000000000000001');
+
+      expect(min('-1.2000000000000000001'), isNotNull);
+      expect(min('-1.2'), isNull);
+      expect(max('0.1000000000000000000000000002'), isNotNull);
+      expect(max('0.1'), isNull);
+    });
+  });
+
   test('compose returns the first error and stops', () {
     var laterCalls = 0;
     final validator = SmartValidators.compose([
