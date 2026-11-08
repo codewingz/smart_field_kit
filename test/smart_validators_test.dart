@@ -51,6 +51,64 @@ void main() {
     });
   });
 
+  group('email validator', () {
+    test('preserves the supplied legacy expression and metadata', () {
+      expect(
+        SmartValidators.legacyEmailExpression,
+        r"""^[A-Za-z0-9][A-Za-z0-9.!#$%&'*+\-/=?^_`{|}~]*@[A-Za-z0-9-]+\.[A-Za-z]+$""",
+      );
+      expect(SmartValidators.legacyEmailComment, 'valid email address');
+      expect(SmartValidators.legacyEmailErrorLabel, 'lbl_provide');
+    });
+
+    test('standard policy accepts practical email formats', () {
+      final validator = SmartValidators.email();
+
+      expect(validator('name+tag@example.com'), isNull);
+      expect(validator('user@sub.example.co.uk'), isNull);
+      expect(validator("o'hara@example.travel"), isNull);
+    });
+
+    test('standard policy rejects malformed values and whitespace', () {
+      final validator = SmartValidators.email();
+
+      for (final value in [
+        'plainaddress',
+        '@example.com',
+        'user@',
+        'user@@example.com',
+        '.user@example.com',
+        'user..name@example.com',
+        'user@example',
+        'user@-example.com',
+        'user@example-.com',
+        'user @example.com',
+        ' user@example.com ',
+        '   ',
+      ]) {
+        expect(validator(value), 'Enter a valid email address.', reason: value);
+      }
+    });
+
+    test('optional empty values pass and custom errors are supported', () {
+      final validator = SmartValidators.email(message: 'Invalid email');
+
+      expect(validator(null), isNull);
+      expect(validator(''), isNull);
+      expect(validator('invalid'), 'Invalid email');
+    });
+
+    test('legacy policy keeps the original narrower behavior', () {
+      final validator = SmartValidators.email(policy: SmartEmailPolicy.legacy);
+
+      expect(validator('name+tag@example.com'), isNull);
+      expect(
+        validator('user@sub.example.co.uk'),
+        'Enter a valid email address.',
+      );
+    });
+  });
+
   test('compose returns the first error and stops', () {
     var laterCalls = 0;
     final validator = SmartValidators.compose([

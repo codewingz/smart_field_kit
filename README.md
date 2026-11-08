@@ -24,9 +24,13 @@ SmartField(
 | `hintText` | Fills the decoration hint when the supplied decoration has no hint. |
 | `controller` | Uses a developer-owned `TextEditingController`. Flutter creates internal control when omitted. |
 | `focusNode` | Uses a developer-owned `FocusNode`. Flutter manages focus internally when omitted. |
+| `autofocus` | Uses Flutter's native autofocus behavior. Defaults to `false`. |
 | `enabled` | Uses Flutter's normal enabled state. `null` keeps the native default. |
 | `readOnly` | Uses Flutter's read-only behavior. Defaults to `false`. |
 | `keyboardType` | Forwards the requested `TextInputType`. |
+| `textCapitalization` | Forwards native text capitalization behavior. |
+| `autocorrect` | Enables native autocorrection for normal fields by default. |
+| `autofillHints` | Forwards native platform autofill hints. |
 | `textInputAction` | Forwards the requested keyboard action. |
 | `onChanged` | Receives native user-initiated text changes. |
 | `onSaved` | Runs when the surrounding `Form` is saved. |
@@ -86,3 +90,35 @@ final error = validator('value');
 ```
 
 Validation does not remove or rewrite input. Client-side validation is not SQL-injection protection; backend systems must use parameterized queries and trusted server-side validation.
+
+## Email SmartField
+
+`SmartField.email()` uses Flutter's email keyboard and autofill hint, disables autocorrect, and applies no capitalization. Empty input remains optional unless `isRequired` is enabled. The default policy accepts practical formats including plus-addressing and subdomains without changing the stored value.
+
+```dart
+SmartField.email(
+  label: 'Email Address',
+  isRequired: true,
+)
+```
+
+The optional legacy policy preserves the supplied `email_address` rule exactly. It is intentionally narrower than the default policy and rejects addresses containing subdomains.
+
+```dart
+SmartField.email(
+  label: 'Legacy Email',
+  policy: SmartEmailPolicy.legacy,
+)
+```
+
+Original legacy preset:
+
+```json
+"email_address": {
+  "expression": "^[A-Za-z0-9][A-Za-z0-9.!#$%&'*+\\-/=?^_`{|}~]*@[A-Za-z0-9-]+\\.[A-Za-z]+$",
+  "comment": "valid email address",
+  "error_lbl": "lbl_provide"
+}
+```
+
+The default email validator is intentionally practical rather than a complete implementation of every valid internationalized or quoted email-address form. No global email length limit is imposed. Configure `minLength` or `maxLength` only when the application requires them.

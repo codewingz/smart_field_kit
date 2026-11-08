@@ -8,17 +8,15 @@ void main() {
         body: Padding(
           padding: const EdgeInsets.all(24),
           child: Form(
-            child: SmartField(
-              label: 'Full Name',
-              hintText: 'Enter your name',
-              isRequired: true,
-              minLength: 2,
-              validator: (value) {
-                if (value == 'Unknown') {
-                  return 'Please enter a valid name';
-                }
-                return null;
-              },
+            child: Column(
+              children: [
+                SmartField.email(label: 'Email Address', isRequired: true),
+                const SizedBox(height: 16),
+                SmartField.email(
+                  label: 'Legacy Email',
+                  policy: SmartEmailPolicy.legacy,
+                ),
+              ],
             ),
           ),
         ),

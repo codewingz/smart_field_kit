@@ -2,7 +2,19 @@ import 'package:characters/characters.dart';
 
 typedef SmartValidator = String? Function(String? value);
 
+enum SmartEmailPolicy { standard, legacy }
+
 abstract final class SmartValidators {
+  static const legacyEmailExpression =
+      r"""^[A-Za-z0-9][A-Za-z0-9.!#$%&'*+\-/=?^_`{|}~]*@[A-Za-z0-9-]+\.[A-Za-z]+$""";
+  static const legacyEmailComment = 'valid email address';
+  static const legacyEmailErrorLabel = 'lbl_provide';
+
+  static final RegExp _standardEmailExpression = RegExp(
+    r"^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$",
+  );
+  static final RegExp _legacyEmailExpression = RegExp(legacyEmailExpression);
+
   static SmartValidator requiredField({
     String message = 'This field is required.',
   }) {
@@ -46,6 +58,23 @@ abstract final class SmartValidators {
     };
   }
 
+  static SmartValidator email({
+    SmartEmailPolicy policy = SmartEmailPolicy.standard,
+    String message = 'Enter a valid email address.',
+  }) {
+    return (value) {
+      if (value == null || value.isEmpty) {
+        return null;
+      }
+
+      final isValid = switch (policy) {
+        SmartEmailPolicy.standard => _isStandardEmail(value),
+        SmartEmailPolicy.legacy => _legacyEmailExpression.hasMatch(value),
+      };
+      return isValid ? null : message;
+    };
+  }
+
   static SmartValidator compose(Iterable<SmartValidator> validators) {
     return (value) {
       for (final validator in validators) {
@@ -60,5 +89,20 @@ abstract final class SmartValidators {
 
   static bool _isBlank(String? value) {
     return value == null || value.trim().isEmpty;
+  }
+
+  static bool _isStandardEmail(String value) {
+    final separator = value.indexOf('@');
+    if (separator <= 0) {
+      return false;
+    }
+
+    final localPart = value.substring(0, separator);
+    if (localPart.startsWith('.') ||
+        localPart.endsWith('.') ||
+        localPart.contains('..')) {
+      return false;
+    }
+    return _standardEmailExpression.hasMatch(value);
   }
 }
