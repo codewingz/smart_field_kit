@@ -23,7 +23,10 @@ import 'package:smart_field_kit/src/widgets/smart_credit_card_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_date_time_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_design.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_support.dart';
+import 'package:smart_field_kit/src/widgets/smart_amount_display.dart';
 import 'package:smart_field_kit/src/widgets/smart_listener_binding.dart';
+import 'package:smart_field_kit/src/widgets/smart_password_strength_indicator.dart';
+import 'package:smart_field_kit/src/widgets/smart_search_debouncer.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_otp_field.dart';
 
@@ -1214,9 +1217,8 @@ class _SmartFieldState extends State<SmartField> {
       country_picker.CountryService();
   SmartPhoneCountry? _selectedCountry;
   String? _lastPhoneText;
-  bool _updatingAmountText = false;
-  Timer? _searchTimer;
-  String? _pendingSearchQuery;
+  final SmartAmountDisplay _amountDisplay = SmartAmountDisplay();
+  final SmartSearchDebouncer _search = SmartSearchDebouncer();
   SmartAsyncValidationEngine? _asyncEngine;
   TextEditingController? _ownedOtpController;
   final GlobalKey<FormFieldState<String>> _asyncFieldKey = GlobalKey();
@@ -1294,7 +1296,7 @@ class _SmartFieldState extends State<SmartField> {
         oldWidget.controller != widget.controller ||
         !oldSearch.hasSameDebounceBehavior(search) ||
         !_isInteractive) {
-      _cancelPendingSearch();
+      _search.cancel();
     }
 
     if (oldWidget.controller != widget.controller && widget._supportsMasking) {
@@ -1345,7 +1347,7 @@ class _SmartFieldState extends State<SmartField> {
     _wordBinding.bind(_tracksText ? controller : null);
     _serverBinding.bind(widget.serverError);
     if (widget._isAmount && !(focusNode?.hasFocus ?? false)) {
-      _applyAmountDisplay();
+      _amountDisplay.showDisplay(widget._amountFormatter!, controller);
     }
     if (widget._isPhone) {
       _selectedCountry =
@@ -1488,7 +1490,7 @@ class _SmartFieldState extends State<SmartField> {
   }
 
   void _handleSearchControllerChange() {
-    _cancelPendingSearch();
+    _search.cancel();
     if (mounted) {
       setState(() {});
     }
@@ -1543,54 +1545,19 @@ class _SmartFieldState extends State<SmartField> {
   }
 
   void _handleAmountFocusChange() {
-    if (_effectiveFocusNode?.hasFocus ?? false) {
-      _applyAmountEditable();
-    } else {
-      _applyAmountDisplay();
-    }
+    _amountDisplay.handleFocus(
+      widget._amountFormatter!,
+      _effectiveController,
+      _effectiveFocusNode,
+    );
   }
 
   void _handleAmountControllerChange() {
-    if (_updatingAmountText || (_effectiveFocusNode?.hasFocus ?? false)) {
-      return;
-    }
-    _applyAmountDisplay();
-  }
-
-  void _applyAmountEditable() {
-    final controller = _effectiveController;
-    final formatter = widget._amountFormatter;
-    if (controller == null || formatter == null) {
-      return;
-    }
-    final value = formatter.toEditableValue(controller.value);
-    if (value != controller.value) {
-      _setAmountValue(controller, value);
-    }
-  }
-
-  void _applyAmountDisplay() {
-    final controller = _effectiveController;
-    final formatter = widget._amountFormatter;
-    if (controller == null || formatter == null) {
-      return;
-    }
-    final value = formatter.toDisplayValue(controller.value);
-    if (value != controller.value) {
-      _setAmountValue(controller, value);
-    }
-  }
-
-  void _setAmountValue(
-    TextEditingController controller,
-    TextEditingValue value,
-  ) {
-    _updatingAmountText = true;
-    try {
-      controller.value = value;
-    } finally {
-      _updatingAmountText = false;
-    }
+    _amountDisplay.handleControllerChange(
+      widget._amountFormatter!,
+      _effectiveController,
+      _effectiveFocusNode,
+    );
   }
 
   InputDecoration get _effectiveDecoration {
@@ -2141,38 +2108,18 @@ class _SmartFieldState extends State<SmartField> {
   }
 
   void _scheduleSearch(String query) {
-    _cancelPendingSearch();
     final config = widget._searchConfig;
-    final callback = config?.onSearch;
-    if (callback == null || query.trim().isEmpty || !_isInteractive) {
-      return;
-    }
-    if (config!.debounceDuration == Duration.zero) {
-      callback(query);
-      return;
-    }
-    _pendingSearchQuery = query;
-    _searchTimer = Timer(config.debounceDuration, () {
-      if (!mounted ||
-          _pendingSearchQuery != query ||
-          _effectiveController?.text != query ||
-          !_isInteractive) {
-        return;
-      }
-      _searchTimer = null;
-      _pendingSearchQuery = null;
-      widget._searchConfig?.onSearch?.call(query);
-    });
-  }
-
-  void _cancelPendingSearch() {
-    _searchTimer?.cancel();
-    _searchTimer = null;
-    _pendingSearchQuery = null;
+    _search.schedule(
+      query: query,
+      onSearch: config?.onSearch,
+      debounce: config?.debounceDuration ?? Duration.zero,
+      canSearch: () => mounted && _isInteractive,
+      currentText: () => _effectiveController?.text ?? '',
+    );
   }
 
   void _handleSubmitted(String value) {
-    _cancelPendingSearch();
+    _search.cancel();
     widget._searchConfig?.onSubmitted?.call(value);
   }
 
@@ -2182,7 +2129,7 @@ class _SmartFieldState extends State<SmartField> {
     if (controller == null || controller.text.isEmpty || config == null) {
       return;
     }
-    _cancelPendingSearch();
+    _search.cancel();
     controller.clear();
     _searchFieldKey.currentState?.didChange('');
     _handleChanged('');
@@ -2229,7 +2176,7 @@ class _SmartFieldState extends State<SmartField> {
 
   @override
   void dispose() {
-    _cancelPendingSearch();
+    _search.cancel();
     _listeners.unbindAll();
     _asyncEngine?.dispose();
     _ownedOtpController?.dispose();
@@ -2392,73 +2339,16 @@ class _SmartFieldState extends State<SmartField> {
     if (config == null) {
       return child;
     }
-    final result = SmartPasswordStrength.evaluate(
-      _asyncText(),
-      criteria: config.criteria,
-    );
-    final labels = {...SmartPasswordStrength.defaultLabels, ...?config.labels};
-    final scheme = Theme.of(context).colorScheme;
-    final color = switch (result.level) {
-      SmartPasswordStrengthLevel.empty => scheme.outline,
-      SmartPasswordStrengthLevel.weak => scheme.error,
-      SmartPasswordStrengthLevel.fair => scheme.tertiary,
-      SmartPasswordStrengthLevel.good => scheme.secondary,
-      SmartPasswordStrengthLevel.strong => scheme.primary,
-    };
-    final text = result.level == SmartPasswordStrengthLevel.empty
-        ? labels[result.level]!
-        : 'Password strength: ${labels[result.level]}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         child,
         const SizedBox(height: 8),
-        Semantics(
-          label: text,
-          liveRegion: true,
-          excludeSemantics: true,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: result.score,
-                  minHeight: 4,
-                  color: color,
-                  backgroundColor: scheme.surfaceContainerHighest,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                text,
-                style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: color),
-              ),
-              if (config.showChecklist)
-                for (final rule in [...result.met, ...result.unmet])
-                  Row(
-                    children: [
-                      Icon(
-                        result.met.contains(rule)
-                            ? Icons.check_circle
-                            : Icons.radio_button_unchecked,
-                        size: 16,
-                        color: result.met.contains(rule)
-                            ? scheme.primary
-                            : scheme.outline,
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          rule.label,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                    ],
-                  ),
-            ],
-          ),
+        SmartPasswordStrengthIndicator(
+          password: _asyncText(),
+          criteria: config.criteria,
+          labels: config.labels,
+          showChecklist: config.showChecklist,
         ),
       ],
     );
