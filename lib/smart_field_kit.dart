@@ -23,6 +23,7 @@ export 'src/validation/smart_async_validation.dart'
         SmartAsyncValidationTrigger,
         SmartAsyncValidator,
         SmartFieldAsyncController;
+export 'src/validation/smart_password_strength.dart';
 export 'src/validation/smart_phone_validation.dart';
 export 'src/validation/smart_url_validation.dart';
 export 'src/validation/smart_validation_options.dart';
