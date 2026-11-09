@@ -1,4 +1,4 @@
-## 0.0.1
+## 0.0.1 (Unreleased)
 
 * Add the normal SmartField widget with native TextFormField behavior.
 * Add opt-in required and grapheme-aware length validation with reusable validators.

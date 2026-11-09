@@ -43,7 +43,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 ## Card network reference data (braintree/credit-card-type)
 
-The card-brand prefix ranges, accepted lengths, display gaps, and security-code sizes in `lib/src/formatting/smart_card_utils.dart` were compiled from the maintained table at https://github.com/braintree/credit-card-type (`src/lib/card-types.ts`, checked 2026-11-09) and cross-checked against https://en.wikipedia.org/wiki/Payment_card_number. No source code was copied; the numeric network data is reproduced here under that project's license.
+The card-brand prefix ranges, accepted lengths, display gaps, and security-code sizes in `lib/src/formatting/smart_card_utils.dart` were compiled from the maintained table at https://github.com/braintree/credit-card-type (`src/lib/card-types.ts`, checked 2026-11-09) and cross-checked against https://en.wikipedia.org/wiki/Payment_card_number. The decision to exempt UnionPay from the Luhn checksum by default was verified against the behavior of https://github.com/braintree/card-validator (`src/card-number.ts`, checked 2026-11-09, MIT, Copyright (c) 2009-2017 Braintree, a division of PayPal, Inc.). No source code was copied; the numeric network data is reproduced here under that project's license.
 
 MIT License
 

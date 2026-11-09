@@ -19,12 +19,18 @@ class _NumbersPageState extends State<NumbersPage> {
   bool _currency = false;
   SmartRoundingMode _rounding = SmartRoundingMode.none;
   bool _maskAmount = false;
-  String _amountDisplay = '';
   String _amountRaw = '';
   String _amountSavedRaw = '';
   String _percentDisplay = '';
   String _percentRaw = '';
   final _amountForm = GlobalKey<FormState>();
+  final _amountController = TextEditingController();
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -131,6 +137,7 @@ class _NumbersPageState extends State<NumbersPage> {
                 SmartField.amount(
                   key: amountKey,
                   label: 'Amount',
+                  controller: _amountController,
                   decimalLength: _decimalLength,
                   useGrouping: _grouping,
                   groupingStyle: _indian
@@ -139,8 +146,6 @@ class _NumbersPageState extends State<NumbersPage> {
                   currencySymbol: _currency ? 'PKR ' : null,
                   rounding: _rounding,
                   mask: _maskAmount,
-                  onChanged: (display) =>
-                      setState(() => _amountDisplay = display),
                   onRawChanged: (raw) => setState(() => _amountRaw = raw),
                   onRawSaved: (raw) =>
                       setState(() => _amountSavedRaw = raw ?? '(incomplete)'),
@@ -151,7 +156,11 @@ class _NumbersPageState extends State<NumbersPage> {
                   onPressed: () => _amountForm.currentState!.save(),
                   child: const Text('Save form (rounds and reports raw)'),
                 ),
-                ValueRow('Displayed', _amountDisplay),
+                ListenableBuilder(
+                  listenable: _amountController,
+                  builder: (context, _) =>
+                      ValueRow('Displayed', _amountController.text),
+                ),
                 ValueRow('Raw (typing)', _amountRaw),
                 ValueRow('Raw (saved)', _amountSavedRaw),
               ],
