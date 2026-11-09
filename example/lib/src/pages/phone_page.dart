@@ -84,7 +84,10 @@ class _PhonePageState extends State<PhonePage> {
                     setState(() => _country = country),
                 onPhoneChanged: (phone) => setState(() => _value = phone),
               ),
-              ValueRow('Country', _country?.isoCode ?? '(none)'),
+              ValueRow(
+                'Country',
+                _country?.isoCode ?? (_picker ? 'PK (initial)' : '(none)'),
+              ),
               ValueRow('Text', value?.text ?? ''),
               ValueRow('National', value?.nationalNumber ?? '(not parsed)'),
               ValueRow('E.164', value?.e164 ?? '(null: invalid or unparsed)'),
