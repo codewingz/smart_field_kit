@@ -29,6 +29,7 @@ import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_otp_field.dart';
 
 part 'smart_field_internals.dart';
+part 'smart_field_phone.dart';
 
 abstract class _SmartFieldBase extends StatefulWidget {
   const _SmartFieldBase(
@@ -1204,17 +1205,14 @@ class SmartField extends _SmartFieldBase {
   State<SmartField> createState() => _SmartFieldState();
 }
 
-class _SmartFieldState extends State<SmartField> {
+class _SmartFieldState extends State<SmartField> implements _PhoneHost {
   late bool _obscureText = widget._isPassword;
   TextEditingController? _ownedController;
   FocusNode? _ownedFocusNode;
   GlobalKey<FormFieldState<String>> _phoneFieldKey = GlobalKey();
   GlobalKey<FormFieldState<String>> _maskFieldKey = GlobalKey();
   GlobalKey<FormFieldState<String>> _searchFieldKey = GlobalKey();
-  final country_picker.CountryService _countryService =
-      country_picker.CountryService();
-  SmartPhoneCountry? _selectedCountry;
-  String? _lastPhoneText;
+  _PhoneBehavior? _phoneBehavior;
   final SmartAmountDisplay _amountDisplay = SmartAmountDisplay();
   final SmartSearchDebouncer _search = SmartSearchDebouncer();
   SmartAsyncValidationEngine? _asyncEngine;
@@ -1229,7 +1227,7 @@ class _SmartFieldState extends State<SmartField> {
     _handleAmountFocusChange,
   );
   late final SmartListenerBinding _phoneController = _listeners.add(
-    _handlePhoneControllerChange,
+    () => _phone?.handleControllerChange(),
   );
   late final SmartListenerBinding _maskController = _listeners.add(
     _handleMaskControllerChange,
@@ -1332,6 +1330,35 @@ class _SmartFieldState extends State<SmartField> {
     }
   }
 
+  _PhoneBehavior? get _phone {
+    if (!widget._isPhone) {
+      return null;
+    }
+    return _phoneBehavior ??= _PhoneBehavior(this);
+  }
+
+  @override
+  _SmartPhoneConfig get phoneConfig => widget._phoneConfig!;
+
+  @override
+  TextEditingController? get textController => _effectiveController;
+
+  @override
+  GlobalKey<FormFieldState<String>> get phoneFieldKey => _phoneFieldKey;
+
+  @override
+  bool get isInteractive => _isInteractive;
+
+  @override
+  ValueChanged<String>? get onChanged => widget.onChanged;
+
+  @override
+  void rebuild() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   void _syncBindings() {
     final controller = _effectiveController;
     final focusNode = _effectiveFocusNode;
@@ -1347,12 +1374,7 @@ class _SmartFieldState extends State<SmartField> {
     if (widget._isAmount && !(focusNode?.hasFocus ?? false)) {
       _amountDisplay.showDisplay(widget._amountFormatter!, controller);
     }
-    if (widget._isPhone) {
-      _selectedCountry =
-          _resolveCountry(_selectedCountry?.isoCode) ??
-          _resolveCountry(widget._phoneConfig!.initialCountryCode);
-      _lastPhoneText = controller?.text;
-    }
+    _phone?.initialize();
     _syncAsyncBinding();
   }
 
@@ -1506,42 +1528,6 @@ class _SmartFieldState extends State<SmartField> {
     }
   }
 
-  SmartPhoneCountry? _resolveCountry(String? isoCode) {
-    if (isoCode == null || !_isCountryAllowed(isoCode)) {
-      return null;
-    }
-    final country = _countryService.findByCode(isoCode);
-    return country == null ? null : _toSmartCountry(country);
-  }
-
-  bool _isCountryAllowed(String isoCode) {
-    final allowed = widget._phoneConfig?.allowedCountryCodes;
-    return allowed == null || allowed.contains(isoCode.toUpperCase());
-  }
-
-  SmartPhoneCountry _toSmartCountry(country_picker.Country country) {
-    return SmartPhoneCountry(
-      isoCode: country.countryCode,
-      name: country.name,
-      dialCode: '+${country.phoneCode}',
-      flagEmoji: country.flagEmoji,
-    );
-  }
-
-  void _handlePhoneControllerChange() {
-    final text = _effectiveController?.text ?? '';
-    if (text == _lastPhoneText) {
-      return;
-    }
-    _lastPhoneText = text;
-    widget._phoneConfig?.onPhoneChanged?.call(
-      SmartPhoneValidation.parseValue(text, country: _selectedCountry),
-    );
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
   void _handleAmountFocusChange() {
     _amountDisplay.handleFocus(
       widget._amountFormatter!,
@@ -1581,7 +1567,9 @@ class _SmartFieldState extends State<SmartField> {
                 decoration.suffixIcon != null
             ? widget._percentageSuffix
             : null,
-        prefixIcon: _searchPrefixIcon(_phonePrefixIcon(decoration.prefixIcon)),
+        prefixIcon: _searchPrefixIcon(
+          _phone?.prefixIcon(decoration.prefixIcon),
+        ),
         suffixIcon: _suffixIcon(decoration.suffixIcon),
       ),
     );
@@ -1595,60 +1583,8 @@ class _SmartFieldState extends State<SmartField> {
     return existing;
   }
 
-  Widget? _phonePrefixIcon(Widget? existing) {
-    final config = widget._phoneConfig;
-    if (config == null || !config.showCountryPicker) {
-      return existing;
-    }
-    final enabled = _isInteractive;
-    final selected = _selectedCountry;
-    final content = selected == null
-        ? config.countryPlaceholder ?? const Icon(Icons.public, size: 20)
-        : Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (config.showFlag) ...[
-                Text(selected.flagEmoji),
-                const SizedBox(width: 6),
-              ],
-              Text(
-                selected.dialCode,
-                style:
-                    config.countryTextStyle ??
-                    Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-          );
-    final picker = Semantics(
-      label: selected == null
-          ? 'Select country'
-          : 'Change country, ${selected.name}, ${selected.dialCode}',
-      button: true,
-      enabled: enabled,
-      child: InkWell(
-        onTap: enabled ? _showCountryPicker : null,
-        child: Padding(
-          padding:
-              config.countryPadding ??
-              const EdgeInsetsDirectional.symmetric(horizontal: 12),
-          child: content,
-        ),
-      ),
-    );
-    if (existing == null) {
-      return picker;
-    }
-    return Row(mainAxisSize: MainAxisSize.min, children: [existing, picker]);
-  }
-
   bool get _isInteractive {
     return (widget.enabled ?? widget.decoration.enabled) && !widget.readOnly;
-  }
-
-  bool get _supportsContactPicker {
-    return !kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.android ||
-            defaultTargetPlatform == TargetPlatform.iOS);
   }
 
   Widget? _suffixIcon(Widget? existing) {
@@ -1703,31 +1639,7 @@ class _SmartFieldState extends State<SmartField> {
       children.add(_passwordToggle());
     }
 
-    final phone = widget._phoneConfig;
-    if (phone != null) {
-      if (phone.showContactPicker && _supportsContactPicker) {
-        children.add(
-          IconButton(
-            tooltip: 'Select phone number from contacts',
-            onPressed: _isInteractive ? _pickContact : null,
-            icon: const Icon(Icons.contact_phone),
-          ),
-        );
-      }
-      if (phone.showClearButton) {
-        children.add(
-          IconButton(
-            tooltip: 'Clear phone number',
-            onPressed:
-                _isInteractive &&
-                    (_effectiveController?.text.isNotEmpty ?? false)
-                ? _clearPhone
-                : null,
-            icon: const Icon(Icons.clear),
-          ),
-        );
-      }
-    }
+    children.addAll(_phone?.suffixActions() ?? const []);
 
     final search = widget._searchConfig;
     if (search != null) {
@@ -1790,216 +1702,6 @@ class _SmartFieldState extends State<SmartField> {
     );
   }
 
-  void _showCountryPicker() {
-    final config = widget._phoneConfig!;
-    final theme = Theme.of(context);
-    final favorites = config.favoriteCountryCodes
-        ?.where(_isCountryAllowed)
-        .toList(growable: false);
-    country_picker.showCountryPicker(
-      context: context,
-      showPhoneCode: true,
-      countryFilter: config.allowedCountryCodes,
-      favorite: favorites ?? const [],
-      customFlagBuilder: config.showFlag
-          ? null
-          : (country) => const SizedBox.shrink(),
-      countryListTheme: country_picker.CountryListThemeData(
-        backgroundColor: theme.colorScheme.surface,
-        textStyle: theme.textTheme.bodyLarge,
-        searchTextStyle: theme.textTheme.bodyLarge,
-        inputDecoration: const InputDecoration(
-          hintText: 'Search country',
-          prefixIcon: Icon(Icons.search),
-        ),
-      ),
-      onSelect: (country) {
-        if (!_isCountryAllowed(country.countryCode)) {
-          return;
-        }
-        final selected = _toSmartCountry(country);
-        setState(() => _selectedCountry = selected);
-        config.onCountryChanged?.call(selected);
-        config.onPhoneChanged?.call(
-          SmartPhoneValidation.parseValue(
-            _effectiveController?.text ?? '',
-            country: selected,
-          ),
-        );
-        _phoneFieldKey.currentState?.validate();
-      },
-    );
-  }
-
-  void _clearPhone() {
-    final controller = _effectiveController;
-    if (controller == null || controller.text.isEmpty) {
-      return;
-    }
-    controller.clear();
-    widget.onChanged?.call('');
-    _phoneFieldKey.currentState?.didChange('');
-    _phoneFieldKey.currentState?.validate();
-    setState(() {});
-  }
-
-  bool _pickingContact = false;
-
-  Future<void> _pickContact() async {
-    if (_pickingContact) {
-      return;
-    }
-    _pickingContact = true;
-    try {
-      await _runContactPicker();
-    } finally {
-      _pickingContact = false;
-    }
-  }
-
-  Future<void> _runContactPicker() async {
-    final config = widget._phoneConfig!;
-    if (!_supportsContactPicker) {
-      _reportPhonePickerError(
-        const SmartPhonePickerError(
-          SmartPhonePickerErrorCode.unsupportedPlatform,
-          'Contact selection is unavailable on this platform.',
-        ),
-      );
-      return;
-    }
-    try {
-      String? number;
-      if (config.contactPicker == null) {
-        final contact = await FlutterNativeContactPicker().selectPhoneNumber();
-        if (!mounted || contact == null) {
-          return;
-        }
-        number = contact.selectedPhoneNumber;
-        if (number == null) {
-          _reportPhonePickerError(
-            const SmartPhonePickerError(
-              SmartPhonePickerErrorCode.unavailableNumber,
-              'The selected contact did not provide a phone number.',
-            ),
-          );
-          return;
-        }
-      } else {
-        number = await config.contactPicker!();
-      }
-      if (!mounted || number == null) {
-        return;
-      }
-      if (number.isEmpty) {
-        _reportPhonePickerError(
-          const SmartPhonePickerError(
-            SmartPhonePickerErrorCode.unavailableNumber,
-            'The selected contact did not provide a phone number.',
-          ),
-        );
-        return;
-      }
-      final inferred = _countryForInternationalNumber(number);
-      if (inferred.disallowed) {
-        _reportPhonePickerError(
-          const SmartPhonePickerError(
-            SmartPhonePickerErrorCode.disallowedCountry,
-            'The selected phone number is outside the allowed countries.',
-          ),
-        );
-        return;
-      }
-      final country = inferred.country ?? _selectedCountry;
-      final parsed = SmartPhoneValidation.parseValue(number, country: country);
-      if (!parsed.isValid) {
-        _reportPhonePickerError(
-          const SmartPhonePickerError(
-            SmartPhonePickerErrorCode.invalidNumber,
-            'The selected contact does not contain a valid phone number.',
-          ),
-        );
-        return;
-      }
-      if (config.showCountryPicker &&
-          inferred.country != null &&
-          inferred.country != _selectedCountry) {
-        setState(() => _selectedCountry = inferred.country);
-        config.onCountryChanged?.call(inferred.country);
-      }
-      final controller = _effectiveController!;
-      controller.value = TextEditingValue(
-        text: number,
-        selection: TextSelection.collapsed(offset: number.length),
-      );
-      widget.onChanged?.call(number);
-      _phoneFieldKey.currentState?.didChange(number);
-      _phoneFieldKey.currentState?.validate();
-      if (mounted) {
-        setState(() {});
-      }
-    } on Object catch (error) {
-      if (!mounted) {
-        return;
-      }
-      _reportPhonePickerError(
-        SmartPhonePickerError(
-          SmartPhonePickerErrorCode.platformFailure,
-          'Unable to open the contact picker.',
-          error,
-        ),
-      );
-    }
-  }
-
-  ({SmartPhoneCountry? country, bool disallowed})
-  _countryForInternationalNumber(String value) {
-    if (!value.startsWith('+')) {
-      return (country: null, disallowed: false);
-    }
-    final parsedIsoCode = SmartPhoneValidation.parsedIsoCode(value);
-    if (parsedIsoCode != null && !_isCountryAllowed(parsedIsoCode)) {
-      return (country: null, disallowed: true);
-    }
-    final compact = value.replaceAll(RegExp(r'[ ()-]'), '');
-    final all = _countryService.getAll();
-    final matching = all
-        .where((country) => compact.startsWith('+${country.phoneCode}'))
-        .toList();
-    if (matching.isEmpty) {
-      return (country: null, disallowed: false);
-    }
-    final longest = matching
-        .map((country) => country.phoneCode.length)
-        .reduce((left, right) => left > right ? left : right);
-    final candidates = matching
-        .where((country) => country.phoneCode.length == longest)
-        .toList();
-    final selected = _selectedCountry;
-    if (selected != null &&
-        candidates.any((country) => country.countryCode == selected.isoCode)) {
-      return (country: selected, disallowed: false);
-    }
-    if (candidates.length != 1) {
-      return (country: null, disallowed: false);
-    }
-    final candidate = candidates.single;
-    if (!_isCountryAllowed(candidate.countryCode)) {
-      return (country: null, disallowed: true);
-    }
-    return (country: _toSmartCountry(candidate), disallowed: false);
-  }
-
-  void _reportPhonePickerError(SmartPhonePickerError error) {
-    final callback = widget._phoneConfig?.onContactPickerError;
-    if (callback != null) {
-      callback(error);
-      return;
-    }
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    messenger?.showSnackBar(SnackBar(content: Text(error.message)));
-  }
-
   SmartValidator get _effectiveValidator {
     final engine = _asyncEngine;
     if (engine == null || widget._otpConfig != null) {
@@ -2031,7 +1733,7 @@ class _SmartFieldState extends State<SmartField> {
           if (phone != null)
             SmartValidators.phone(
               policy: phone.policy,
-              country: _selectedCountry,
+              country: _phone?.selectedCountry,
               message: phone.errorText,
             ),
         ]),
