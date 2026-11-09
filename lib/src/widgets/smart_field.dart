@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:country_picker/country_picker.dart' as country_picker;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -53,6 +55,7 @@ class SmartField extends StatefulWidget {
        _maskConfig = null,
        _phoneConfig = null,
        _otpConfig = null,
+       _searchConfig = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -179,6 +182,7 @@ class SmartField extends StatefulWidget {
        _maskConfig = null,
        _phoneConfig = null,
        _otpConfig = null,
+       _searchConfig = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -235,6 +239,7 @@ class SmartField extends StatefulWidget {
        _maskConfig = null,
        _phoneConfig = null,
        _otpConfig = null,
+       _searchConfig = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -289,6 +294,7 @@ class SmartField extends StatefulWidget {
        _maskConfig = null,
        _phoneConfig = null,
        _otpConfig = null,
+       _searchConfig = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -343,6 +349,7 @@ class SmartField extends StatefulWidget {
        _maskConfig = null,
        _phoneConfig = null,
        _otpConfig = null,
+       _searchConfig = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -425,6 +432,73 @@ class SmartField extends StatefulWidget {
     );
   }
 
+  SmartField.search({
+    super.key,
+    this.label,
+    this.hintText,
+    this.controller,
+    this.focusNode,
+    this.autofocus = false,
+    this.enabled,
+    this.readOnly = false,
+    this.onChanged,
+    this.onSaved,
+    this.isRequired = false,
+    this.requiredErrorText = 'This field is required.',
+    this.minLength,
+    this.minLengthErrorText,
+    this.maxLength,
+    this.maxLengthErrorText,
+    this.validator,
+    this.autovalidateMode,
+    this.decoration = const InputDecoration(),
+    this.inputFormatters,
+    GestureTapCallback? onTap,
+    ValueChanged<String>? onSubmitted,
+    ValueChanged<String>? onSearch,
+    Duration? debounceDuration,
+    VoidCallback? onCleared,
+    bool showClearButton = true,
+    bool isLoading = false,
+    Widget? searchIcon = const Icon(Icons.search),
+    Widget? clearIcon = const Icon(Icons.clear),
+  }) : keyboardType = TextInputType.text,
+       textCapitalization = TextCapitalization.none,
+       autocorrect = true,
+       enableSuggestions = true,
+       autofillHints = null,
+       textInputAction = TextInputAction.search,
+       minLines = null,
+       maxLines = 1,
+       expands = false,
+       showVisibilityToggle = false,
+       onRawChanged = null,
+       onRawSaved = null,
+       _fieldValidator = null,
+       _valueNormalizer = null,
+       _minValueValidator = null,
+       _maxValueValidator = null,
+       _amountFormatter = null,
+       _maskConfig = null,
+       _phoneConfig = null,
+       _otpConfig = null,
+       _searchConfig = _createSearchConfig(
+         onTap: onTap,
+         onSubmitted: onSubmitted,
+         onSearch: onSearch,
+         debounceDuration: debounceDuration,
+         onCleared: onCleared,
+         showClearButton: showClearButton,
+         isLoading: isLoading,
+         searchIcon: searchIcon,
+         clearIcon: clearIcon,
+       ),
+       _isPassword = false,
+       _isAmount = false,
+       assert(minLength == null || minLength >= 0),
+       assert(maxLength == null || maxLength >= 0),
+       assert(minLength == null || maxLength == null || minLength <= maxLength);
+
   SmartField._otp({
     super.key,
     this.label,
@@ -489,6 +563,7 @@ class SmartField extends StatefulWidget {
          notifyOnProgrammaticChanges: notifyOnProgrammaticChanges,
          style: style,
        ),
+       _searchConfig = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -579,6 +654,7 @@ class SmartField extends StatefulWidget {
          countryPadding: countryPadding,
        ),
        _otpConfig = null,
+       _searchConfig = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -633,6 +709,7 @@ class SmartField extends StatefulWidget {
        _maskConfig = null,
        _phoneConfig = null,
        _otpConfig = null,
+       _searchConfig = null,
        _isPassword = true,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -707,6 +784,7 @@ class SmartField extends StatefulWidget {
        ),
        _phoneConfig = null,
        _otpConfig = null,
+       _searchConfig = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -881,6 +959,7 @@ class SmartField extends StatefulWidget {
        ),
        _phoneConfig = null,
        _otpConfig = null,
+       _searchConfig = null,
        _isPassword = false,
        _isAmount = true,
        assert(minLength == null || minLength >= 0),
@@ -926,10 +1005,12 @@ class SmartField extends StatefulWidget {
   final _SmartMaskConfig? _maskConfig;
   final _SmartPhoneConfig? _phoneConfig;
   final SmartOtpConfiguration? _otpConfig;
+  final _SmartSearchConfig? _searchConfig;
   final bool _isPassword;
   final bool _isAmount;
 
   bool get _isPhone => _phoneConfig != null;
+  bool get _isSearch => _searchConfig != null;
   bool get _supportsMasking => _maskConfig != null;
 
   @override
@@ -1019,6 +1100,63 @@ class _SmartPhoneConfig {
   final EdgeInsetsGeometry? countryPadding;
 }
 
+final class _SmartSearchConfig {
+  const _SmartSearchConfig({
+    required this.onTap,
+    required this.onSubmitted,
+    required this.onSearch,
+    required this.debounceDuration,
+    required this.onCleared,
+    required this.showClearButton,
+    required this.isLoading,
+    required this.searchIcon,
+    required this.clearIcon,
+  });
+
+  final GestureTapCallback? onTap;
+  final ValueChanged<String>? onSubmitted;
+  final ValueChanged<String>? onSearch;
+  final Duration debounceDuration;
+  final VoidCallback? onCleared;
+  final bool showClearButton;
+  final bool isLoading;
+  final Widget? searchIcon;
+  final Widget? clearIcon;
+
+  bool hasSameDebounceBehavior(_SmartSearchConfig other) {
+    return onSearch == other.onSearch &&
+        debounceDuration == other.debounceDuration;
+  }
+}
+
+_SmartSearchConfig _createSearchConfig({
+  required GestureTapCallback? onTap,
+  required ValueChanged<String>? onSubmitted,
+  required ValueChanged<String>? onSearch,
+  required Duration? debounceDuration,
+  required VoidCallback? onCleared,
+  required bool showClearButton,
+  required bool isLoading,
+  required Widget? searchIcon,
+  required Widget? clearIcon,
+}) {
+  final duration = debounceDuration ?? const Duration(milliseconds: 300);
+  if (duration.isNegative) {
+    throw ArgumentError.value(debounceDuration, 'debounceDuration');
+  }
+  return _SmartSearchConfig(
+    onTap: onTap,
+    onSubmitted: onSubmitted,
+    onSearch: onSearch,
+    debounceDuration: duration,
+    onCleared: onCleared,
+    showClearButton: showClearButton,
+    isLoading: isLoading,
+    searchIcon: searchIcon,
+    clearIcon: clearIcon,
+  );
+}
+
 class _SmartFieldState extends State<SmartField> {
   late bool _obscureText = widget._isPassword;
   TextEditingController? _ownedAmountController;
@@ -1027,13 +1165,18 @@ class _SmartFieldState extends State<SmartField> {
   FocusNode? _ownedPhoneFocusNode;
   TextEditingController? _ownedMaskController;
   FocusNode? _ownedMaskFocusNode;
+  TextEditingController? _ownedSearchController;
+  FocusNode? _ownedSearchFocusNode;
   GlobalKey<FormFieldState<String>> _phoneFieldKey = GlobalKey();
   GlobalKey<FormFieldState<String>> _maskFieldKey = GlobalKey();
+  GlobalKey<FormFieldState<String>> _searchFieldKey = GlobalKey();
   final country_picker.CountryService _countryService =
       country_picker.CountryService();
   SmartPhoneCountry? _selectedCountry;
   String? _lastPhoneText;
   bool _updatingAmountText = false;
+  Timer? _searchTimer;
+  String? _pendingSearchQuery;
 
   TextEditingController? _controllerFor(SmartField source) {
     if (source._isAmount) {
@@ -1041,6 +1184,9 @@ class _SmartFieldState extends State<SmartField> {
     }
     if (source._isPhone) {
       return source.controller ?? _ownedPhoneController;
+    }
+    if (source._isSearch) {
+      return source.controller ?? _ownedSearchController;
     }
     if (source._supportsMasking) {
       return source.controller ?? _ownedMaskController;
@@ -1054,6 +1200,9 @@ class _SmartFieldState extends State<SmartField> {
     }
     if (source._isPhone) {
       return source.focusNode ?? _ownedPhoneFocusNode;
+    }
+    if (source._isSearch) {
+      return source.focusNode ?? _ownedSearchFocusNode;
     }
     if (source._supportsMasking) {
       return source.focusNode ?? _ownedMaskFocusNode;
@@ -1071,6 +1220,7 @@ class _SmartFieldState extends State<SmartField> {
     _configureAmountState();
     _configurePhoneState();
     _configureMaskState();
+    _configureSearchState();
   }
 
   @override
@@ -1090,12 +1240,26 @@ class _SmartFieldState extends State<SmartField> {
     final oldMaskFocusNode = oldWidget._supportsMasking
         ? _focusNodeFor(oldWidget)
         : null;
+    final oldSearchController = oldWidget._isSearch
+        ? oldWidget.controller ?? _ownedSearchController
+        : null;
     oldAmountController?.removeListener(_handleAmountControllerChange);
     oldAmountFocusNode?.removeListener(_handleAmountFocusChange);
     oldPhoneController?.removeListener(_handlePhoneControllerChange);
     oldMaskController?.removeListener(_handleMaskControllerChange);
     oldMaskFocusNode?.removeListener(_handleMaskFocusChange);
+    oldSearchController?.removeListener(_handleSearchControllerChange);
     super.didUpdateWidget(oldWidget);
+
+    final oldSearch = oldWidget._searchConfig;
+    final search = widget._searchConfig;
+    if (oldSearch == null ||
+        search == null ||
+        oldWidget.controller != widget.controller ||
+        !oldSearch.hasSameDebounceBehavior(search) ||
+        !_isInteractive) {
+      _cancelPendingSearch();
+    }
 
     if (oldWidget.controller != widget.controller && widget._supportsMasking) {
       if (widget._isPhone) {
@@ -1103,6 +1267,9 @@ class _SmartFieldState extends State<SmartField> {
       } else {
         _maskFieldKey = GlobalKey();
       }
+    }
+    if (oldWidget.controller != widget.controller && widget._isSearch) {
+      _searchFieldKey = GlobalKey();
     }
 
     if (oldWidget._isPassword != widget._isPassword ||
@@ -1178,9 +1345,34 @@ class _SmartFieldState extends State<SmartField> {
         _ownedMaskFocusNode == null) {
       _ownedMaskFocusNode = FocusNode();
     }
+    if (oldWidget._isSearch &&
+        oldWidget.controller == null &&
+        (!widget._isSearch || widget.controller != null)) {
+      _ownedSearchController?.dispose();
+      _ownedSearchController = null;
+    }
+    if (oldWidget._isSearch &&
+        oldWidget.focusNode == null &&
+        (!widget._isSearch || widget.focusNode != null)) {
+      _ownedSearchFocusNode?.dispose();
+      _ownedSearchFocusNode = null;
+    }
+    if (widget._isSearch &&
+        widget.controller == null &&
+        _ownedSearchController == null) {
+      _ownedSearchController = TextEditingController.fromValue(
+        oldSearchController?.value,
+      );
+    }
+    if (widget._isSearch &&
+        widget.focusNode == null &&
+        _ownedSearchFocusNode == null) {
+      _ownedSearchFocusNode = FocusNode();
+    }
     _configureAmountState();
     _configurePhoneState();
     _configureMaskState();
+    _configureSearchState();
   }
 
   void _configureMaskState() {
@@ -1195,6 +1387,24 @@ class _SmartFieldState extends State<SmartField> {
     }
     _effectiveController?.addListener(_handleMaskControllerChange);
     _effectiveFocusNode?.addListener(_handleMaskFocusChange);
+  }
+
+  void _configureSearchState() {
+    if (!widget._isSearch) {
+      return;
+    }
+    _ownedSearchController ??= widget.controller == null
+        ? TextEditingController()
+        : null;
+    _ownedSearchFocusNode ??= widget.focusNode == null ? FocusNode() : null;
+    _effectiveController?.addListener(_handleSearchControllerChange);
+  }
+
+  void _handleSearchControllerChange() {
+    _cancelPendingSearch();
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _handleMaskControllerChange() {
@@ -1335,9 +1545,17 @@ class _SmartFieldState extends State<SmartField> {
       hintText: decoration.hint == null && decoration.hintText == null
           ? widget.hintText
           : null,
-      prefixIcon: _phonePrefixIcon(decoration.prefixIcon),
+      prefixIcon: _searchPrefixIcon(_phonePrefixIcon(decoration.prefixIcon)),
       suffixIcon: _suffixIcon(decoration.suffixIcon),
     );
+  }
+
+  Widget? _searchPrefixIcon(Widget? existing) {
+    final icon = widget._searchConfig?.searchIcon;
+    if (widget._isSearch && existing == null && icon != null) {
+      return ExcludeSemantics(child: icon);
+    }
+    return existing;
   }
 
   Widget? _phonePrefixIcon(Widget? existing) {
@@ -1424,6 +1642,45 @@ class _SmartFieldState extends State<SmartField> {
                 ? _clearPhone
                 : null,
             icon: const Icon(Icons.clear),
+          ),
+        );
+      }
+    }
+
+    final search = widget._searchConfig;
+    if (search != null) {
+      if (search.isLoading) {
+        children.add(
+          Semantics(
+            label: 'Loading search',
+            child: ExcludeSemantics(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: Padding(
+                  padding: EdgeInsets.all(4),
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+      if (search.showClearButton &&
+          search.clearIcon != null &&
+          _isInteractive &&
+          (_effectiveController?.text.isNotEmpty ?? false)) {
+        children.add(
+          Semantics(
+            label: 'Clear search',
+            button: true,
+            child: ExcludeSemantics(
+              child: IconButton(
+                tooltip: 'Clear search',
+                onPressed: _clearSearch,
+                icon: search.clearIcon!,
+              ),
+            ),
           ),
         );
       }
@@ -1703,6 +1960,9 @@ class _SmartFieldState extends State<SmartField> {
 
   void _handleChanged(String value) {
     widget.onChanged?.call(value);
+    if (widget._isSearch) {
+      _scheduleSearch(value);
+    }
     if (widget._isPhone) {
       setState(() {});
     }
@@ -1713,6 +1973,55 @@ class _SmartFieldState extends State<SmartField> {
         widget.onRawChanged?.call(raw);
       }
     }
+  }
+
+  void _scheduleSearch(String query) {
+    _cancelPendingSearch();
+    final config = widget._searchConfig;
+    final callback = config?.onSearch;
+    if (callback == null || query.trim().isEmpty || !_isInteractive) {
+      return;
+    }
+    if (config!.debounceDuration == Duration.zero) {
+      callback(query);
+      return;
+    }
+    _pendingSearchQuery = query;
+    _searchTimer = Timer(config.debounceDuration, () {
+      if (!mounted ||
+          _pendingSearchQuery != query ||
+          _effectiveController?.text != query ||
+          !_isInteractive) {
+        return;
+      }
+      _searchTimer = null;
+      _pendingSearchQuery = null;
+      widget._searchConfig?.onSearch?.call(query);
+    });
+  }
+
+  void _cancelPendingSearch() {
+    _searchTimer?.cancel();
+    _searchTimer = null;
+    _pendingSearchQuery = null;
+  }
+
+  void _handleSubmitted(String value) {
+    _cancelPendingSearch();
+    widget._searchConfig?.onSubmitted?.call(value);
+  }
+
+  void _clearSearch() {
+    final controller = _effectiveController;
+    final config = widget._searchConfig;
+    if (controller == null || controller.text.isEmpty || config == null) {
+      return;
+    }
+    _cancelPendingSearch();
+    controller.clear();
+    _searchFieldKey.currentState?.didChange('');
+    _handleChanged('');
+    config.onCleared?.call();
   }
 
   void _handleSaved(String? value) {
@@ -1791,6 +2100,7 @@ class _SmartFieldState extends State<SmartField> {
 
   @override
   void dispose() {
+    _cancelPendingSearch();
     if (widget._supportsMasking) {
       _effectiveController?.removeListener(_handleMaskControllerChange);
       _effectiveFocusNode?.removeListener(_handleMaskFocusChange);
@@ -1802,12 +2112,17 @@ class _SmartFieldState extends State<SmartField> {
     if (widget._isPhone) {
       _effectiveController?.removeListener(_handlePhoneControllerChange);
     }
+    if (widget._isSearch) {
+      _effectiveController?.removeListener(_handleSearchControllerChange);
+    }
     _ownedAmountController?.dispose();
     _ownedAmountFocusNode?.dispose();
     _ownedPhoneController?.dispose();
     _ownedPhoneFocusNode?.dispose();
     _ownedMaskController?.dispose();
     _ownedMaskFocusNode?.dispose();
+    _ownedSearchController?.dispose();
+    _ownedSearchFocusNode?.dispose();
     super.dispose();
   }
 
@@ -1837,6 +2152,8 @@ class _SmartFieldState extends State<SmartField> {
     final field = TextFormField(
       key: widget._isPhone
           ? _phoneFieldKey
+          : widget._isSearch
+          ? _searchFieldKey
           : widget._supportsMasking
           ? _maskFieldKey
           : null,
@@ -1861,7 +2178,9 @@ class _SmartFieldState extends State<SmartField> {
       showCursor: showsMask ? false : null,
       enableInteractiveSelection: !showsMask,
       inputFormatters: widget.inputFormatters,
+      onTap: widget._searchConfig?.onTap,
       onChanged: _handleChanged,
+      onFieldSubmitted: widget._isSearch ? _handleSubmitted : null,
       onSaved: _handleSaved,
       validator: _effectiveValidator,
       autovalidateMode: widget.autovalidateMode,

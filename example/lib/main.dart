@@ -1,9 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
 
-void main() {
-  runApp(
-    MaterialApp(
+void main() => runApp(const ExampleApp());
+
+class ExampleApp extends StatefulWidget {
+  const ExampleApp({super.key});
+
+  @override
+  State<ExampleApp> createState() => _ExampleAppState();
+}
+
+class _ExampleAppState extends State<ExampleApp> {
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
       home: Scaffold(
         body: Padding(
           padding: const EdgeInsets.all(24),
@@ -14,6 +32,13 @@ void main() {
                   SmartField.name(label: 'Full name'),
                   const SizedBox(height: 16),
                   SmartField.username(label: 'Username', isRequired: true),
+                  const SizedBox(height: 16),
+                  SmartField.search(
+                    controller: _searchController,
+                    label: 'Search',
+                    hintText: 'Search products',
+                    onSearch: (query) {},
+                  ),
                   const SizedBox(height: 16),
                   SmartField.description(
                     label: 'Description',
@@ -96,6 +121,6 @@ void main() {
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }

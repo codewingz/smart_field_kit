@@ -11,3 +11,4 @@
 * Add SmartField.otp with a native single-input box layout, autofill, exact validation, controlled errors, completion callbacks, responsive styling, and the optional legacy rule.
 * Add SmartField.description and SmartField.text with native multiline layout, automatic height growth, shared line configuration, and the final two legacy text presets.
 * Add independent phone, account, and amount masking utilities plus opt-in masked presentation for phone, number, and amount fields.
+* Add SmartField.search with native search input behavior, accessible clear and loading states, and optional debounced search events.

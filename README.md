@@ -423,6 +423,66 @@ The legacy policy remains opt-in. The standard policy follows the configured pre
 
 For number and amount fields, validation runs in this order: required, field syntax or selected legacy policy, configured length rules, minimum value, maximum value, then the custom validator. The first error is displayed.
 
+## Search SmartField
+
+`SmartField.search()` is a native single-line search input. It uses the Material search keyboard action, provides a decorative search icon, and shows an accessible clear action only while editable text is present. It has no built-in search engine, network request, results list, history, or default text restriction.
+
+```dart
+SmartField.search(
+  label: 'Search',
+  hintText: 'Search products',
+)
+```
+
+`onChanged` receives user edits immediately. `onSearch` is an optional debounce event: when it is provided, its default quiet period is 300 milliseconds. Set `debounceDuration: Duration.zero` for an immediate event. Blank and whitespace-only queries do not emit `onSearch`, but their original text remains unchanged and is delivered to `onChanged`. Focus loss does not cancel a pending debounce; clear, submit, disposal, disabled updates, callback changes, controller replacement, and Form reset do.
+
+```dart
+SmartField.search(
+  hintText: 'Search customers',
+  debounceDuration: const Duration(milliseconds: 400),
+  onChanged: (query) {},
+  onSearch: (query) {},
+  onSubmitted: (query) {},
+)
+```
+
+`onSubmitted` runs immediately for the keyboard Search action and cancels any pending debounce without sending another `onSearch`. `onCleared` runs only when the built-in clear button is tapped; Backspace to empty is an ordinary `onChanged('')` edit. Programmatic controller changes update the field without calling `onChanged`, `onSearch`, or `onSubmitted`.
+
+The application owns loading and request state. `isLoading` only displays a compact progress indicator; it does not make, cancel, or track requests. Controllers and focus nodes supplied by the application remain application-owned.
+
+```dart
+class SearchExample extends StatefulWidget {
+  const SearchExample({super.key});
+
+  @override
+  State<SearchExample> createState() => _SearchExampleState();
+}
+
+class _SearchExampleState extends State<SearchExample> {
+  final searchController = TextEditingController();
+  bool isSearching = false;
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SmartField.search(
+      controller: searchController,
+      hintText: 'Search orders',
+      isLoading: isSearching,
+      onSearch: (query) {},
+      onCleared: () {},
+    );
+  }
+}
+```
+
+Set `showClearButton: false`, `searchIcon: null`, or `clearIcon: null` to remove the corresponding built-in affordance. A decoration `prefixIcon` or `suffixIcon` remains available for application-specific customization. Requiredness, length rules, custom validation, input formatters, Form save/reset, themes, and Material 3 behavior use the shared SmartField contract.
+
 ## Sensitive-value masking
 
 `SmartField.phone()`, `SmartField.number()`, and `SmartField.amount()` support opt-in visual masking. Masking is disabled by default and does not change validation or formatting rules.
