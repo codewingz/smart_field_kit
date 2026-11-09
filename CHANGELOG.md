@@ -18,3 +18,8 @@
 * Refactor SmartField internals into a shared core with one owned controller and focus node path and a shared design resolver.
 * Add shared fallback design (12px outline, 1px/2px borders, 16x12 padding) that yields to the field decoration and the app theme.
 * Make SmartPhonePolicy.auto validate international numbers with the parser-inferred country when no country is selected.
+* Add four validation modes with selectable built-in checks, password rule checks, and field matching for confirm password.
+* Add word limits and a word counter for SmartField.description and SmartField.text.
+* Add optional text-case, username, and whitespace formatters and the SmartTextUtils helpers.
+* Add SmartField.amount decimalLength (false, 1, 2, 3), explicit rounding modes, and Indian grouping.
+* Add SmartServerError for manual server messages on every field and optional state restoration.

@@ -142,9 +142,13 @@ String? formatNumber(
   String? currencySymbol,
   SmartCurrencyPosition currencyPosition = SmartCurrencyPosition.prefix,
   bool allowNegative = false,
+  SmartGroupingStyle groupingStyle = SmartGroupingStyle.international,
+  SmartRoundingMode roundingMode = SmartRoundingMode.none,
 }) {
   return SmartAmountFormatter(
     decimalPlaces: decimalPlaces,
+    groupingStyle: groupingStyle,
+    roundingMode: roundingMode,
     useGrouping: useGrouping,
     groupingSeparator: groupingSeparator,
     decimalSeparator: decimalSeparator,

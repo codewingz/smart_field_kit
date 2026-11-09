@@ -14,12 +14,16 @@ class _ExampleAppState extends State<ExampleApp> {
   final _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final _usernameAsync = SmartFieldAsyncController();
+  final _passwordController = TextEditingController();
+  final _serverError = SmartServerError();
   var _submitting = false;
 
   @override
   void dispose() {
     _searchController.dispose();
     _usernameAsync.dispose();
+    _passwordController.dispose();
+    _serverError.dispose();
     super.dispose();
   }
 
@@ -83,6 +87,10 @@ class _ExampleAppState extends State<ExampleApp> {
                   SmartField.description(
                     label: 'Description',
                     hintText: 'Enter details',
+                    minWords: 2,
+                    maxWords: 200,
+                    showWordCount: true,
+                    textCase: SmartTextCase.capitalizeSentences,
                   ),
                   const SizedBox(height: 16),
                   SmartField.description(
@@ -100,14 +108,39 @@ class _ExampleAppState extends State<ExampleApp> {
                     validationPreset: SmartTextValidationPreset.loginUsername,
                   ),
                   const SizedBox(height: 16),
-                  SmartField.email(label: 'Email Address', isRequired: true),
+                  SmartField.email(
+                    label: 'Email Address',
+                    isRequired: true,
+                    serverError: _serverError,
+                    restorationId: 'email',
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        _serverError.set('Email already registered'),
+                    child: const Text('Simulate server error'),
+                  ),
                   const SizedBox(height: 16),
                   SmartField.email(
                     label: 'Legacy Email',
                     policy: SmartEmailPolicy.legacy,
                   ),
                   const SizedBox(height: 16),
-                  SmartField.password(label: 'Password', isRequired: true),
+                  SmartField.password(
+                    label: 'Password',
+                    isRequired: true,
+                    controller: _passwordController,
+                    validationMode: SmartValidationMode.selected,
+                    builtInChecks: const {
+                      SmartBuiltInCheck.passwordUppercase,
+                      SmartBuiltInCheck.passwordDigit,
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.password(
+                    label: 'Confirm password',
+                    isRequired: true,
+                    matchController: _passwordController,
+                  ),
                   const SizedBox(height: 16),
                   SmartField.password(
                     label: 'Strong Password',
@@ -120,8 +153,9 @@ class _ExampleAppState extends State<ExampleApp> {
                   const SizedBox(height: 16),
                   SmartField.amount(
                     label: 'Amount',
-                    decimalPlaces: 2,
+                    decimalLength: 2,
                     useGrouping: true,
+                    rounding: SmartRoundingMode.halfUp,
                   ),
                   const SizedBox(height: 16),
                   SmartField.amount(
