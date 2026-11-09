@@ -1451,11 +1451,23 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
 
   SmartValidator get _effectiveValidator {
     final async = _feature<_AsyncFeature>();
-    if (async == null || widget._otpConfig != null) {
-      return _synchronousValidator;
+    final base = async == null || widget._otpConfig != null
+        ? _synchronousValidator
+        : SmartValidators.compose([_synchronousValidator, async.errorFor]);
+    if (_feature<_MaskFeature>() == null) {
+      return base;
     }
-    return SmartValidators.compose([_synchronousValidator, async.errorFor]);
+    return (value) {
+      final error = base(value);
+      if (error != _announcedError) {
+        _announcedError = error;
+        scheduleMicrotask(rebuild);
+      }
+      return error;
+    };
   }
+
+  String? _announcedError;
 
   String? _synchronousValidator(String? value) {
     final mode = widget.validationMode;
