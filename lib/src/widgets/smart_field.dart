@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
+import 'package:smart_field_kit/src/formatting/smart_composing.dart';
 import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_input_mask.dart';
 import 'package:smart_field_kit/src/formatting/smart_numeric_formatters.dart';
@@ -1308,6 +1309,14 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
 
   @override
   void notifyChanged(String value) => _handleChanged(value);
+
+  @override
+  TextEditingValue? get currentEditingValue =>
+      textController?.value ?? _innerEditable()?.widget.controller.value;
+
+  @override
+  TextEditingController? get currentEditingController =>
+      textController ?? _innerEditable()?.widget.controller;
 
   @override
   bool get showsMask => _feature<_MaskFeature>()?.shows ?? false;
