@@ -1902,18 +1902,10 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
       return _withAsyncFocus(
         SmartOtpField(
           configuration: otpConfig,
-          label: widget.label,
-          hintText: widget.hintText,
+          source: widget,
           controller: widget.controller ?? _ownedOtpController,
-          focusNode: widget.focusNode,
-          autofocus: widget.autofocus,
-          enabled: widget.enabled,
-          readOnly: widget.readOnly,
-          textInputAction: widget.textInputAction,
           onChanged: _handleOtpChanged,
-          onSaved: widget.onSaved,
           validator: _synchronousValidator,
-          autovalidateMode: widget.autovalidateMode,
           decoration: asyncError == null || widget.decoration.errorText != null
               ? widget.decoration
               : widget.decoration.copyWith(errorText: asyncError),
