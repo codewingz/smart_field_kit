@@ -29,3 +29,4 @@
 * Add an optional password-strength indicator with developer-defined criteria.
 * Fix the contact picker storing an inferred country when no country picker is shown, guard it against overlapping opens, keep disabled OTP fields unfocusable, and clear server errors on OTP edits.
 * Credit card: add a verified brand metadata table (Troy, Elo, Mir, Hiper, Hipercard, Naranja, Verve added), uncertainty-aware brand detection, instant local number status with neutral guidance, per-brand grouping, brand-aware security-code re-checks, Luhn options, and redacted diagnostics.
+* Refactor SmartField internals: one shared private base class with default values, constructors that build their configuration directly, shared listener, input-handle, validation-mode, raw-value, and suffix helpers, and smaller field state (phone, amount display, search debounce, and password strength moved to focused helpers). No public API changes.
