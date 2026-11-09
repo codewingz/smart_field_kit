@@ -23,3 +23,8 @@
 * Add optional text-case, username, and whitespace formatters and the SmartTextUtils helpers.
 * Add SmartField.amount decimalLength (false, 1, 2, 3), explicit rounding modes, and Indian grouping.
 * Add SmartServerError for manual server messages on every field and optional state restoration.
+* Add SmartField.creditCard with brand-aware grouping, Luhn and expiry validation, concealed security code, and no persistence of card data.
+* Add SmartField.date (manual, calendar, dropdowns, wheel), SmartField.time, and SmartField.dateTime with typed values and timezone-free ISO serialization.
+* Add generic pattern masks for SmartField.text with separate raw and display values.
+* Add an optional password-strength indicator with developer-defined criteria.
+* Fix the contact picker storing an inferred country when no country picker is shown, guard it against overlapping opens, keep disabled OTP fields unfocusable, and clear server errors on OTP edits.

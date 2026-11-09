@@ -827,6 +827,75 @@ Pass `restorationId` (inside a `RestorationScope`, for example `MaterialApp.rest
 
 `SmartValidators` (including `passwordRules`, `matches`, `minWords`, `maxWords`, `url`, `phone`), `SmartUrlValidation`, `SmartPhoneValidation`, `SmartTextUtils` (`countWords`, case helpers, `collapseWhitespace`), `SmartAmountFormatter`, `SmartDecimalUtils`, `maskMobile`, `maskAccountNumber`, `maskAmount`, and `formatNumber` call the same code as the widgets.
 
+## Credit card
+
+`SmartField.creditCard()` is a composite of card number, expiry, and security code built from the shared fields. It validates input syntax only. A Luhn checksum shows the digits are internally consistent, **not** that the card is real, active, or usable.
+
+```dart
+SmartField.creditCard(
+  isRequired: true,
+  acceptedBrands: const {SmartCardBrand.visa, SmartCardBrand.mastercard},
+  expiryFormat: SmartExpiryFormat.mmYy,
+  onChanged: (card) {
+    final brand = card.brand;
+    final last4 = card.last4;
+  },
+  onSaved: (card) {},
+)
+```
+
+- Brands: Visa, Mastercard, American Express, Discover, Diners Club, JCB, UnionPay, Maestro. Lengths are brand specific (for example 15 for American Express, 13 to 19 for Visa); nothing assumes 16 digits. Grouping is issuer aware (`4111 1111 1111 1111`, `3782 822463 10005`); pasted spaces and dashes are accepted, letters are rejected. `validateLuhn: false` disables the checksum.
+- Expiry: `MM/YY` or `MM/YYYY` (`expiryFormat`). Invalid months are rejected. A card is valid through the last day of its expiry month (leap years included). Pass `now:` for deterministic tests. Two-digit years mean 2000 to 2099.
+- Security code: 3 digits, or 4 for American Express, or any lengths from `cvvLengths`. It is concealed by default (`concealCvv: true`).
+- `SmartCreditCardValue` exposes digits, brand, expiry, and code for tokenization. Its `toString()` never prints the number or code.
+- Server messages: `numberServerError`, `expiryServerError`, `cvvServerError`.
+- Security: the package never persists, restores (`restorationId` is not used), logs, or sends card data; the security code is never remembered. Platform autofill hints are set for card number, expiry, and code. **SmartField does not make an app PCI compliant.** For production payment collection prefer processor-hosted or tokenized inputs, and use only synthetic test cards (such as `4111 1111 1111 1111`) in tests and demos.
+
+## Date, time, and date-time
+
+One API with four date modes:
+
+```dart
+SmartField.date(label: 'Birth date', restriction: SmartDateRestriction.pastOnly)
+SmartField.date(mode: SmartDateMode.calendar, minDate: DateTime(2024), maxDate: DateTime(2030))
+SmartField.date(mode: SmartDateMode.dropdowns, firstYear: 1950, lastYear: 2035)
+SmartField.date(mode: SmartDateMode.wheel, dateFormat: 'yyyy-MM-dd')
+SmartField.time(mode: SmartTimeMode.picker, use24Hour: false)
+SmartField.dateTime(mode: SmartTimeMode.picker, restriction: SmartDateRestriction.futureOnly)
+```
+
+- Modes: `manual` (masked typing), `calendar` (themed Material dialog), `dropdowns` (day, month, year; days follow the month and leap years), `wheel` (scrolling day, month, year in a bottom sheet). Time: `manual`, `picker` (Material clock), `wheel`. Date-time: `manual` or `picker` (date, then time).
+- Formats use `dd`, `MM`, `yyyy` once each with any separators (`dd/MM/yyyy`, `MM/dd/yyyy`, `yyyy-MM-dd`). Time is `HH:mm` or, with `use24Hour: false`, `hh:mm AM/PM`. No `intl` dependency; for localization pass `monthNames` and use the app's Material locale for the calendar and clock dialogs.
+- Rules: `minDate`, `maxDate` (inclusive), `restriction` (`pastOnly` means before today, `futureOnly` means after today, both relative to `now()`), `minTime`/`maxTime`, `isRequired`, your `validator`, `serverError`, `asyncValidation`, `initialDate`/`initialTime`, `showClearButton`, and `FormState.reset`. Impossible dates such as 30 February are invalid. Calendar and wheel pickers default to 1900 to 2100 when no bounds are set.
+- Values: `onDateChanged`, `onTimeChanged`, `onDateTimeChanged` give `DateTime?`/`TimeOfDay?`. Dates are local calendar dates (midnight), so there are no timezone shifts. `onRawChanged`, `onRawSaved`, and async validators receive ISO text: `yyyy-MM-dd`, `HH:mm`, or `yyyy-MM-ddTHH:mm` without an offset. `SmartDateUtils` provides the same helpers. `onChanged` and `onSaved` carry the displayed text. Dropdown mode has no text controller.
+- Limits: date-time values are minute precision and timezone-naive; daylight-saving gaps and overlaps are not adjusted, and the app owns timezone conversion. Cancelling a picker leaves the value unchanged. Programmatic controller changes do not fire typed callbacks.
+
+## Input masks
+
+`SmartField.text(inputMask: '####-####')` formats typed text with a pattern: `#` digit, `A` letter, `*` letter or digit, `\` escapes a literal, anything else is a literal. The controller and `onSaved` keep the formatted text; `onRawChanged` and `onRawSaved` receive only the entered characters (`12345678`). An incomplete value fails validation (`inputMaskErrorText`); an empty value is valid unless required. Typing, deletion (including over a separator), paste of raw or formatted text, selections, and the caret are handled; invalid characters reject the edit. `SmartInputMask` and `SmartMaskFormatter` work without a widget.
+
+Pattern formatting is not privacy masking: it never hides characters. Use `mask: true` (and the `mask*` utilities) for visual privacy. No country rule is applied unless you write one into the pattern.
+
+## Password strength
+
+```dart
+SmartField.password(
+  showStrengthIndicator: true,
+  showStrengthChecklist: true,
+  strengthCriteria: [
+    SmartPasswordCriterion.minLength(10),
+    SmartPasswordCriterion.digit,
+    SmartPasswordCriterion('No spaces', (value) => !value.contains(' ')),
+  ],
+)
+```
+
+The indicator is optional, informational feedback (weak, fair, good, strong from the share of criteria met) with a polite live-region label such as `Password strength: Good`. It is separate from `policy`, `validationMode`, and validation; a password can be "strong" yet rejected by your policy and the reverse. Strength is computed locally from the field text on each change; nothing is logged, stored, or sent. `SmartPasswordStrength.evaluate()` runs without a widget.
+
+## Testing notes
+
+The contact picker uses the system picker of `flutter_native_contact_picker`, which returns only the chosen number and needs no contacts permission; the package adds none. OTP fields never read SMS or WhatsApp and do not verify codes.
+
 ## Design
 
 All fields except `SmartField.otp()` (which draws its own boxes through `SmartOtpStyle`) share one design resolver. Priority is the field's own `decoration`, then the app's `InputDecorationTheme`, then the package fallback:
