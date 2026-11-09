@@ -1199,15 +1199,12 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
   late bool _obscureText = widget._isPassword;
   TextEditingController? _ownedController;
   FocusNode? _ownedFocusNode;
-  GlobalKey<FormFieldState<String>> _phoneFieldKey = GlobalKey();
-  GlobalKey<FormFieldState<String>> _maskFieldKey = GlobalKey();
-  GlobalKey<FormFieldState<String>> _searchFieldKey = GlobalKey();
+  GlobalKey<FormFieldState<String>> _fieldKey = GlobalKey();
   _PhoneBehavior? _phoneBehavior;
   final SmartAmountDisplay _amountDisplay = SmartAmountDisplay();
   final SmartSearchDebouncer _search = SmartSearchDebouncer();
   SmartAsyncValidationEngine? _asyncEngine;
   TextEditingController? _ownedOtpController;
-  final GlobalKey<FormFieldState<String>> _asyncFieldKey = GlobalKey();
   final SmartListenerGroup _listeners = SmartListenerGroup();
   TextEditingController? _lastAsyncController;
   late final SmartListenerBinding _amountController = _listeners.add(
@@ -1219,24 +1216,16 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
   late final SmartListenerBinding _phoneController = _listeners.add(
     () => _phone?.handleControllerChange(),
   );
-  late final SmartListenerBinding _maskController = _listeners.add(
-    _handleMaskControllerChange,
-  );
-  late final SmartListenerBinding _maskFocus = _listeners.add(
-    _handleMaskFocusChange,
-  );
+  late final SmartListenerBinding _maskController = _listeners.add(_rebuild);
+  late final SmartListenerBinding _maskFocus = _listeners.add(_rebuild);
   late final SmartListenerBinding _searchController = _listeners.add(
     _handleSearchControllerChange,
   );
   late final SmartListenerBinding _matchBinding = _listeners.add(
     _handleMatchChange,
   );
-  late final SmartListenerBinding _wordBinding = _listeners.add(
-    _handleWordCountChange,
-  );
-  late final SmartListenerBinding _serverBinding = _listeners.add(
-    _handleServerErrorChange,
-  );
+  late final SmartListenerBinding _wordBinding = _listeners.add(_rebuild);
+  late final SmartListenerBinding _serverBinding = _listeners.add(_rebuild);
   late final SmartListenerBinding _asyncTextBinding = _listeners.add(
     _handleAsyncText,
   );
@@ -1245,7 +1234,8 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
     return source._isAmount ||
         source._isPhone ||
         source._isSearch ||
-        source._supportsMasking;
+        source._supportsMasking ||
+        source._core.strength != null;
   }
 
   TextEditingController? _controllerFor(SmartField source) {
@@ -1285,15 +1275,9 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
       _search.cancel();
     }
 
-    if (oldWidget.controller != widget.controller && widget._supportsMasking) {
-      if (widget._isPhone) {
-        _phoneFieldKey = GlobalKey();
-      } else {
-        _maskFieldKey = GlobalKey();
-      }
-    }
-    if (oldWidget.controller != widget.controller && widget._isSearch) {
-      _searchFieldKey = GlobalKey();
+    if (oldWidget.controller != widget.controller &&
+        (widget._supportsMasking || widget._isSearch)) {
+      _fieldKey = GlobalKey();
     }
 
     if (oldWidget._isPassword != widget._isPassword ||
@@ -1334,7 +1318,7 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
   TextEditingController? get textController => _effectiveController;
 
   @override
-  GlobalKey<FormFieldState<String>> get phoneFieldKey => _phoneFieldKey;
+  GlobalKey<FormFieldState<String>> get phoneFieldKey => _fieldKey;
 
   @override
   bool get isInteractive => _isInteractive;
@@ -1355,8 +1339,9 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
     _amountController.bind(widget._isAmount ? controller : null);
     _amountFocus.bind(widget._isAmount ? focusNode : null);
     _phoneController.bind(widget._isPhone ? controller : null);
-    _maskController.bind(widget._supportsMasking ? controller : null);
-    _maskFocus.bind(widget._supportsMasking ? focusNode : null);
+    final masked = widget._maskConfig?.enabled ?? false;
+    _maskController.bind(masked ? controller : null);
+    _maskFocus.bind(masked ? focusNode : null);
     _searchController.bind(widget._isSearch ? controller : null);
     _matchBinding.bind(widget._core.matchController);
     _wordBinding.bind(_tracksText ? controller : null);
@@ -1377,7 +1362,7 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
     return count == 1 ? '1 word' : '$count words';
   }
 
-  void _handleWordCountChange() {
+  void _rebuild() {
     if (mounted) {
       setState(() {});
     }
@@ -1388,12 +1373,6 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
       return;
     }
     _activeFormFieldKey.currentState?.validate();
-  }
-
-  void _handleServerErrorChange() {
-    if (mounted) {
-      setState(() {});
-    }
   }
 
   void _ensureOwnedState(TextEditingValue? initialValue) {
@@ -1415,18 +1394,7 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
     return _effectiveController;
   }
 
-  GlobalKey<FormFieldState<String>> get _activeFormFieldKey {
-    if (widget._isPhone) {
-      return _phoneFieldKey;
-    }
-    if (widget._isSearch) {
-      return _searchFieldKey;
-    }
-    if (widget._supportsMasking) {
-      return _maskFieldKey;
-    }
-    return _asyncFieldKey;
-  }
+  GlobalKey<FormFieldState<String>> get _activeFormFieldKey => _fieldKey;
 
   String _asyncText() {
     return _asyncTextController?.text ??
@@ -1502,18 +1470,6 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
   void _handleSearchControllerChange() {
     _search.cancel();
     if (mounted) {
-      setState(() {});
-    }
-  }
-
-  void _handleMaskControllerChange() {
-    if ((widget._maskConfig?.enabled ?? false) && mounted) {
-      setState(() {});
-    }
-  }
-
-  void _handleMaskFocusChange() {
-    if ((widget._maskConfig?.enabled ?? false) && mounted) {
       setState(() {});
     }
   }
@@ -1821,7 +1777,7 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
     }
     _search.cancel();
     controller.clear();
-    _searchFieldKey.currentState?.didChange('');
+    _fieldKey.currentState?.didChange('');
     _handleChanged('');
     config.onCleared?.call();
   }
@@ -1905,15 +1861,7 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
     final showsMask = _showsMaskedPresentation;
     final maskedText = showsMask ? _maskedText() : null;
     final field = TextFormField(
-      key: widget._isPhone
-          ? _phoneFieldKey
-          : widget._isSearch
-          ? _searchFieldKey
-          : widget._supportsMasking
-          ? _maskFieldKey
-          : _needsFieldKey
-          ? _asyncFieldKey
-          : null,
+      key: _hasFieldKey ? _fieldKey : null,
       controller: _effectiveController,
       focusNode: _effectiveFocusNode,
       autofocus: widget.autofocus,
@@ -1967,12 +1915,13 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
     );
   }
 
-  bool get _tracksText {
-    return widget._core.showWordCount || widget._core.strength != null;
-  }
+  bool get _tracksText => widget._core.showWordCount;
 
-  bool get _needsFieldKey {
-    return widget.asyncValidation != null ||
+  bool get _hasFieldKey {
+    return widget._isPhone ||
+        widget._isSearch ||
+        widget._supportsMasking ||
+        widget.asyncValidation != null ||
         widget._core.matchController != null ||
         _tracksText;
   }
@@ -1988,7 +1937,8 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
 
   Widget _withStrength(Widget child) {
     final config = widget._core.strength;
-    if (config == null) {
+    final controller = _effectiveController;
+    if (config == null || controller == null) {
       return child;
     }
     return Column(
@@ -1996,11 +1946,14 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
       children: [
         child,
         const SizedBox(height: 8),
-        SmartPasswordStrengthIndicator(
-          password: _asyncText(),
-          criteria: config.criteria,
-          labels: config.labels,
-          showChecklist: config.showChecklist,
+        ListenableBuilder(
+          listenable: controller,
+          builder: (context, _) => SmartPasswordStrengthIndicator(
+            password: controller.text,
+            criteria: config.criteria,
+            labels: config.labels,
+            showChecklist: config.showChecklist,
+          ),
         ),
       ],
     );
