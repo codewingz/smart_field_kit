@@ -374,20 +374,22 @@ final class SmartAmountFormatter extends TextInputFormatter {
   }
 
   String _groupIndian(String digits) {
-    if (digits.length <= 3) {
+    final length = digits.length;
+    if (length <= 3) {
       return digits;
     }
-    final last = digits.substring(digits.length - 3);
-    var rest = digits.substring(0, digits.length - 3);
-    final groups = <String>[];
-    while (rest.length > 2) {
-      groups.insert(0, rest.substring(rest.length - 2));
-      rest = rest.substring(0, rest.length - 2);
+    final headLength = length - 3;
+    final firstSize = headLength.isEven ? 2 : 1;
+    final buffer = StringBuffer(digits.substring(0, firstSize));
+    for (var index = firstSize; index < headLength; index += 2) {
+      buffer
+        ..write(groupingSeparator)
+        ..write(digits.substring(index, index + 2));
     }
-    if (rest.isNotEmpty) {
-      groups.insert(0, rest);
-    }
-    return '${groups.join(groupingSeparator)}$groupingSeparator$last';
+    buffer
+      ..write(groupingSeparator)
+      ..write(digits.substring(headLength));
+    return buffer.toString();
   }
 
   TextEditingValue _replaceText(TextEditingValue value, String text) {
