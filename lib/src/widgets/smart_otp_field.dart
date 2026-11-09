@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/models/smart_otp_style.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
+import 'package:smart_field_kit/src/widgets/smart_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_support.dart';
 import 'package:smart_field_kit/src/widgets/smart_listener_binding.dart';
 
@@ -29,34 +30,18 @@ class SmartOtpField extends StatefulWidget {
   const SmartOtpField({
     super.key,
     required this.configuration,
-    required this.label,
-    required this.hintText,
+    required this.source,
     required this.controller,
-    required this.focusNode,
-    required this.autofocus,
-    required this.enabled,
-    required this.readOnly,
-    required this.textInputAction,
     required this.onChanged,
-    required this.onSaved,
     required this.validator,
-    required this.autovalidateMode,
     required this.decoration,
   });
 
   final SmartOtpConfiguration configuration;
-  final String? label;
-  final String? hintText;
+  final SmartField source;
   final TextEditingController? controller;
-  final FocusNode? focusNode;
-  final bool autofocus;
-  final bool? enabled;
-  final bool readOnly;
-  final TextInputAction? textInputAction;
   final ValueChanged<String>? onChanged;
-  final FormFieldSetter<String>? onSaved;
   final SmartValidator validator;
-  final AutovalidateMode? autovalidateMode;
   final InputDecoration decoration;
 
   @override
@@ -83,12 +68,15 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
 
   FocusNode get _focusNode => _input.focusNode;
 
-  bool get _enabled => widget.enabled ?? widget.decoration.enabled;
+  bool get _enabled => widget.source.enabled ?? widget.decoration.enabled;
 
   @override
   void initState() {
     super.initState();
-    _input.update(controller: widget.controller, focusNode: widget.focusNode);
+    _input.update(
+      controller: widget.controller,
+      focusNode: widget.source.focusNode,
+    );
     _initialValue = _controller.text;
     _lastText = _controller.text;
     _wasComplete = _isComplete(_lastText);
@@ -100,12 +88,13 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
   void didUpdateWidget(covariant SmartOtpField oldWidget) {
     super.didUpdateWidget(oldWidget);
     final controllerChanged = oldWidget.controller != widget.controller;
-    if (controllerChanged || oldWidget.focusNode != widget.focusNode) {
+    if (controllerChanged ||
+        oldWidget.source.focusNode != widget.source.focusNode) {
       final previousValue = _controller.value;
       _listeners.unbindAll();
       _input.update(
         controller: widget.controller,
-        focusNode: widget.focusNode,
+        focusNode: widget.source.focusNode,
         seed: previousValue,
       );
       _input.releaseUnused();
@@ -217,9 +206,9 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
       enabled: _enabled,
       forceErrorText: forcedError,
       validator: widget.validator,
-      onSaved: widget.onSaved,
+      onSaved: widget.source.onSaved,
       onReset: _reset,
-      autovalidateMode: widget.autovalidateMode,
+      autovalidateMode: widget.source.autovalidateMode,
       builder: (field) => _buildField(context, field),
     );
   }
@@ -227,8 +216,8 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
   Widget _buildField(BuildContext context, FormFieldState<String> field) {
     final theme = Theme.of(context);
     final inputTheme = theme.inputDecorationTheme;
-    final label = widget.decoration.labelText ?? widget.label;
-    final hint = widget.decoration.hintText ?? widget.hintText;
+    final label = widget.decoration.labelText ?? widget.source.label;
+    final hint = widget.decoration.hintText ?? widget.source.hintText;
     final error = field.errorText;
     final labelStyle = widget.decoration.labelStyle ?? inputTheme.labelStyle;
     final helperStyle = widget.decoration.hintStyle ?? inputTheme.hintStyle;
@@ -307,14 +296,14 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
                 child: EditableText(
                   controller: _controller,
                   focusNode: _focusNode,
-                  readOnly: widget.readOnly || !_enabled,
+                  readOnly: widget.source.readOnly || !_enabled,
                   obscureText: widget.configuration.obscureText,
                   autocorrect: false,
                   enableSuggestions: false,
-                  autofocus: widget.autofocus,
+                  autofocus: widget.source.autofocus,
                   keyboardType: TextInputType.number,
                   textInputAction:
-                      widget.textInputAction ?? TextInputAction.done,
+                      widget.source.textInputAction ?? TextInputAction.done,
                   autofillHints: const [AutofillHints.oneTimeCode],
                   inputFormatters: [
                     _SmartOtpInputFormatter(
@@ -426,7 +415,7 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
       ),
       child: FittedBox(
         fit: BoxFit.scaleDown,
-        child: value.isEmpty && isFocused && !widget.readOnly
+        child: value.isEmpty && isFocused && !widget.source.readOnly
             ? Container(
                 width: 2,
                 height: (textStyle.fontSize ?? 20) * 1.15,
