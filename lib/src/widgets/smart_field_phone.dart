@@ -1,35 +1,37 @@
 part of 'smart_field.dart';
 
-abstract interface class _PhoneHost {
-  BuildContext get context;
-  bool get mounted;
-  _SmartPhoneConfig get phoneConfig;
-  TextEditingController? get textController;
-  GlobalKey<FormFieldState<String>> get phoneFieldKey;
-  bool get isInteractive;
-  ValueChanged<String>? get onChanged;
-  void rebuild();
-}
+final class _PhoneFeature extends _FieldFeature {
+  _PhoneFeature(super.host) {
+    _binding = SmartListenerBinding(_handleControllerChange);
+  }
 
-final class _PhoneBehavior {
-  _PhoneBehavior(this.host);
-
-  final _PhoneHost host;
+  late final SmartListenerBinding _binding;
   final country_picker.CountryService _countryService =
       country_picker.CountryService();
   SmartPhoneCountry? selectedCountry;
   String? _lastText;
 
-  void initialize() {
+  _SmartPhoneConfig get _config => host.field._phoneConfig!;
+
+  @override
+  void bind() {
+    _binding.bind(host.textController);
     selectedCountry =
         _resolveCountry(selectedCountry?.isoCode) ??
-        _resolveCountry(host.phoneConfig.initialCountryCode);
+        _resolveCountry(_config.initialCountryCode);
     _lastText = host.textController?.text;
   }
 
-  List<Widget> suffixActions() {
-    final phone = host.phoneConfig;
-    return [
+  @override
+  void unbind() => _binding.dispose();
+
+  @override
+  void dispose() => _binding.dispose();
+
+  @override
+  void addSuffix(List<Widget> actions) {
+    final phone = _config;
+    actions.addAll([
       if (phone.showContactPicker && _supportsContactPicker)
         IconButton(
           tooltip: 'Select phone number from contacts',
@@ -46,7 +48,7 @@ final class _PhoneBehavior {
               : null,
           icon: const Icon(Icons.clear),
         ),
-    ];
+    ]);
   }
 
   SmartPhoneCountry? _resolveCountry(String? isoCode) {
@@ -58,7 +60,7 @@ final class _PhoneBehavior {
   }
 
   bool _isCountryAllowed(String isoCode) {
-    final allowed = host.phoneConfig.allowedCountryCodes;
+    final allowed = _config.allowedCountryCodes;
     return allowed == null || allowed.contains(isoCode.toUpperCase());
   }
 
@@ -71,22 +73,24 @@ final class _PhoneBehavior {
     );
   }
 
-  void handleControllerChange() {
+  void _handleControllerChange() {
     final text = host.textController?.text ?? '';
     if (text == _lastText) {
       return;
     }
+    final toggledEmpty = (_lastText?.isEmpty ?? true) != text.isEmpty;
     _lastText = text;
-    host.phoneConfig.onPhoneChanged?.call(
+    _config.onPhoneChanged?.call(
       SmartPhoneValidation.parseValue(text, country: selectedCountry),
     );
-    if (host.mounted) {
+    if (toggledEmpty) {
       host.rebuild();
     }
   }
 
-  Widget? prefixIcon(Widget? existing) {
-    final config = host.phoneConfig;
+  @override
+  Widget? prefix(Widget? existing) {
+    final config = _config;
     if (!config.showCountryPicker) {
       return existing;
     }
@@ -132,7 +136,7 @@ final class _PhoneBehavior {
   }
 
   void _showCountryPicker() {
-    final config = host.phoneConfig;
+    final config = _config;
     final theme = Theme.of(host.context);
     final favorites = config.favoriteCountryCodes
         ?.where(_isCountryAllowed)
@@ -168,7 +172,7 @@ final class _PhoneBehavior {
             country: selected,
           ),
         );
-        host.phoneFieldKey.currentState?.validate();
+        host.fieldKey.currentState?.validate();
       },
     );
   }
@@ -179,9 +183,9 @@ final class _PhoneBehavior {
       return;
     }
     controller.clear();
-    host.onChanged?.call('');
-    host.phoneFieldKey.currentState?.didChange('');
-    host.phoneFieldKey.currentState?.validate();
+    host.field.onChanged?.call('');
+    host.fieldKey.currentState?.didChange('');
+    host.fieldKey.currentState?.validate();
     host.rebuild();
   }
 
@@ -200,7 +204,7 @@ final class _PhoneBehavior {
   }
 
   Future<void> _runContactPicker() async {
-    final config = host.phoneConfig;
+    final config = _config;
     if (!_supportsContactPicker) {
       _reportPhonePickerError(
         const SmartPhonePickerError(
@@ -275,9 +279,9 @@ final class _PhoneBehavior {
         text: number,
         selection: TextSelection.collapsed(offset: number.length),
       );
-      host.onChanged?.call(number);
-      host.phoneFieldKey.currentState?.didChange(number);
-      host.phoneFieldKey.currentState?.validate();
+      host.field.onChanged?.call(number);
+      host.fieldKey.currentState?.didChange(number);
+      host.fieldKey.currentState?.validate();
       if (host.mounted) {
         host.rebuild();
       }
@@ -296,7 +300,7 @@ final class _PhoneBehavior {
   }
 
   void _reportPhonePickerError(SmartPhonePickerError error) {
-    final callback = host.phoneConfig.onContactPickerError;
+    final callback = _config.onContactPickerError;
     if (callback != null) {
       callback(error);
       return;
