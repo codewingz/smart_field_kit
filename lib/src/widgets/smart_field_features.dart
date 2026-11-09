@@ -341,21 +341,39 @@ final class _MaskFeature extends _FieldFeature {
     );
   }
 
+  String? _textOf(Widget? widget) => widget is Text ? widget.data : null;
+
   @override
   Widget wrap(Widget child) {
     if (!shows) {
       return child;
     }
     final field = host.field;
-    final enabled = field.enabled ?? field.decoration.enabled;
+    final decoration = field.decoration;
+    final enabled = field.enabled ?? decoration.enabled;
     final canReveal = host.isInteractive && config.revealOnFocus;
+    final label =
+        decoration.labelText ?? _textOf(decoration.label) ?? field.label;
+    final hint =
+        decoration.hintText ?? _textOf(decoration.hint) ?? field.hintText;
+    final error =
+        field.serverError?.errorText ??
+        decoration.errorText ??
+        host.fieldKey.currentState?.errorText;
+    final details = [
+      ?hint,
+      ?decoration.helperText,
+      ?error,
+    ].where((part) => part.isNotEmpty).join('. ');
     return Semantics(
       container: true,
       excludeSemantics: true,
       textField: true,
       enabled: enabled,
       readOnly: !canReveal,
-      label: field.label,
+      liveRegion: error != null && error.isNotEmpty,
+      label: label,
+      hint: details.isEmpty ? null : details,
       value: maskedText,
       onTap: canReveal ? () => host.focusNode?.requestFocus() : null,
       child: child,
