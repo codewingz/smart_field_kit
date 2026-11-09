@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
+import 'package:smart_field_kit/src/formatting/smart_input_mask.dart';
 import 'package:smart_field_kit/src/formatting/smart_numeric_formatters.dart';
 import 'package:smart_field_kit/src/formatting/smart_text_formatters.dart';
 import 'package:smart_field_kit/src/formatting/smart_text_utils.dart';
@@ -198,6 +199,10 @@ class SmartField extends StatefulWidget {
     List<TextInputFormatter>? inputFormatters,
     SmartTextCase textCase = SmartTextCase.none,
     bool collapseWhitespace = false,
+    String? inputMask,
+    String inputMaskErrorText = 'Complete the value.',
+    this.onRawChanged,
+    this.onRawSaved,
     int? minWords,
     int? maxWords,
     bool showWordCount = false,
@@ -212,6 +217,11 @@ class SmartField extends StatefulWidget {
                  validationPreset,
                  message: validationPresetErrorText,
                ),
+         inputMask: inputMask == null ? null : SmartInputMask(inputMask),
+         inputMaskMessage: inputMaskErrorText,
+         valueNormalizer: inputMask == null
+             ? null
+             : SmartInputMask(inputMask).extractRaw,
          minWords: minWords,
          maxWords: maxWords,
          showWordCount: showWordCount,
@@ -219,9 +229,8 @@ class SmartField extends StatefulWidget {
          maxWordsMessage: maxWordsErrorText,
        ),
        showVisibilityToggle = false,
-       onRawChanged = null,
-       onRawSaved = null,
        inputFormatters = _composeFormatters([
+         if (inputMask != null) SmartMaskFormatter(SmartInputMask(inputMask)),
          if (textCase != SmartTextCase.none) SmartTextCaseFormatter(textCase),
          if (collapseWhitespace) const SmartWhitespaceFormatter(),
        ], inputFormatters),
@@ -2141,6 +2150,18 @@ class _SmartFieldState extends State<SmartField> {
     if (widget._maxValueValidator != null) {
       validators.add(widget._maxValueValidator!);
     }
+    final mask = widget._core.inputMask;
+    if (mask != null && usesBuiltIn) {
+      validators.add((value) {
+        if (value == null || value.isEmpty) {
+          return null;
+        }
+        final raw = mask.extractRaw(value);
+        return raw != null && mask.isComplete(raw)
+            ? null
+            : widget._core.inputMaskMessage;
+      });
+    }
     final minWords = widget._core.minWords;
     if (minWords != null) {
       validators.add(
@@ -2190,6 +2211,13 @@ class _SmartFieldState extends State<SmartField> {
     final formatter = widget._amountFormatter;
     if (formatter != null) {
       final raw = formatter.normalize(value, allowPartial: true);
+      if (raw != null) {
+        widget.onRawChanged?.call(raw);
+      }
+    }
+    final mask = widget._core.inputMask;
+    if (mask != null) {
+      final raw = mask.extractRaw(value);
       if (raw != null) {
         widget.onRawChanged?.call(raw);
       }
@@ -2248,8 +2276,13 @@ class _SmartFieldState extends State<SmartField> {
   void _handleSaved(String? value) {
     widget.onSaved?.call(value);
     final formatter = widget._amountFormatter;
+    final mask = widget._core.inputMask;
     widget.onRawSaved?.call(
-      value == null || formatter == null ? null : formatter.normalize(value),
+      value == null
+          ? null
+          : formatter != null
+          ? formatter.normalize(value)
+          : mask?.extractRaw(value),
     );
   }
 

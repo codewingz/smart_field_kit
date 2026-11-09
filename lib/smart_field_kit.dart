@@ -1,5 +1,6 @@
 library;
 
+export 'src/formatting/smart_input_mask.dart';
 export 'src/formatting/smart_text_formatters.dart';
 export 'src/formatting/smart_text_utils.dart';
 export 'src/formatting/smart_numeric_formatters.dart'

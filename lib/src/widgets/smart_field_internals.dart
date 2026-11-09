@@ -30,6 +30,8 @@ final class _SmartFieldCore {
     this.isAmount = false,
     this.matchController,
     this.mismatchMessage = 'Passwords do not match.',
+    this.inputMask,
+    this.inputMaskMessage = 'Complete the value.',
     this.minWords,
     this.maxWords,
     this.showWordCount = false,
@@ -51,6 +53,8 @@ final class _SmartFieldCore {
   final bool isAmount;
   final TextEditingController? matchController;
   final String mismatchMessage;
+  final SmartInputMask? inputMask;
+  final String inputMaskMessage;
   final int? minWords;
   final int? maxWords;
   final bool showWordCount;
