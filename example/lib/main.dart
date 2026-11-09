@@ -51,10 +51,19 @@ void main() {
                   const SizedBox(height: 16),
                   SmartField.number(label: 'Quantity'),
                   const SizedBox(height: 16),
+                  SmartField.number(label: 'Masked Identifier', mask: true),
+                  const SizedBox(height: 16),
                   SmartField.amount(
                     label: 'Amount',
                     decimalPlaces: 2,
                     useGrouping: true,
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.amount(
+                    label: 'Masked Amount',
+                    decimalPlaces: 2,
+                    useGrouping: true,
+                    mask: true,
                   ),
                   const SizedBox(height: 16),
                   SmartField.otp(
@@ -68,6 +77,8 @@ void main() {
                   ),
                   const SizedBox(height: 16),
                   SmartField.phone(label: 'Phone Number'),
+                  const SizedBox(height: 16),
+                  SmartField.phone(label: 'Masked Phone Number', mask: true),
                   const SizedBox(height: 16),
                   SmartField.phone(
                     label: 'Phone With Country',

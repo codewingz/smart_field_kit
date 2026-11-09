@@ -423,6 +423,57 @@ The legacy policy remains opt-in. The standard policy follows the configured pre
 
 For number and amount fields, validation runs in this order: required, field syntax or selected legacy policy, configured length rules, minimum value, maximum value, then the custom validator. The first error is displayed.
 
+## Sensitive-value masking
+
+`SmartField.phone()`, `SmartField.number()`, and `SmartField.amount()` support opt-in visual masking. Masking is disabled by default and does not change validation or formatting rules.
+
+```dart
+SmartField.phone(
+  label: 'Phone number',
+  mask: true,
+)
+
+SmartField.number(
+  label: 'Identifier',
+  mask: true,
+  maskVisibleSuffixDigits: 4,
+  maskCharacter: '•',
+)
+
+SmartField.amount(
+  label: 'Amount',
+  decimalPlaces: 2,
+  useGrouping: true,
+  mask: true,
+)
+```
+
+An enabled editable masked field displays its masked value while unfocused and reveals its unmasked value when deliberately focused. It returns to the masked display when focus leaves. Read-only and disabled fields remain masked. Set `revealMaskOnFocus: false` to keep the presentation masked while focused; that state is read-only until the application changes its configuration.
+
+`maskVisibleSuffixDigits` defaults to four for phone and number fields and zero for amounts. `maskCharacter` must contain exactly one Unicode grapheme. Negative suffix counts and empty or multi-grapheme mask characters throw `ArgumentError`. The controller, selection, validation, `onChanged`, `onSaved`, phone parsing, amount display formatting, `onRawChanged`, and `onRawSaved` never receive mask characters. Masked mode disables interactive selection and exposes the masked value to assistive technology until raw editing is revealed.
+
+The independent utilities return masked copies and never mutate their input:
+
+```dart
+final phone = maskMobile('03001234567');
+final account = maskAccountNumber('000012345678');
+final amount = maskAmount('12,345.67 PKR');
+
+final formatted = formatNumber(
+  '50000.00',
+  decimalPlaces: 2,
+  useGrouping: true,
+);
+```
+
+These values are `*******4567`, `********5678`, `**,***.** PKR`, and `50,000.00`. `formatNumber` is a convenience wrapper around `SmartAmountFormatter`; it does not use binary `double` arithmetic or repair malformed text such as `5,000.oo`.
+
+`maskMobile` treats ASCII `0`–`9` as revealable phone digits, preserves `+`, whitespace, hyphens, and parentheses, and masks every other grapheme so unexpected letters or non-ASCII digits are not disclosed. `maskAccountNumber` treats every non-separator grapheme, including letters and Unicode clusters, as sensitive and preserves spaces and hyphens by default. Both utilities mask all sensitive content in one-to-four-character short values unless `revealShortValues: true` is explicitly selected.
+
+`maskAmount` accepts a structurally valid ASCII-digit amount display, preserves its sign, grouping, decimal separator, whitespace, and one-sided currency text, and masks all digits by default. Custom separators, a visible trailing-digit count, a one-grapheme mask, and an explicitly positioned `currencySymbol` are optional. Malformed numeric displays throw `FormatException` rather than being sanitized into a valid amount.
+
+Masking is a presentation-level privacy aid, not encryption, secure storage, log redaction, authorization, account verification, or backend protection. The owning application retains the raw value and remains responsible for access control, storage, logging, clipboard policy, and server-side security.
+
 ## OTP SmartField
 
 `SmartField.otp()` is a native Flutter verification-code input backed by one `EditableText`, one controller, and one focus node. It displays separate boxes while preserving native selection, replacement, deletion, keyboard paste, controller updates, autofill, and `Form` behavior. It uses six visible ASCII digits by default, remains optional, and does not read SMS, email, or WhatsApp messages.

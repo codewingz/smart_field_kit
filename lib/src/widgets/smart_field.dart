@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:smart_field_kit/src/formatting/smart_numeric_formatters.dart';
+import 'package:smart_field_kit/src/masking/smart_masking.dart';
 import 'package:smart_field_kit/src/models/smart_otp_style.dart';
 import 'package:smart_field_kit/src/models/smart_phone_value.dart';
 import 'package:smart_field_kit/src/validation/smart_phone_validation.dart';
@@ -49,6 +50,7 @@ class SmartField extends StatefulWidget {
        _minValueValidator = null,
        _maxValueValidator = null,
        _amountFormatter = null,
+       _maskConfig = null,
        _phoneConfig = null,
        _otpConfig = null,
        _isPassword = false,
@@ -174,6 +176,7 @@ class SmartField extends StatefulWidget {
        _minValueValidator = null,
        _maxValueValidator = null,
        _amountFormatter = null,
+       _maskConfig = null,
        _phoneConfig = null,
        _otpConfig = null,
        _isPassword = false,
@@ -229,6 +232,7 @@ class SmartField extends StatefulWidget {
        _maxValueValidator = null,
        inputFormatters = null,
        _amountFormatter = null,
+       _maskConfig = null,
        _phoneConfig = null,
        _otpConfig = null,
        _isPassword = false,
@@ -282,6 +286,7 @@ class SmartField extends StatefulWidget {
        _minValueValidator = null,
        _maxValueValidator = null,
        _amountFormatter = null,
+       _maskConfig = null,
        _phoneConfig = null,
        _otpConfig = null,
        _isPassword = false,
@@ -335,6 +340,7 @@ class SmartField extends StatefulWidget {
        _minValueValidator = null,
        _maxValueValidator = null,
        _amountFormatter = null,
+       _maskConfig = null,
        _phoneConfig = null,
        _otpConfig = null,
        _isPassword = false,
@@ -473,6 +479,7 @@ class SmartField extends StatefulWidget {
        _maxValueValidator = null,
        inputFormatters = null,
        _amountFormatter = null,
+       _maskConfig = null,
        _phoneConfig = null,
        _otpConfig = SmartOtpConfiguration(
          length: length,
@@ -509,6 +516,10 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.decoration = const InputDecoration(),
+    bool mask = false,
+    int maskVisibleSuffixDigits = 4,
+    String maskCharacter = '*',
+    bool revealMaskOnFocus = true,
     bool showCountryPicker = false,
     String? initialCountryCode,
     List<String>? allowedCountryCodes,
@@ -542,6 +553,13 @@ class SmartField extends StatefulWidget {
        _maxValueValidator = null,
        inputFormatters = null,
        _amountFormatter = null,
+       _maskConfig = _createMaskConfig(
+         enabled: mask,
+         kind: _SmartMaskKind.phone,
+         visibleSuffixDigits: maskVisibleSuffixDigits,
+         maskCharacter: maskCharacter,
+         revealOnFocus: revealMaskOnFocus,
+       ),
        _phoneConfig = _SmartPhoneConfig(
          showCountryPicker: showCountryPicker,
          initialCountryCode: initialCountryCode,
@@ -612,6 +630,7 @@ class SmartField extends StatefulWidget {
        _maxValueValidator = null,
        inputFormatters = null,
        _amountFormatter = null,
+       _maskConfig = null,
        _phoneConfig = null,
        _otpConfig = null,
        _isPassword = true,
@@ -645,6 +664,10 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.decoration = const InputDecoration(),
+    bool mask = false,
+    int maskVisibleSuffixDigits = 4,
+    String maskCharacter = '*',
+    bool revealMaskOnFocus = true,
     bool allowNegative = false,
     SmartNumberPolicy policy = SmartNumberPolicy.standard,
     String numberErrorText = 'Enter a valid whole number.',
@@ -675,6 +698,13 @@ class SmartField extends StatefulWidget {
          SmartNumberInputFormatter(allowNegative: allowNegative),
        ],
        _amountFormatter = null,
+       _maskConfig = _createMaskConfig(
+         enabled: mask,
+         kind: _SmartMaskKind.account,
+         visibleSuffixDigits: maskVisibleSuffixDigits,
+         maskCharacter: maskCharacter,
+         revealOnFocus: revealMaskOnFocus,
+       ),
        _phoneConfig = null,
        _otpConfig = null,
        _isPassword = false,
@@ -717,6 +747,10 @@ class SmartField extends StatefulWidget {
     String? currencySymbol,
     SmartCurrencyPosition currencyPosition = SmartCurrencyPosition.prefix,
     bool allowNegative = false,
+    bool mask = false,
+    int maskVisibleSuffixDigits = 0,
+    String maskCharacter = '*',
+    bool revealMaskOnFocus = true,
     SmartAmountPolicy policy = SmartAmountPolicy.standard,
     String amountErrorText = 'Enter a valid amount.',
   }) {
@@ -761,6 +795,10 @@ class SmartField extends StatefulWidget {
       amountErrorText: amountErrorText,
       decimalPlaces: decimalPlaces,
       allowNegative: allowNegative,
+      mask: mask,
+      maskVisibleSuffixDigits: maskVisibleSuffixDigits,
+      maskCharacter: maskCharacter,
+      revealMaskOnFocus: revealMaskOnFocus,
     );
   }
 
@@ -796,6 +834,10 @@ class SmartField extends StatefulWidget {
     required String amountErrorText,
     required int? decimalPlaces,
     required bool allowNegative,
+    required bool mask,
+    required int maskVisibleSuffixDigits,
+    required String maskCharacter,
+    required bool revealMaskOnFocus,
   }) : keyboardType = TextInputType.numberWithOptions(
          signed: allowNegative,
          decimal: decimalPlaces != 0,
@@ -830,6 +872,13 @@ class SmartField extends StatefulWidget {
              ),
        inputFormatters = [formatter],
        _amountFormatter = formatter,
+       _maskConfig = _createMaskConfig(
+         enabled: mask,
+         kind: _SmartMaskKind.amount,
+         visibleSuffixDigits: maskVisibleSuffixDigits,
+         maskCharacter: maskCharacter,
+         revealOnFocus: revealMaskOnFocus,
+       ),
        _phoneConfig = null,
        _otpConfig = null,
        _isPassword = false,
@@ -874,15 +923,56 @@ class SmartField extends StatefulWidget {
   final SmartValidator? _maxValueValidator;
   final List<TextInputFormatter>? inputFormatters;
   final SmartAmountFormatter? _amountFormatter;
+  final _SmartMaskConfig? _maskConfig;
   final _SmartPhoneConfig? _phoneConfig;
   final SmartOtpConfiguration? _otpConfig;
   final bool _isPassword;
   final bool _isAmount;
 
   bool get _isPhone => _phoneConfig != null;
+  bool get _supportsMasking => _maskConfig != null;
 
   @override
   State<SmartField> createState() => _SmartFieldState();
+}
+
+enum _SmartMaskKind { phone, account, amount }
+
+final class _SmartMaskConfig {
+  const _SmartMaskConfig({
+    required this.enabled,
+    required this.kind,
+    required this.visibleSuffixDigits,
+    required this.maskCharacter,
+    required this.revealOnFocus,
+  });
+
+  final bool enabled;
+  final _SmartMaskKind kind;
+  final int visibleSuffixDigits;
+  final String maskCharacter;
+  final bool revealOnFocus;
+}
+
+_SmartMaskConfig _createMaskConfig({
+  required bool enabled,
+  required _SmartMaskKind kind,
+  required int visibleSuffixDigits,
+  required String maskCharacter,
+  required bool revealOnFocus,
+}) {
+  maskAccountNumber(
+    '',
+    visibleSuffixCharacters: visibleSuffixDigits,
+    maskCharacter: maskCharacter,
+  );
+  return _SmartMaskConfig(
+    enabled: enabled,
+    kind: kind,
+    visibleSuffixDigits: visibleSuffixDigits,
+    maskCharacter: maskCharacter,
+    revealOnFocus: revealOnFocus,
+  );
 }
 
 class _SmartPhoneConfig {
@@ -935,38 +1025,52 @@ class _SmartFieldState extends State<SmartField> {
   FocusNode? _ownedAmountFocusNode;
   TextEditingController? _ownedPhoneController;
   FocusNode? _ownedPhoneFocusNode;
-  final GlobalKey<FormFieldState<String>> _phoneFieldKey = GlobalKey();
+  TextEditingController? _ownedMaskController;
+  FocusNode? _ownedMaskFocusNode;
+  GlobalKey<FormFieldState<String>> _phoneFieldKey = GlobalKey();
+  GlobalKey<FormFieldState<String>> _maskFieldKey = GlobalKey();
   final country_picker.CountryService _countryService =
       country_picker.CountryService();
   SmartPhoneCountry? _selectedCountry;
   String? _lastPhoneText;
   bool _updatingAmountText = false;
 
-  TextEditingController? get _effectiveController {
-    if (widget._isAmount) {
-      return widget.controller ?? _ownedAmountController;
+  TextEditingController? _controllerFor(SmartField source) {
+    if (source._isAmount) {
+      return source.controller ?? _ownedAmountController;
     }
-    if (widget._isPhone) {
-      return widget.controller ?? _ownedPhoneController;
+    if (source._isPhone) {
+      return source.controller ?? _ownedPhoneController;
     }
-    return widget.controller;
+    if (source._supportsMasking) {
+      return source.controller ?? _ownedMaskController;
+    }
+    return source.controller;
   }
 
-  FocusNode? get _effectiveFocusNode {
-    if (widget._isAmount) {
-      return widget.focusNode ?? _ownedAmountFocusNode;
+  FocusNode? _focusNodeFor(SmartField source) {
+    if (source._isAmount) {
+      return source.focusNode ?? _ownedAmountFocusNode;
     }
-    if (widget._isPhone) {
-      return widget.focusNode ?? _ownedPhoneFocusNode;
+    if (source._isPhone) {
+      return source.focusNode ?? _ownedPhoneFocusNode;
     }
-    return widget.focusNode;
+    if (source._supportsMasking) {
+      return source.focusNode ?? _ownedMaskFocusNode;
+    }
+    return source.focusNode;
   }
+
+  TextEditingController? get _effectiveController => _controllerFor(widget);
+
+  FocusNode? get _effectiveFocusNode => _focusNodeFor(widget);
 
   @override
   void initState() {
     super.initState();
     _configureAmountState();
     _configurePhoneState();
+    _configureMaskState();
   }
 
   @override
@@ -980,10 +1084,26 @@ class _SmartFieldState extends State<SmartField> {
     final oldPhoneController = oldWidget._isPhone
         ? oldWidget.controller ?? _ownedPhoneController
         : null;
+    final oldMaskController = oldWidget._supportsMasking
+        ? _controllerFor(oldWidget)
+        : null;
+    final oldMaskFocusNode = oldWidget._supportsMasking
+        ? _focusNodeFor(oldWidget)
+        : null;
     oldAmountController?.removeListener(_handleAmountControllerChange);
     oldAmountFocusNode?.removeListener(_handleAmountFocusChange);
     oldPhoneController?.removeListener(_handlePhoneControllerChange);
+    oldMaskController?.removeListener(_handleMaskControllerChange);
+    oldMaskFocusNode?.removeListener(_handleMaskFocusChange);
     super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.controller != widget.controller && widget._supportsMasking) {
+      if (widget._isPhone) {
+        _phoneFieldKey = GlobalKey();
+      } else {
+        _maskFieldKey = GlobalKey();
+      }
+    }
 
     if (oldWidget._isPassword != widget._isPassword ||
         oldWidget.showVisibilityToggle && !widget.showVisibilityToggle) {
@@ -1028,8 +1148,65 @@ class _SmartFieldState extends State<SmartField> {
         oldWidget.controller?.value,
       );
     }
+    final oldUsesOwnedMaskState =
+        oldWidget._supportsMasking &&
+        !oldWidget._isAmount &&
+        !oldWidget._isPhone;
+    final usesOwnedMaskState =
+        widget._supportsMasking && !widget._isAmount && !widget._isPhone;
+    if (oldUsesOwnedMaskState &&
+        oldWidget.controller == null &&
+        (!usesOwnedMaskState || widget.controller != null)) {
+      _ownedMaskController?.dispose();
+      _ownedMaskController = null;
+    }
+    if (oldUsesOwnedMaskState &&
+        oldWidget.focusNode == null &&
+        (!usesOwnedMaskState || widget.focusNode != null)) {
+      _ownedMaskFocusNode?.dispose();
+      _ownedMaskFocusNode = null;
+    }
+    if (usesOwnedMaskState &&
+        widget.controller == null &&
+        _ownedMaskController == null) {
+      _ownedMaskController = TextEditingController.fromValue(
+        oldMaskController?.value,
+      );
+    }
+    if (usesOwnedMaskState &&
+        widget.focusNode == null &&
+        _ownedMaskFocusNode == null) {
+      _ownedMaskFocusNode = FocusNode();
+    }
     _configureAmountState();
     _configurePhoneState();
+    _configureMaskState();
+  }
+
+  void _configureMaskState() {
+    if (!widget._supportsMasking) {
+      return;
+    }
+    if (!widget._isAmount && !widget._isPhone) {
+      _ownedMaskController ??= widget.controller == null
+          ? TextEditingController()
+          : null;
+      _ownedMaskFocusNode ??= widget.focusNode == null ? FocusNode() : null;
+    }
+    _effectiveController?.addListener(_handleMaskControllerChange);
+    _effectiveFocusNode?.addListener(_handleMaskFocusChange);
+  }
+
+  void _handleMaskControllerChange() {
+    if ((widget._maskConfig?.enabled ?? false) && mounted) {
+      setState(() {});
+    }
+  }
+
+  void _handleMaskFocusChange() {
+    if ((widget._maskConfig?.enabled ?? false) && mounted) {
+      setState(() {});
+    }
   }
 
   void _configurePhoneState() {
@@ -1546,8 +1723,78 @@ class _SmartFieldState extends State<SmartField> {
     );
   }
 
+  bool get _showsMaskedPresentation {
+    final config = widget._maskConfig;
+    final controller = _effectiveController;
+    if (config == null ||
+        !config.enabled ||
+        controller == null ||
+        controller.text.isEmpty) {
+      return false;
+    }
+    if (!_isInteractive || !config.revealOnFocus) {
+      return true;
+    }
+    return !(_effectiveFocusNode?.hasFocus ?? false);
+  }
+
+  String _maskedText() {
+    final config = widget._maskConfig!;
+    final value = _effectiveController?.text ?? '';
+    switch (config.kind) {
+      case _SmartMaskKind.phone:
+        return maskMobile(
+          value,
+          visibleSuffixDigits: config.visibleSuffixDigits,
+          maskCharacter: config.maskCharacter,
+        );
+      case _SmartMaskKind.account:
+        return maskAccountNumber(
+          value,
+          visibleSuffixCharacters: config.visibleSuffixDigits,
+          maskCharacter: config.maskCharacter,
+        );
+      case _SmartMaskKind.amount:
+        final formatter = widget._amountFormatter!;
+        try {
+          return maskAmount(
+            value,
+            visibleSuffixDigits: config.visibleSuffixDigits,
+            maskCharacter: config.maskCharacter,
+            groupingSeparator: formatter.groupingSeparator,
+            decimalSeparator: formatter.decimalSeparator,
+          );
+        } on FormatException {
+          return maskAccountNumber(
+            value,
+            visibleSuffixCharacters: 0,
+            maskCharacter: config.maskCharacter,
+            preservedSeparators: {
+              ' ',
+              '-',
+              formatter.groupingSeparator,
+              formatter.decimalSeparator,
+            },
+          );
+        }
+    }
+  }
+
+  InputDecoration _maskedDecoration(String maskedText) {
+    final decoration = _effectiveDecoration;
+    return decoration.copyWith(
+      prefixText: '${decoration.prefixText ?? ''}$maskedText',
+      prefixStyle:
+          decoration.prefixStyle ?? Theme.of(context).textTheme.bodyLarge,
+    );
+  }
+
   @override
   void dispose() {
+    if (widget._supportsMasking) {
+      _effectiveController?.removeListener(_handleMaskControllerChange);
+      _effectiveFocusNode?.removeListener(_handleMaskFocusChange);
+    }
     if (widget._isAmount) {
       _effectiveController?.removeListener(_handleAmountControllerChange);
       _effectiveFocusNode?.removeListener(_handleAmountFocusChange);
@@ -1559,6 +1806,8 @@ class _SmartFieldState extends State<SmartField> {
     _ownedAmountFocusNode?.dispose();
     _ownedPhoneController?.dispose();
     _ownedPhoneFocusNode?.dispose();
+    _ownedMaskController?.dispose();
+    _ownedMaskFocusNode?.dispose();
     super.dispose();
   }
 
@@ -1583,13 +1832,21 @@ class _SmartFieldState extends State<SmartField> {
         decoration: widget.decoration,
       );
     }
-    return TextFormField(
-      key: widget._isPhone ? _phoneFieldKey : null,
+    final showsMask = _showsMaskedPresentation;
+    final maskedText = showsMask ? _maskedText() : null;
+    final field = TextFormField(
+      key: widget._isPhone
+          ? _phoneFieldKey
+          : widget._supportsMasking
+          ? _maskFieldKey
+          : null,
       controller: _effectiveController,
       focusNode: _effectiveFocusNode,
       autofocus: widget.autofocus,
       enabled: widget.enabled,
-      readOnly: widget.readOnly,
+      readOnly:
+          widget.readOnly ||
+          (showsMask && !(widget._maskConfig?.revealOnFocus ?? true)),
       keyboardType: widget.keyboardType,
       textCapitalization: widget.textCapitalization,
       autocorrect: widget.autocorrect,
@@ -1600,12 +1857,33 @@ class _SmartFieldState extends State<SmartField> {
       maxLines: widget.maxLines,
       expands: widget.expands,
       obscureText: _obscureText,
+      style: showsMask ? const TextStyle(color: Colors.transparent) : null,
+      showCursor: showsMask ? false : null,
+      enableInteractiveSelection: !showsMask,
       inputFormatters: widget.inputFormatters,
       onChanged: _handleChanged,
       onSaved: _handleSaved,
       validator: _effectiveValidator,
       autovalidateMode: widget.autovalidateMode,
-      decoration: _effectiveDecoration,
+      decoration: showsMask
+          ? _maskedDecoration(maskedText!)
+          : _effectiveDecoration,
+    );
+    if (!showsMask) {
+      return field;
+    }
+    final enabled = widget.enabled ?? widget.decoration.enabled;
+    final canReveal = _isInteractive && widget._maskConfig!.revealOnFocus;
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      textField: true,
+      enabled: enabled,
+      readOnly: !canReveal,
+      label: widget.label,
+      value: maskedText,
+      onTap: canReveal ? () => _effectiveFocusNode?.requestFocus() : null,
+      child: field,
     );
   }
 }
