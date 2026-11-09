@@ -2,6 +2,7 @@ import 'package:characters/characters.dart';
 import 'package:smart_field_kit/src/formatting/smart_numeric_formatters.dart';
 import 'package:smart_field_kit/src/models/smart_phone_value.dart';
 import 'package:smart_field_kit/src/validation/smart_phone_validation.dart';
+import 'package:smart_field_kit/src/validation/smart_url_validation.dart';
 
 typedef SmartValidator = String? Function(String? value);
 typedef SmartValueNormalizer = String? Function(String value);
@@ -192,6 +193,25 @@ abstract final class SmartValidators {
         SmartEmailPolicy.legacy => _legacyEmailExpression.hasMatch(value),
       };
       return isValid ? null : message;
+    };
+  }
+
+  static SmartValidator url({
+    Set<String> allowedSchemes = SmartUrlValidation.defaultSchemes,
+    bool allowBareDomain = false,
+    String message = 'Enter a valid URL.',
+  }) {
+    return (value) {
+      if (value == null || value.isEmpty) {
+        return null;
+      }
+      return SmartUrlValidation.isValid(
+            value,
+            allowedSchemes: allowedSchemes,
+            allowBareDomain: allowBareDomain,
+          )
+          ? null
+          : message;
     };
   }
 

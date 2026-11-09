@@ -91,6 +91,22 @@ class _ExampleAppState extends State<ExampleApp> {
                     mask: true,
                   ),
                   const SizedBox(height: 16),
+                  SmartField.url(
+                    label: 'Website',
+                    hintText: 'https://example.com',
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.url(
+                    label: 'Company website',
+                    isRequired: true,
+                    allowedSchemes: const {'https'},
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.url(
+                    label: 'Website or domain',
+                    allowBareDomain: true,
+                  ),
+                  const SizedBox(height: 16),
                   SmartField.percentage(label: 'Growth rate'),
                   const SizedBox(height: 16),
                   SmartField.percentage(
