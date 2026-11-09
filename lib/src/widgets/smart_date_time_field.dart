@@ -2,8 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_input_mask.dart';
-import 'package:smart_field_kit/src/validation/smart_async_validation.dart';
-import 'package:smart_field_kit/src/validation/smart_validation_options.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_design.dart';
@@ -277,47 +275,11 @@ class SmartDateTimeField extends StatefulWidget {
   const SmartDateTimeField({
     super.key,
     required this.config,
-    required this.label,
-    required this.hintText,
-    required this.controller,
-    required this.focusNode,
-    required this.autofocus,
-    required this.enabled,
-    required this.readOnly,
-    required this.textInputAction,
-    required this.onChanged,
-    required this.onSaved,
-    required this.isRequired,
-    required this.requiredErrorText,
-    required this.validator,
-    required this.autovalidateMode,
-    required this.asyncValidation,
-    required this.validationMode,
-    required this.builtInChecks,
-    required this.serverError,
-    required this.decoration,
+    required this.source,
   });
 
   final SmartDateTimeConfig config;
-  final String? label;
-  final String? hintText;
-  final TextEditingController? controller;
-  final FocusNode? focusNode;
-  final bool autofocus;
-  final bool? enabled;
-  final bool readOnly;
-  final TextInputAction? textInputAction;
-  final ValueChanged<String>? onChanged;
-  final FormFieldSetter<String>? onSaved;
-  final bool isRequired;
-  final String requiredErrorText;
-  final FormFieldValidator<String>? validator;
-  final AutovalidateMode? autovalidateMode;
-  final SmartAsyncValidation? asyncValidation;
-  final SmartValidationMode validationMode;
-  final Set<SmartBuiltInCheck> builtInChecks;
-  final SmartServerError? serverError;
-  final InputDecoration decoration;
+  final SmartField source;
 
   @override
   State<SmartDateTimeField> createState() => _SmartDateTimeFieldState();
@@ -343,7 +305,8 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
 
   TextEditingController get _controller => _input.controller;
 
-  bool get _enabled => widget.enabled ?? widget.decoration.enabled;
+  bool get _enabled =>
+      widget.source.enabled ?? widget.source.decoration.enabled;
 
   bool get _isDropdown =>
       _config.kind == SmartDateTimeKind.date &&
@@ -353,10 +316,11 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   void initState() {
     super.initState();
     _syncBindings();
-    if (widget.controller != null && widget.controller!.text.isEmpty) {
+    if (widget.source.controller != null &&
+        widget.source.controller!.text.isEmpty) {
       final initial = _initialText();
       if (initial.isNotEmpty) {
-        widget.controller!.text = initial;
+        widget.source.controller!.text = initial;
       }
     }
     _loadPartsFrom(_config.initialDate);
@@ -370,10 +334,10 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
 
   void _syncBindings() {
     _textBinding.bind(null);
-    _input.update(controller: widget.controller);
+    _input.update(controller: widget.source.controller);
     _input.releaseUnused();
     _textBinding.bind(_controller);
-    _serverBinding.bind(widget.serverError);
+    _serverBinding.bind(widget.source.serverError);
   }
 
   @override
@@ -417,10 +381,10 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
 
   String? _combine(String? value, String? Function() builtIn) {
     return SmartValidators.modeAware(
-      mode: widget.validationMode,
-      checks: widget.builtInChecks,
+      mode: widget.source.validationMode,
+      checks: widget.source.builtInChecks,
       builtIn: (_) => builtIn(),
-      custom: widget.validator,
+      custom: widget.source.validator,
     )(value);
   }
 
@@ -438,7 +402,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   }
 
   void _onTextChanged(String text) {
-    widget.onChanged?.call(text);
+    widget.source.onChanged?.call(text);
     _config.notifyTyped(text);
   }
 
@@ -447,14 +411,14 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       text: text,
       selection: TextSelection.collapsed(offset: text.length),
     );
-    widget.serverError?.notifyFieldChanged();
+    widget.source.serverError?.notifyFieldChanged();
     _onTextChanged(text);
   }
 
   void _clear() {
     _controller.clear();
-    widget.serverError?.notifyFieldChanged();
-    widget.onChanged?.call('');
+    widget.source.serverError?.notifyFieldChanged();
+    widget.source.onChanged?.call('');
     switch (_config.kind) {
       case SmartDateTimeKind.date:
         _config.onDateChanged?.call(null);
@@ -501,7 +465,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   }
 
   Future<void> _openPicker() async {
-    if (!_enabled || widget.readOnly) {
+    if (!_enabled || widget.source.readOnly) {
       return;
     }
     switch (_config.kind) {
@@ -617,14 +581,14 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
 
   Widget? _suffix() {
     final children = <Widget>[];
-    final existing = widget.decoration.suffixIcon;
+    final existing = widget.source.decoration.suffixIcon;
     if (existing != null) {
       children.add(existing);
     }
     if (_config.showClearButton &&
         _controller.text.isNotEmpty &&
         _enabled &&
-        !widget.readOnly) {
+        !widget.source.readOnly) {
       children.add(
         IconButton(
           tooltip: 'Clear',
@@ -639,7 +603,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
         IconButton(
           tooltip:
               _config.pickerTooltip ?? (isTime ? 'Choose time' : 'Choose date'),
-          onPressed: _enabled && !widget.readOnly ? _openPicker : null,
+          onPressed: _enabled && !widget.source.readOnly ? _openPicker : null,
           icon: Icon(isTime ? Icons.access_time : Icons.calendar_today),
         ),
       );
@@ -652,26 +616,26 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     if (_isDropdown) {
       return _buildDropdowns(context);
     }
-    final decoration = widget.decoration.copyWith(suffixIcon: _suffix());
+    final decoration = widget.source.decoration.copyWith(suffixIcon: _suffix());
     final field = SmartField.text(
-      label: widget.label,
-      hintText: widget.hintText ?? _config.displayPattern,
+      label: widget.source.label,
+      hintText: widget.source.hintText ?? _config.displayPattern,
       controller: _controller,
-      focusNode: widget.focusNode,
-      autofocus: widget.autofocus,
-      enabled: widget.enabled,
-      readOnly: widget.readOnly || _config.usesPicker,
+      focusNode: widget.source.focusNode,
+      autofocus: widget.source.autofocus,
+      enabled: widget.source.enabled,
+      readOnly: widget.source.readOnly || _config.usesPicker,
       keyboardType: TextInputType.datetime,
-      textInputAction: widget.textInputAction,
+      textInputAction: widget.source.textInputAction,
       onChanged: _onTextChanged,
-      onSaved: widget.onSaved,
+      onSaved: widget.source.onSaved,
       onRawSaved: _config.onRawSaved,
-      isRequired: widget.isRequired,
-      requiredErrorText: widget.requiredErrorText,
+      isRequired: widget.source.isRequired,
+      requiredErrorText: widget.source.requiredErrorText,
       validator: _validateText,
-      autovalidateMode: widget.autovalidateMode,
-      asyncValidation: widget.asyncValidation,
-      serverError: widget.serverError,
+      autovalidateMode: widget.source.autovalidateMode,
+      asyncValidation: widget.source.asyncValidation,
+      serverError: widget.source.serverError,
       decoration: decoration,
       rawValueBuilder: _config.serialize,
       inputFormatters: _config.isManual
@@ -684,14 +648,14 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     return Semantics(
       container: true,
       button: true,
-      enabled: _enabled && !widget.readOnly,
-      label: widget.label,
+      enabled: _enabled && !widget.source.readOnly,
+      label: widget.source.label,
       value: _controller.text,
-      onTap: _enabled && !widget.readOnly ? _openPicker : null,
+      onTap: _enabled && !widget.source.readOnly ? _openPicker : null,
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: _enabled && !widget.readOnly ? _openPicker : null,
+        onTap: _enabled && !widget.source.readOnly ? _openPicker : null,
         child: AbsorbPointer(
           absorbing: true,
           child: ExcludeFocus(child: field),
@@ -717,8 +681,8 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     final value = _composeDate();
     final anySet = _day != null || _month != null || _year != null;
     if (!anySet) {
-      if (widget.isRequired) {
-        return widget.requiredErrorText;
+      if (widget.source.isRequired) {
+        return widget.source.requiredErrorText;
       }
       return _combine(null, () => null);
     }
@@ -756,9 +720,9 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     });
     final value = _composeDate();
     state.didChange(value);
-    widget.serverError?.notifyFieldChanged();
+    widget.source.serverError?.notifyFieldChanged();
     final text = value == null ? '' : _config.dateFormat.format(value);
-    widget.onChanged?.call(text);
+    widget.source.onChanged?.call(text);
     _config.onDateChanged?.call(value);
     if (value != null) {
       _config.onRawChanged?.call(SmartDateUtils.toIsoDate(value));
@@ -780,11 +744,11 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
           ? null
           : SmartDateUtils.dateOnly(_config.initialDate!),
       enabled: _enabled,
-      autovalidateMode: widget.autovalidateMode,
-      forceErrorText: widget.serverError?.errorText,
+      autovalidateMode: widget.source.autovalidateMode,
+      forceErrorText: widget.source.serverError?.errorText,
       validator: _validateParts,
       onSaved: (value) {
-        widget.onSaved?.call(
+        widget.source.onSaved?.call(
           value == null ? null : _config.dateFormat.format(value),
         );
         _config.onRawSaved?.call(
@@ -821,7 +785,9 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
                         ),
                       ),
                   ],
-                  onChanged: _enabled && !widget.readOnly ? onChanged : null,
+                  onChanged: _enabled && !widget.source.readOnly
+                      ? onChanged
+                      : null,
                 ),
               ),
             ),
@@ -830,8 +796,8 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
 
         final decoration = SmartFieldDesign.resolve(
           context,
-          widget.decoration.copyWith(
-            labelText: widget.label,
+          widget.source.decoration.copyWith(
+            labelText: widget.source.label,
             errorText: state.errorText,
             enabled: _enabled,
           ),

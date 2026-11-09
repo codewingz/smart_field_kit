@@ -119,23 +119,11 @@ class SmartCreditCardField extends StatefulWidget {
   const SmartCreditCardField({
     super.key,
     required this.config,
-    required this.enabled,
-    required this.readOnly,
-    required this.autofocus,
-    required this.isRequired,
-    required this.requiredErrorText,
-    required this.autovalidateMode,
-    required this.decoration,
+    required this.source,
   });
 
   final SmartCreditCardConfig config;
-  final bool? enabled;
-  final bool readOnly;
-  final bool autofocus;
-  final bool isRequired;
-  final String requiredErrorText;
-  final AutovalidateMode? autovalidateMode;
-  final InputDecoration decoration;
+  final SmartField source;
 
   @override
   State<SmartCreditCardField> createState() => _SmartCreditCardFieldState();
@@ -365,10 +353,10 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
 
   @override
   Widget build(BuildContext context) {
-    final enabled = widget.enabled ?? widget.decoration.enabled;
+    final enabled = widget.source.enabled ?? widget.source.decoration.enabled;
     final brand = _brand;
     final assessment = _assess();
-    final numberDecoration = widget.decoration.copyWith(
+    final numberDecoration = widget.source.decoration.copyWith(
       suffixText: _config.showBrand && brand != SmartCardBrand.unknown
           ? brand.displayName
           : null,
@@ -379,17 +367,17 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       hintText: _config.numberHint ?? '1234 5678 9012 3456',
       controller: _number,
       focusNode: _numberFocus,
-      autofocus: widget.autofocus,
+      autofocus: widget.source.autofocus,
       enabled: enabled,
-      readOnly: widget.readOnly,
+      readOnly: widget.source.readOnly,
       keyboardType: TextInputType.number,
       autocorrect: false,
       enableSuggestions: false,
       autofillHints: const [AutofillHints.creditCardNumber],
       textInputAction: TextInputAction.next,
-      isRequired: widget.isRequired,
-      requiredErrorText: widget.requiredErrorText,
-      autovalidateMode: widget.autovalidateMode,
+      isRequired: widget.source.isRequired,
+      requiredErrorText: widget.source.requiredErrorText,
+      autovalidateMode: widget.source.autovalidateMode,
       serverError: _numberDisplay,
       decoration: numberDecoration,
       inputFormatters: const [SmartCardNumberFormatter()],
@@ -415,18 +403,18 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       controller: _expiry,
       focusNode: _expiryFocus,
       enabled: enabled,
-      readOnly: widget.readOnly,
+      readOnly: widget.source.readOnly,
       keyboardType: TextInputType.number,
       autocorrect: false,
       enableSuggestions: false,
       autofillHints: const [AutofillHints.creditCardExpirationDate],
       textInputAction: TextInputAction.next,
       onChanged: _onExpiryChanged,
-      isRequired: widget.isRequired,
-      requiredErrorText: widget.requiredErrorText,
-      autovalidateMode: widget.autovalidateMode,
+      isRequired: widget.source.isRequired,
+      requiredErrorText: widget.source.requiredErrorText,
+      autovalidateMode: widget.source.autovalidateMode,
       serverError: _config.expiryServerError,
-      decoration: widget.decoration,
+      decoration: widget.source.decoration,
       inputFormatters: [SmartMaskFormatter(SmartInputMask(expiryMask))],
       validator: SmartValidators.cardExpiry(
         format: _config.expiryFormat,
@@ -451,16 +439,16 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
             controller: _cvv,
             focusNode: _cvvFocus,
             enabled: enabled,
-            readOnly: widget.readOnly,
+            readOnly: widget.source.readOnly,
             keyboardType: TextInputType.number,
             inputFormatters: cvvFormatters,
             textInputAction: TextInputAction.done,
             onChanged: _onCvvChanged,
-            isRequired: widget.isRequired,
-            requiredErrorText: widget.requiredErrorText,
-            autovalidateMode: widget.autovalidateMode,
+            isRequired: widget.source.isRequired,
+            requiredErrorText: widget.source.requiredErrorText,
+            autovalidateMode: widget.source.autovalidateMode,
             serverError: _cvvDisplay,
-            decoration: widget.decoration,
+            decoration: widget.source.decoration,
             validator: cvvValidator,
           )
         : SmartField(
@@ -469,18 +457,18 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
             controller: _cvv,
             focusNode: _cvvFocus,
             enabled: enabled,
-            readOnly: widget.readOnly,
+            readOnly: widget.source.readOnly,
             keyboardType: TextInputType.number,
             autocorrect: false,
             enableSuggestions: false,
             autofillHints: const [AutofillHints.creditCardSecurityCode],
             textInputAction: TextInputAction.done,
             onChanged: _onCvvChanged,
-            isRequired: widget.isRequired,
-            requiredErrorText: widget.requiredErrorText,
-            autovalidateMode: widget.autovalidateMode,
+            isRequired: widget.source.isRequired,
+            requiredErrorText: widget.source.requiredErrorText,
+            autovalidateMode: widget.source.autovalidateMode,
             serverError: _cvvDisplay,
-            decoration: widget.decoration,
+            decoration: widget.source.decoration,
             inputFormatters: cvvFormatters,
             validator: cvvValidator,
           );

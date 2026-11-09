@@ -1889,41 +1889,11 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
   Widget build(BuildContext context) {
     final cardConfig = widget._core.cardConfig;
     if (cardConfig != null) {
-      return SmartCreditCardField(
-        config: cardConfig,
-        enabled: widget.enabled,
-        readOnly: widget.readOnly,
-        autofocus: widget.autofocus,
-        isRequired: widget.isRequired,
-        requiredErrorText: widget.requiredErrorText,
-        autovalidateMode: widget.autovalidateMode,
-        decoration: widget.decoration,
-      );
+      return SmartCreditCardField(config: cardConfig, source: widget);
     }
     final dateTimeConfig = widget._core.dateTimeConfig;
     if (dateTimeConfig != null) {
-      return SmartDateTimeField(
-        config: dateTimeConfig,
-        label: widget.label,
-        hintText: widget.hintText,
-        controller: widget.controller,
-        focusNode: widget.focusNode,
-        autofocus: widget.autofocus,
-        enabled: widget.enabled,
-        readOnly: widget.readOnly,
-        textInputAction: widget.textInputAction,
-        onChanged: widget.onChanged,
-        onSaved: widget.onSaved,
-        isRequired: widget.isRequired,
-        requiredErrorText: widget.requiredErrorText,
-        validator: widget.validator,
-        autovalidateMode: widget.autovalidateMode,
-        asyncValidation: widget.asyncValidation,
-        validationMode: widget.validationMode,
-        builtInChecks: widget.builtInChecks,
-        serverError: widget.serverError,
-        decoration: widget.decoration,
-      );
+      return SmartDateTimeField(config: dateTimeConfig, source: widget);
     }
     final otpConfig = widget._otpConfig;
     if (otpConfig != null) {
