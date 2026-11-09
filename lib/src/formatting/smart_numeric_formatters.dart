@@ -304,6 +304,9 @@ final class SmartAmountFormatter extends TextInputFormatter {
   }
 
   TextEditingValue toEditableValue(TextEditingValue value) {
+    if (smartIsComposing(value)) {
+      return value;
+    }
     final raw = normalize(value.text, allowPartial: true);
     if (raw == null) {
       return value;
@@ -312,6 +315,9 @@ final class SmartAmountFormatter extends TextInputFormatter {
   }
 
   TextEditingValue toDisplayValue(TextEditingValue value) {
+    if (smartIsComposing(value)) {
+      return value;
+    }
     final display = format(value.text);
     if (display == null) {
       return value;
