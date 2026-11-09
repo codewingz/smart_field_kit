@@ -59,13 +59,17 @@ class SmartAsyncValidationEngine {
     required this.syncError,
     required this.isActive,
     required this.onUpdate,
+    this.isComposing = _neverComposing,
   });
+
+  static bool _neverComposing() => false;
 
   final String Function() readText;
   final String? Function(String text) toRaw;
   final String? Function(String text) syncError;
   final bool Function() isActive;
   final void Function() onUpdate;
+  final bool Function() isComposing;
 
   SmartAsyncValidation? _config;
   SmartFieldAsyncController? _controller;
@@ -140,6 +144,11 @@ class SmartAsyncValidationEngine {
     if (_disposed || config == null) {
       return;
     }
+    if (isComposing()) {
+      _lastRaw = null;
+      _invalidate();
+      return;
+    }
     final raw = toRaw(text);
     if (raw == _lastRaw) {
       return;
@@ -158,7 +167,7 @@ class SmartAsyncValidationEngine {
     }
     _timer = Timer(config.debounceDuration, () {
       _timer = null;
-      if (_disposed || !isActive()) {
+      if (_disposed || !isActive() || isComposing()) {
         return;
       }
       final current = readText();

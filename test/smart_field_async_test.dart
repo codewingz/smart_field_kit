@@ -20,6 +20,7 @@ Widget _app(Widget child, {TextDirection direction = TextDirection.ltr}) {
 const _debounce = Duration(milliseconds: 400);
 
 void main() {
+  _compositionTests();
   testWidgets('does nothing without an async validator', (tester) async {
     final calls = <String>[];
     await tester.pumpWidget(_app(SmartField.username()));
@@ -908,6 +909,121 @@ void main() {
       await tester.pump();
       expect(async.status, SmartAsyncValidationStatus.invalid);
       expect(async.errorText, 'Rejected by B');
+    });
+  });
+}
+
+void _compositionTests() {
+  group('IME composition', () {
+    Widget build(
+      List<String> calls, {
+      Completer<String?>? gate,
+      bool enabled = true,
+    }) => _app(
+      SmartField(
+        enabled: enabled,
+        asyncValidation: SmartAsyncValidation(
+          debounceDuration: Duration.zero,
+          validator: (value) {
+            calls.add(value);
+            return gate?.future ?? Future<String?>.value();
+          },
+        ),
+      ),
+    );
+
+    testWidgets('uncommitted composing text is not validated', (tester) async {
+      final calls = <String>[];
+      await tester.pumpWidget(build(calls));
+      await tester.showKeyboard(find.byType(EditableText));
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: 'ka',
+          selection: TextSelection.collapsed(offset: 2),
+          composing: TextRange(start: 0, end: 2),
+        ),
+      );
+      await tester.pump();
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: 'kan',
+          selection: TextSelection.collapsed(offset: 3),
+          composing: TextRange(start: 0, end: 3),
+        ),
+      );
+      await tester.pump();
+      expect(calls, isEmpty);
+    });
+
+    testWidgets('the committed value is validated once', (tester) async {
+      final calls = <String>[];
+      await tester.pumpWidget(build(calls));
+      await tester.showKeyboard(find.byType(EditableText));
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: 'ka',
+          selection: TextSelection.collapsed(offset: 2),
+          composing: TextRange(start: 0, end: 2),
+        ),
+      );
+      await tester.pump();
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: 'か',
+          selection: TextSelection.collapsed(offset: 1),
+        ),
+      );
+      await tester.pump();
+      expect(calls, ['か']);
+    });
+
+    testWidgets('unchanged text at commit is still validated once', (
+      tester,
+    ) async {
+      final calls = <String>[];
+      await tester.pumpWidget(build(calls));
+      await tester.showKeyboard(find.byType(EditableText));
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: 'abc',
+          selection: TextSelection.collapsed(offset: 3),
+          composing: TextRange(start: 0, end: 3),
+        ),
+      );
+      await tester.pump();
+      expect(calls, isEmpty);
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: 'abc',
+          selection: TextSelection.collapsed(offset: 3),
+        ),
+      );
+      await tester.pump();
+      expect(calls, ['abc']);
+    });
+
+    testWidgets('a pending result is dropped when composition resumes', (
+      tester,
+    ) async {
+      final calls = <String>[];
+      final gate = Completer<String?>();
+      await tester.pumpWidget(build(calls, gate: gate));
+      await tester.enterText(find.byType(EditableText), 'abc');
+      await tester.pump();
+      expect(calls, ['abc']);
+      await tester.showKeyboard(find.byType(EditableText));
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: 'abcd',
+          selection: TextSelection.collapsed(offset: 4),
+          composing: TextRange(start: 3, end: 4),
+        ),
+      );
+      await tester.pump();
+      gate.complete('Rejected');
+      await tester.pump();
+      expect(find.text('Rejected'), findsNothing);
+      expect(calls, ['abc']);
     });
   });
 }

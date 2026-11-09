@@ -13,6 +13,8 @@ abstract interface class _FieldHost {
   void rebuild();
   void notifyChanged(String value);
   bool get showsMask;
+  TextEditingValue? get currentEditingValue;
+  TextEditingController? get currentEditingController;
 }
 
 abstract class _FieldFeature {
@@ -500,6 +502,11 @@ final class _AsyncFeature extends _FieldFeature {
       syncError: host.validateSync,
       isActive: () => host.mounted && host.isInteractive,
       onUpdate: _updated,
+      isComposing: () {
+        final value =
+            (textController ?? _inner)?.value ?? host.currentEditingValue;
+        return value != null && smartIsComposing(value);
+      },
     );
   }
 
@@ -509,13 +516,16 @@ final class _AsyncFeature extends _FieldFeature {
   late final SmartListenerBinding _binding;
   TextEditingController? _ownedOtpController;
   TextEditingController? _lastController;
+  TextEditingController? _inner;
 
   SmartAsyncValidation get _config => host.field.asyncValidation!;
 
   bool get _isOtp => host.field._otpConfig != null;
 
   String get currentText =>
-      textController?.text ?? host.fieldKey.currentState?.value ?? '';
+      (textController ?? _inner)?.text ??
+      host.fieldKey.currentState?.value ??
+      '';
 
   TextEditingController? get otpController =>
       host.field.controller ?? _ownedOtpController;
@@ -537,6 +547,16 @@ final class _AsyncFeature extends _FieldFeature {
     engine.configure(_config);
     final controller = textController;
     _binding.bind(controller);
+    _inner = null;
+    if (controller == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!host.mounted || textController != null) {
+          return;
+        }
+        _inner = host.currentEditingController;
+        _binding.bind(_inner);
+      });
+    }
     if (_lastController != null && !identical(_lastController, controller)) {
       engine.reset();
     }
@@ -573,7 +593,7 @@ final class _AsyncFeature extends _FieldFeature {
   }
 
   void _textChanged() {
-    engine.observe(textController?.text ?? '');
+    engine.observe(currentText);
   }
 
   void _updated() {
@@ -586,7 +606,11 @@ final class _AsyncFeature extends _FieldFeature {
         (status == SmartAsyncValidationStatus.valid ||
             status == SmartAsyncValidationStatus.invalid ||
             status == SmartAsyncValidationStatus.unavailable)) {
-      host.fieldKey.currentState?.validate();
+      scheduleMicrotask(() {
+        if (host.mounted) {
+          host.fieldKey.currentState?.validate();
+        }
+      });
     }
   }
 
