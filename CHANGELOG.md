@@ -28,3 +28,4 @@
 * Add generic pattern masks for SmartField.text with separate raw and display values.
 * Add an optional password-strength indicator with developer-defined criteria.
 * Fix the contact picker storing an inferred country when no country picker is shown, guard it against overlapping opens, keep disabled OTP fields unfocusable, and clear server errors on OTP edits.
+* Credit card: add a verified brand metadata table (Troy, Elo, Mir, Hiper, Hipercard, Naranja, Verve added), uncertainty-aware brand detection, instant local number status with neutral guidance, per-brand grouping, brand-aware security-code re-checks, Luhn options, and redacted diagnostics.

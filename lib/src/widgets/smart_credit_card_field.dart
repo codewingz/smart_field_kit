@@ -113,6 +113,11 @@ final class SmartCreditCardConfig {
   final FormFieldSetter<SmartCreditCardValue>? onSaved;
 }
 
+final class _RedactedTextEditingController extends TextEditingController {
+  @override
+  String toString() => 'TextEditingController(redacted)';
+}
+
 class SmartCreditCardField extends StatefulWidget {
   const SmartCreditCardField({
     super.key,
@@ -153,6 +158,8 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
   String? _cvvBrandError;
   SmartServerError? _boundNumberServer;
   SmartServerError? _boundCvvServer;
+  TextEditingController? _boundNumberController;
+  String _lastNumberText = '';
 
   SmartCreditCardConfig get _config => widget.config;
 
@@ -171,25 +178,48 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
   void initState() {
     super.initState();
     _ownedNumber = _config.numberController == null
-        ? TextEditingController()
+        ? _RedactedTextEditingController()
         : null;
     _ownedExpiry = _config.expiryController == null
-        ? TextEditingController()
+        ? _RedactedTextEditingController()
         : null;
-    _ownedCvv = _config.cvvController == null ? TextEditingController() : null;
+    _ownedCvv = _config.cvvController == null
+        ? _RedactedTextEditingController()
+        : null;
     _ownedNumberFocus = _config.numberFocusNode == null ? FocusNode() : null;
     _ownedExpiryFocus = _config.expiryFocusNode == null ? FocusNode() : null;
     _ownedCvvFocus = _config.cvvFocusNode == null ? FocusNode() : null;
     _bindServerErrors();
+    _bindNumberController();
     _refreshNumberDisplay();
   }
 
   @override
   void didUpdateWidget(covariant SmartCreditCardField oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _bindNumberController();
     _bindServerErrors();
     _refreshNumberDisplay();
     _refreshCvvDisplay();
+  }
+
+  void _bindNumberController() {
+    final controller = _number;
+    if (!identical(controller, _boundNumberController)) {
+      _boundNumberController?.removeListener(_handleNumberController);
+      _boundNumberController = controller;
+      _lastNumberText = controller.text;
+      controller.addListener(_handleNumberController);
+    }
+  }
+
+  void _handleNumberController() {
+    final text = _number.text;
+    if (text == _lastNumberText) {
+      return;
+    }
+    _lastNumberText = text;
+    _onNumberChanged(text);
   }
 
   void _bindServerErrors() {
@@ -285,6 +315,7 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
 
   @override
   void dispose() {
+    _boundNumberController?.removeListener(_handleNumberController);
     _boundNumberServer?.removeListener(_handleNumberServerChange);
     _boundCvvServer?.removeListener(_handleCvvServerChange);
     _numberDisplay.dispose();
@@ -328,6 +359,7 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
     }
     final count = assessment.digitCount;
     if (_config.autoAdvance &&
+        _numberFocus.hasFocus &&
         assessment.isLocallyValid &&
         (count == assessment.brand.primaryLength ||
             count == assessment.brand.maxLength)) {
@@ -378,7 +410,6 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       enableSuggestions: false,
       autofillHints: const [AutofillHints.creditCardNumber],
       textInputAction: TextInputAction.next,
-      onChanged: _onNumberChanged,
       isRequired: widget.isRequired,
       requiredErrorText: widget.requiredErrorText,
       autovalidateMode: widget.autovalidateMode,
