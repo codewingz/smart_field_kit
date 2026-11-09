@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -456,6 +457,53 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
     await tester.pump();
     expect(controller.text, '12.5');
+  }, skip: kIsWeb);
+
+  testWidgets('undo and redo intents restore raw text on every platform', (
+    tester,
+  ) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      _app(SmartField.percentage(controller: controller)),
+    );
+    await tester.showKeyboard(find.byType(TextFormField));
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '12',
+        selection: TextSelection.collapsed(offset: 2),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 1));
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '12.5',
+        selection: TextSelection.collapsed(offset: 4),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 1));
+    final context = tester.element(
+      find
+          .descendant(
+            of: find.byType(UndoHistory<TextEditingValue>),
+            matching: find.byType(Focus),
+          )
+          .first,
+    );
+    Actions.invoke(
+      context,
+      const UndoTextIntent(SelectionChangedCause.keyboard),
+    );
+    await tester.pump();
+    expect(controller.text, '12');
+    expect(controller.text.contains('%'), isFalse);
+    Actions.invoke(
+      context,
+      const RedoTextIntent(SelectionChangedCause.keyboard),
+    );
+    await tester.pump();
+    expect(controller.text, '12.5');
+    expect(controller.text.contains('%'), isFalse);
   });
 
   testWidgets('exposes the percent suffix to semantics', (tester) async {
