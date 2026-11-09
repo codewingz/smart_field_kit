@@ -68,7 +68,7 @@ void main() {
       expect(SmartCardUtils.detectBrand(_discover), SmartCardBrand.discover);
       expect(
         SmartCardUtils.detectBrand('6221260000000000'),
-        SmartCardBrand.discover,
+        SmartCardBrand.unionPay,
       );
       expect(SmartCardUtils.detectBrand(_diners), SmartCardBrand.dinersClub);
       expect(SmartCardUtils.detectBrand(_jcb), SmartCardBrand.jcb);
@@ -398,6 +398,7 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(0), _visa);
       await tester.enterText(find.byType(TextFormField).at(1), '0624');
       await tester.enterText(find.byType(TextFormField).at(2), '123');
+      await tester.pump();
       expect(formKey.currentState!.validate(), isTrue);
       formKey.currentState!.save();
       expect(saved!.number, _visa);

@@ -13,6 +13,7 @@ final class SmartCreditCardValue {
     required this.expiryMonth,
     required this.expiryYear,
     required this.cvv,
+    this.numberStatus = SmartCardNumberStatus.empty,
   });
 
   final String number;
@@ -20,6 +21,7 @@ final class SmartCreditCardValue {
   final int? expiryMonth;
   final int? expiryYear;
   final String cvv;
+  final SmartCardNumberStatus numberStatus;
 
   String get last4 =>
       number.length <= 4 ? number : number.substring(number.length - 4);
@@ -31,8 +33,8 @@ final class SmartCreditCardValue {
   @override
   String toString() {
     return 'SmartCreditCardValue(brand: ${brand.displayName}, '
-        'last4: $last4, expiry: ${expiryMonth == null ? 'none' : 'set'}, '
-        'cvv: hidden)';
+        'last4: $last4, status: ${numberStatus.name}, '
+        'expiry: ${expiryMonth == null ? 'none' : 'set'}, cvv: hidden)';
   }
 }
 
@@ -52,6 +54,11 @@ final class SmartCreditCardConfig {
     this.cvvFocusNode,
     this.acceptedBrands,
     this.validateLuhn = true,
+    this.luhnExemptBrands = const {},
+    this.showNumberStatus = true,
+    this.numberStatusBuilder,
+    this.brandErrorText = 'This card type is not accepted.',
+    this.luhnErrorText = 'Check the card number.',
     this.expiryFormat = SmartExpiryFormat.mmYy,
     this.now = DateTime.now,
     this.cvvLengths,
@@ -83,6 +90,12 @@ final class SmartCreditCardConfig {
   final FocusNode? cvvFocusNode;
   final Set<SmartCardBrand>? acceptedBrands;
   final bool validateLuhn;
+  final Set<SmartCardBrand> luhnExemptBrands;
+  final bool showNumberStatus;
+  final String? Function(SmartCardNumberAssessment assessment)?
+  numberStatusBuilder;
+  final String brandErrorText;
+  final String luhnErrorText;
   final SmartExpiryFormat expiryFormat;
   final DateTime Function() now;
   final Set<int>? cvvLengths;
@@ -133,6 +146,13 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
   FocusNode? _ownedNumberFocus;
   FocusNode? _ownedExpiryFocus;
   FocusNode? _ownedCvvFocus;
+  final SmartServerError _numberDisplay = SmartServerError(
+    clearOnChange: false,
+  );
+  final SmartServerError _cvvDisplay = SmartServerError(clearOnChange: false);
+  String? _cvvBrandError;
+  SmartServerError? _boundNumberServer;
+  SmartServerError? _boundCvvServer;
 
   SmartCreditCardConfig get _config => widget.config;
 
@@ -160,10 +180,115 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
     _ownedNumberFocus = _config.numberFocusNode == null ? FocusNode() : null;
     _ownedExpiryFocus = _config.expiryFocusNode == null ? FocusNode() : null;
     _ownedCvvFocus = _config.cvvFocusNode == null ? FocusNode() : null;
+    _bindServerErrors();
+    _refreshNumberDisplay();
+  }
+
+  @override
+  void didUpdateWidget(covariant SmartCreditCardField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _bindServerErrors();
+    _refreshNumberDisplay();
+    _refreshCvvDisplay();
+  }
+
+  void _bindServerErrors() {
+    if (!identical(_boundNumberServer, _config.numberServerError)) {
+      _boundNumberServer?.removeListener(_handleNumberServerChange);
+      _boundNumberServer = _config.numberServerError;
+      _boundNumberServer?.addListener(_handleNumberServerChange);
+    }
+    if (!identical(_boundCvvServer, _config.cvvServerError)) {
+      _boundCvvServer?.removeListener(_handleCvvServerChange);
+      _boundCvvServer = _config.cvvServerError;
+      _boundCvvServer?.addListener(_handleCvvServerChange);
+    }
+  }
+
+  void _handleNumberServerChange() => _refreshNumberDisplay();
+
+  void _handleCvvServerChange() => _refreshCvvDisplay();
+
+  SmartCardNumberAssessment _assess() {
+    return SmartCardUtils.assessNumber(
+      _number.text,
+      acceptedBrands: _config.acceptedBrands,
+      validateLuhn: _config.validateLuhn,
+      luhnExemptBrands: _config.luhnExemptBrands,
+    );
+  }
+
+  String? _instantNumberError(SmartCardNumberAssessment assessment) {
+    if (assessment.status != SmartCardNumberStatus.invalid) {
+      return null;
+    }
+    switch (assessment.issue) {
+      case SmartCardNumberIssue.brandNotAccepted:
+        return _config.brandErrorText;
+      case SmartCardNumberIssue.failsChecksum:
+        return _config.luhnErrorText;
+      default:
+        return _config.numberErrorText;
+    }
+  }
+
+  void _refreshNumberDisplay() {
+    _numberDisplay.set(
+      _config.numberServerError?.errorText ?? _instantNumberError(_assess()),
+    );
+  }
+
+  void _refreshCvvDisplay() {
+    _cvvDisplay.set(_config.cvvServerError?.errorText ?? _cvvBrandError);
+  }
+
+  void _updateCvvForBrand() {
+    final text = _cvv.text;
+    if (text.isEmpty) {
+      _cvvBrandError = null;
+    } else {
+      final validator = SmartValidators.cardCvv(
+        brand: () => _brand,
+        allowedLengths: _config.cvvLengths,
+        message: _config.cvvErrorText,
+      );
+      _cvvBrandError = validator(text);
+    }
+    _refreshCvvDisplay();
+  }
+
+  String? _statusText(SmartCardNumberAssessment assessment) {
+    if (!_config.showNumberStatus) {
+      return null;
+    }
+    final builder = _config.numberStatusBuilder;
+    if (builder != null) {
+      return builder(assessment);
+    }
+    final brandName = assessment.match.isCertain
+        ? '${assessment.brand.displayName} \u00b7 '
+        : '';
+    switch (assessment.status) {
+      case SmartCardNumberStatus.empty:
+      case SmartCardNumberStatus.invalid:
+        return null;
+      case SmartCardNumberStatus.incomplete:
+        final remaining = assessment.remainingDigits;
+        if (remaining == null || !assessment.match.isCertain) {
+          return null;
+        }
+        return '$brandName$remaining more ${remaining == 1 ? 'digit' : 'digits'}';
+      case SmartCardNumberStatus.valid:
+        return '${brandName}Number format looks valid';
+    }
   }
 
   @override
   void dispose() {
+    _boundNumberServer?.removeListener(_handleNumberServerChange);
+    _boundCvvServer?.removeListener(_handleCvvServerChange);
+    _numberDisplay.dispose();
+    _cvvDisplay.dispose();
     _ownedNumber?.dispose();
     _ownedExpiry?.dispose();
     _ownedCvv?.dispose();
@@ -182,6 +307,7 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
     return SmartCreditCardValue(
       number: digits,
       brand: SmartCardUtils.detectBrand(digits),
+      numberStatus: _assess().status,
       expiryMonth: expiry?.month,
       expiryYear: expiry?.year,
       cvv: _cvv.text,
@@ -193,32 +319,28 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
   }
 
   void _onNumberChanged(String text) {
-    final digits = SmartCardUtils.digitsOnly(text);
-    final brand = SmartCardUtils.detectBrand(digits);
-    if (_config.showBrand && mounted) {
+    _config.numberServerError?.notifyFieldChanged();
+    final assessment = _assess();
+    _refreshNumberDisplay();
+    _updateCvvForBrand();
+    if (mounted) {
       setState(() {});
     }
+    final count = assessment.digitCount;
     if (_config.autoAdvance &&
-        digits.length == _preferredLength(brand) &&
-        SmartValidators.cardNumber(
-              acceptedBrands: _config.acceptedBrands,
-              validateLuhn: _config.validateLuhn,
-            )(text) ==
-            null) {
+        assessment.isLocallyValid &&
+        (count == assessment.brand.primaryLength ||
+            count == assessment.brand.maxLength)) {
       _expiryFocus.requestFocus();
     }
     _notify();
   }
 
-  int _preferredLength(SmartCardBrand brand) {
-    switch (brand) {
-      case SmartCardBrand.amex:
-        return 15;
-      case SmartCardBrand.dinersClub:
-        return 14;
-      default:
-        return 16;
-    }
+  void _onCvvChanged(String text) {
+    _config.cvvServerError?.notifyFieldChanged();
+    _cvvBrandError = null;
+    _refreshCvvDisplay();
+    _notify();
   }
 
   void _onExpiryChanged(String text) {
@@ -236,10 +358,12 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
   Widget build(BuildContext context) {
     final enabled = widget.enabled ?? widget.decoration.enabled;
     final brand = _brand;
+    final assessment = _assess();
     final numberDecoration = widget.decoration.copyWith(
       suffixText: _config.showBrand && brand != SmartCardBrand.unknown
           ? brand.displayName
           : null,
+      helperText: _statusText(assessment),
     );
     final number = SmartField(
       label: _config.numberLabel,
@@ -258,13 +382,16 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       isRequired: widget.isRequired,
       requiredErrorText: widget.requiredErrorText,
       autovalidateMode: widget.autovalidateMode,
-      serverError: _config.numberServerError,
+      serverError: _numberDisplay,
       decoration: numberDecoration,
       inputFormatters: const [SmartCardNumberFormatter()],
       validator: SmartValidators.cardNumber(
         acceptedBrands: _config.acceptedBrands,
         validateLuhn: _config.validateLuhn,
+        luhnExemptBrands: _config.luhnExemptBrands,
         message: _config.numberErrorText,
+        brandMessage: _config.brandErrorText,
+        luhnMessage: _config.luhnErrorText,
       ),
     );
     final expiryMask = _config.expiryFormat == SmartExpiryFormat.mmYy
@@ -320,11 +447,11 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
             keyboardType: TextInputType.number,
             inputFormatters: cvvFormatters,
             textInputAction: TextInputAction.done,
-            onChanged: (_) => _notify(),
+            onChanged: _onCvvChanged,
             isRequired: widget.isRequired,
             requiredErrorText: widget.requiredErrorText,
             autovalidateMode: widget.autovalidateMode,
-            serverError: _config.cvvServerError,
+            serverError: _cvvDisplay,
             decoration: widget.decoration,
             validator: cvvValidator,
           )
@@ -340,11 +467,11 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
             enableSuggestions: false,
             autofillHints: const [AutofillHints.creditCardSecurityCode],
             textInputAction: TextInputAction.done,
-            onChanged: (_) => _notify(),
+            onChanged: _onCvvChanged,
             isRequired: widget.isRequired,
             requiredErrorText: widget.requiredErrorText,
             autovalidateMode: widget.autovalidateMode,
-            serverError: _config.cvvServerError,
+            serverError: _cvvDisplay,
             decoration: widget.decoration,
             inputFormatters: cvvFormatters,
             validator: cvvValidator,
