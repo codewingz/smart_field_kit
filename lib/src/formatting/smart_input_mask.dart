@@ -25,6 +25,11 @@ final class SmartInputMask {
   final String pattern;
   final List<_MaskToken> _tokens;
 
+  late final Set<String> _literalCharacters = {
+    for (final token in _tokens)
+      if (!token.isSlot) token.character!,
+  };
+
   static final RegExp _digit = RegExp(r'^[0-9]$');
   static final RegExp _letter = RegExp(r'^[\p{L}\p{M}]$', unicode: true);
   static final RegExp _alphanumeric = RegExp(
@@ -136,6 +141,10 @@ final class SmartInputMask {
           continue;
         }
         if (!accepts(token.slot!, character)) {
+          if (_literalCharacters.contains(character)) {
+            consumed = true;
+            continue;
+          }
           return null;
         }
         raw.write(character);
