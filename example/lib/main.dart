@@ -12,11 +12,38 @@ class ExampleApp extends StatefulWidget {
 
 class _ExampleAppState extends State<ExampleApp> {
   final _searchController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _usernameAsync = SmartFieldAsyncController();
+  var _submitting = false;
 
   @override
   void dispose() {
     _searchController.dispose();
+    _usernameAsync.dispose();
     super.dispose();
+  }
+
+  Future<String?> _checkUsername(String value) async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    return value == 'taken' ? 'Username is already taken.' : null;
+  }
+
+  Future<void> _submit() async {
+    if (_submitting || !_formKey.currentState!.validate()) {
+      return;
+    }
+    setState(() => _submitting = true);
+    try {
+      final isAvailable = await _usernameAsync.validateAsync();
+      if (!isAvailable || !mounted || !_formKey.currentState!.validate()) {
+        return;
+      }
+      _formKey.currentState!.save();
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
   }
 
   @override
@@ -27,11 +54,24 @@ class _ExampleAppState extends State<ExampleApp> {
           padding: const EdgeInsets.all(24),
           child: SingleChildScrollView(
             child: Form(
+              key: _formKey,
               child: Column(
                 children: [
                   SmartField.name(label: 'Full name'),
                   const SizedBox(height: 16),
-                  SmartField.username(label: 'Username', isRequired: true),
+                  SmartField.username(
+                    label: 'Username',
+                    isRequired: true,
+                    asyncValidation: SmartAsyncValidation(
+                      controller: _usernameAsync,
+                      validator: _checkUsername,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: _submitting ? null : _submit,
+                    child: const Text('Submit'),
+                  ),
                   const SizedBox(height: 16),
                   SmartField.search(
                     controller: _searchController,

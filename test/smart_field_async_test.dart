@@ -1,0 +1,639 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:smart_field_kit/smart_field_kit.dart';
+
+Widget _app(Widget child, {TextDirection direction = TextDirection.ltr}) {
+  return MaterialApp(
+    home: Directionality(
+      textDirection: direction,
+      child: Scaffold(
+        body: SingleChildScrollView(
+          child: Padding(padding: const EdgeInsets.all(16), child: child),
+        ),
+      ),
+    ),
+  );
+}
+
+const _debounce = Duration(milliseconds: 400);
+
+void main() {
+  testWidgets('does nothing without an async validator', (tester) async {
+    final calls = <String>[];
+    await tester.pumpWidget(_app(SmartField.username()));
+    await tester.enterText(find.byType(TextFormField), 'abc');
+    await tester.pump(_debounce);
+    expect(calls, isEmpty);
+  });
+
+  testWidgets('debounces edits and passes the raw value', (tester) async {
+    final calls = <String>[];
+    final controller = SmartFieldAsyncController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      _app(
+        SmartField(
+          asyncValidation: SmartAsyncValidation(
+            controller: controller,
+            validator: (value) async {
+              calls.add(value);
+              return null;
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextFormField), 'a');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.enterText(find.byType(TextFormField), 'ab');
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(calls, isEmpty);
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(calls, ['ab']);
+    expect(controller.status, SmartAsyncValidationStatus.valid);
+    await tester.pump(const Duration(seconds: 2));
+    expect(calls, ['ab']);
+  });
+
+  testWidgets('zero debounce runs immediately and rebuilds do not recheck', (
+    tester,
+  ) async {
+    final calls = <String>[];
+    Widget build() => _app(
+      SmartField(
+        asyncValidation: SmartAsyncValidation(
+          debounceDuration: Duration.zero,
+          validator: (value) async {
+            calls.add(value);
+            return null;
+          },
+        ),
+      ),
+    );
+    await tester.pumpWidget(build());
+    await tester.enterText(find.byType(TextFormField), 'x');
+    await tester.pump();
+    expect(calls, ['x']);
+    await tester.pumpWidget(build());
+    await tester.pumpWidget(build());
+    await tester.pump(const Duration(seconds: 2));
+    expect(calls, ['x']);
+  });
+
+  testWidgets('optional empty and invalid syntax never call the checker', (
+    tester,
+  ) async {
+    final calls = <String>[];
+    await tester.pumpWidget(
+      _app(
+        SmartField.email(
+          asyncValidation: SmartAsyncValidation(
+            debounceDuration: Duration.zero,
+            validator: (value) async {
+              calls.add(value);
+              return null;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(find.byType(TextFormField), '');
+    await tester.enterText(find.byType(TextFormField), 'not-an-email');
+    await tester.pump(_debounce);
+    expect(calls, isEmpty);
+    await tester.enterText(find.byType(TextFormField), 'a@example.com');
+    await tester.pump();
+    expect(calls, ['a@example.com']);
+  });
+
+  testWidgets('required empty shows the required error and skips the checker', (
+    tester,
+  ) async {
+    final calls = <String>[];
+    final formKey = GlobalKey<FormState>();
+    final controller = SmartFieldAsyncController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      _app(
+        Form(
+          key: formKey,
+          child: SmartField.username(
+            isRequired: true,
+            requiredErrorText: 'Required',
+            asyncValidation: SmartAsyncValidation(
+              controller: controller,
+              validator: (value) async {
+                calls.add(value);
+                return null;
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(formKey.currentState!.validate(), isFalse);
+    await tester.pump();
+    expect(find.text('Required'), findsOneWidget);
+    expect(await controller.validateAsync(), isFalse);
+    expect(calls, isEmpty);
+  });
+
+  testWidgets('rejection shows the returned message and blocks validate', (
+    tester,
+  ) async {
+    final formKey = GlobalKey<FormState>();
+    await tester.pumpWidget(
+      _app(
+        Form(
+          key: formKey,
+          child: SmartField.username(
+            asyncValidation: SmartAsyncValidation(
+              debounceDuration: Duration.zero,
+              validator: (value) async => 'Taken',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(find.byType(TextFormField), 'alice');
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Taken'), findsOneWidget);
+    expect(formKey.currentState!.validate(), isFalse);
+    await tester.enterText(find.byType(TextFormField), 'bob');
+    await tester.pump();
+    expect(formKey.currentState!.validate(), isFalse);
+  });
+
+  testWidgets('failures and timeouts become unavailable and never pass', (
+    tester,
+  ) async {
+    final controller = SmartFieldAsyncController();
+    final formKey = GlobalKey<FormState>();
+    addTearDown(controller.dispose);
+    var mode = 0;
+    await tester.pumpWidget(
+      _app(
+        Form(
+          key: formKey,
+          child: SmartField(
+            asyncValidation: SmartAsyncValidation(
+              controller: controller,
+              debounceDuration: Duration.zero,
+              timeout: const Duration(seconds: 1),
+              unavailableErrorText: 'Offline',
+              validator: (value) {
+                if (mode == 0) {
+                  throw const FormatException('network');
+                }
+                return Completer<String?>().future;
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(find.byType(TextFormField), 'abc');
+    await tester.pump();
+    await tester.pump();
+    expect(controller.status, SmartAsyncValidationStatus.unavailable);
+    expect(find.text('Offline'), findsOneWidget);
+    expect(formKey.currentState!.validate(), isFalse);
+    expect(await controller.validateAsync(), isFalse);
+
+    mode = 1;
+    final future = controller.validateAsync();
+    await tester.pump();
+    expect(controller.status, SmartAsyncValidationStatus.pending);
+    await tester.pump(const Duration(seconds: 2));
+    expect(await future, isFalse);
+    expect(controller.status, SmartAsyncValidationStatus.unavailable);
+  });
+
+  testWidgets('ignores out-of-order results', (tester) async {
+    final controller = SmartFieldAsyncController();
+    addTearDown(controller.dispose);
+    final completers = <String, Completer<String?>>{};
+    await tester.pumpWidget(
+      _app(
+        SmartField(
+          asyncValidation: SmartAsyncValidation(
+            controller: controller,
+            debounceDuration: Duration.zero,
+            validator: (value) {
+              final completer = Completer<String?>();
+              completers[value] = completer;
+              return completer.future;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(find.byType(TextFormField), 'old');
+    await tester.pump();
+    await tester.enterText(find.byType(TextFormField), 'new');
+    await tester.pump();
+    completers['new']!.complete(null);
+    await tester.pump();
+    expect(controller.status, SmartAsyncValidationStatus.valid);
+    completers['old']!.complete('Old error');
+    await tester.pump();
+    expect(controller.status, SmartAsyncValidationStatus.valid);
+    expect(find.text('Old error'), findsNothing);
+  });
+
+  testWidgets('clearing during a check discards its result', (tester) async {
+    final controller = SmartFieldAsyncController();
+    final text = TextEditingController();
+    final completer = Completer<String?>();
+    addTearDown(controller.dispose);
+    addTearDown(text.dispose);
+    await tester.pumpWidget(
+      _app(
+        SmartField(
+          controller: text,
+          asyncValidation: SmartAsyncValidation(
+            controller: controller,
+            debounceDuration: Duration.zero,
+            validator: (value) => completer.future,
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(find.byType(TextFormField), 'abc');
+    await tester.pump();
+    expect(controller.status, SmartAsyncValidationStatus.pending);
+    text.clear();
+    await tester.pump();
+    expect(controller.status, SmartAsyncValidationStatus.idle);
+    completer.complete('Late');
+    await tester.pump();
+    expect(controller.status, SmartAsyncValidationStatus.idle);
+    expect(find.text('Late'), findsNothing);
+  });
+
+  testWidgets('manual trigger runs only on validateAsync, immediately', (
+    tester,
+  ) async {
+    final calls = <String>[];
+    final controller = SmartFieldAsyncController();
+    final formKey = GlobalKey<FormState>();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      _app(
+        Form(
+          key: formKey,
+          child: SmartField.username(
+            asyncValidation: SmartAsyncValidation(
+              controller: controller,
+              trigger: SmartAsyncValidationTrigger.manual,
+              validator: (value) async {
+                calls.add(value);
+                return null;
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(find.byType(TextFormField), 'alice');
+    await tester.pump(const Duration(seconds: 2));
+    expect(calls, isEmpty);
+    expect(await controller.validateAsync(), isTrue);
+    expect(calls, ['alice']);
+    expect(await controller.validateAsync(), isTrue);
+    expect(calls, ['alice']);
+    expect(await controller.validateAsync(force: true), isTrue);
+    expect(calls, ['alice', 'alice']);
+    await tester.enterText(find.byType(TextFormField), 'alice2');
+    expect(controller.status, SmartAsyncValidationStatus.idle);
+  });
+
+  testWidgets('unfocus trigger validates when focus leaves', (tester) async {
+    final calls = <String>[];
+    final focusNode = FocusNode();
+    addTearDown(focusNode.dispose);
+    await tester.pumpWidget(
+      _app(
+        SmartField(
+          focusNode: focusNode,
+          asyncValidation: SmartAsyncValidation(
+            trigger: SmartAsyncValidationTrigger.onUnfocus,
+            validator: (value) async {
+              calls.add(value);
+              return null;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byType(TextFormField));
+    await tester.enterText(find.byType(TextFormField), 'abc');
+    await tester.pump(const Duration(seconds: 2));
+    expect(calls, isEmpty);
+    focusNode.unfocus();
+    await tester.pump();
+    expect(calls, ['abc']);
+  });
+
+  testWidgets('validateAsync keeps validate synchronous and gates submit', (
+    tester,
+  ) async {
+    final controller = SmartFieldAsyncController();
+    final formKey = GlobalKey<FormState>();
+    final text = TextEditingController();
+    final completer = Completer<String?>();
+    addTearDown(controller.dispose);
+    addTearDown(text.dispose);
+    await tester.pumpWidget(
+      _app(
+        Form(
+          key: formKey,
+          child: SmartField.username(
+            controller: text,
+            asyncValidation: SmartAsyncValidation(
+              controller: controller,
+              trigger: SmartAsyncValidationTrigger.manual,
+              validator: (value) => completer.future,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(find.byType(TextFormField), 'alice');
+    expect(formKey.currentState!.validate(), isTrue);
+    final result = controller.validateAsync();
+    await tester.pump();
+    expect(formKey.currentState!.validate(), isTrue);
+    text.text = 'alice2';
+    completer.complete(null);
+    expect(await result, isFalse);
+    expect(controller.status, SmartAsyncValidationStatus.idle);
+  });
+
+  testWidgets('does not pass password or percent display text', (tester) async {
+    final calls = <String>[];
+    await tester.pumpWidget(
+      _app(
+        Column(
+          children: [
+            SmartField.percentage(
+              asyncValidation: SmartAsyncValidation(
+                debounceDuration: Duration.zero,
+                validator: (value) async {
+                  calls.add(value);
+                  return null;
+                },
+              ),
+            ),
+            SmartField.amount(
+              decimalPlaces: 2,
+              useGrouping: true,
+              currencySymbol: '\$',
+              asyncValidation: SmartAsyncValidation(
+                debounceDuration: Duration.zero,
+                validator: (value) async {
+                  calls.add(value);
+                  return null;
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.enterText(find.byType(TextFormField).first, '12.5');
+    await tester.pump();
+    await tester.enterText(find.byType(TextFormField).last, '1200.50');
+    await tester.pump();
+    expect(calls.first, '12.5');
+    expect(calls.last, isNot(contains('\$')));
+    expect(calls.last, isNot(contains(',')));
+  });
+
+  testWidgets('shows a loading indicator while pending', (tester) async {
+    final completer = Completer<String?>();
+    await tester.pumpWidget(
+      _app(
+        SmartField(
+          asyncValidation: SmartAsyncValidation(
+            debounceDuration: Duration.zero,
+            loadingSemanticsLabel: 'Checking',
+            validator: (value) => completer.future,
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(find.byType(TextFormField), 'abc');
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    completer.complete(null);
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  testWidgets('custom loading indicator, dark theme, RTL, scale, no edits', (
+    tester,
+  ) async {
+    final completer = Completer<String?>();
+    final text = TextEditingController();
+    addTearDown(text.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(brightness: Brightness.dark),
+        home: MediaQuery(
+          data: const MediaQueryData(
+            textScaler: TextScaler.linear(2),
+            size: Size(200, 600),
+          ),
+          child: Directionality(
+            textDirection: TextDirection.rtl,
+            child: Scaffold(
+              body: SmartField.url(
+                controller: text,
+                label: 'Website',
+                asyncValidation: SmartAsyncValidation(
+                  debounceDuration: Duration.zero,
+                  loadingIndicator: const Icon(Icons.hourglass_empty),
+                  validator: (value) => completer.future,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(find.byType(TextFormField), 'https://a.com/x');
+    await tester.pump();
+    expect(find.byIcon(Icons.hourglass_empty), findsOneWidget);
+    expect(text.text, 'https://a.com/x');
+    expect(tester.takeException(), isNull);
+    completer.complete('No');
+    await tester.pump();
+    expect(text.text, 'https://a.com/x');
+  });
+
+  testWidgets('disposal and disabling ignore late results', (tester) async {
+    final completer = Completer<String?>();
+    final controller = SmartFieldAsyncController();
+    addTearDown(controller.dispose);
+    Widget build({bool enabled = true, bool present = true}) => _app(
+      present
+          ? SmartField(
+              enabled: enabled,
+              asyncValidation: SmartAsyncValidation(
+                controller: controller,
+                debounceDuration: Duration.zero,
+                validator: (value) => completer.future,
+              ),
+            )
+          : const SizedBox(),
+    );
+    await tester.pumpWidget(build());
+    await tester.enterText(find.byType(TextFormField), 'abc');
+    await tester.pump();
+    expect(controller.status, SmartAsyncValidationStatus.pending);
+    await tester.pumpWidget(build(enabled: false));
+    expect(controller.status, SmartAsyncValidationStatus.idle);
+    await tester.pumpWidget(build(present: false));
+    completer.complete('Late');
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(await controller.validateAsync(), isFalse);
+  });
+
+  testWidgets('form reset clears async state', (tester) async {
+    final formKey = GlobalKey<FormState>();
+    final controller = SmartFieldAsyncController();
+    final text = TextEditingController();
+    addTearDown(controller.dispose);
+    addTearDown(text.dispose);
+    await tester.pumpWidget(
+      _app(
+        Form(
+          key: formKey,
+          child: SmartField(
+            controller: text,
+            asyncValidation: SmartAsyncValidation(
+              controller: controller,
+              debounceDuration: Duration.zero,
+              validator: (value) async => 'Taken',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(find.byType(TextFormField), 'abc');
+    await tester.pump();
+    await tester.pump();
+    expect(controller.status, SmartAsyncValidationStatus.invalid);
+    formKey.currentState!.reset();
+    await tester.pump();
+    expect(controller.status, SmartAsyncValidationStatus.idle);
+    expect(find.text('Taken'), findsNothing);
+  });
+
+  testWidgets('swapping the text controller resets the async state', (
+    tester,
+  ) async {
+    final async = SmartFieldAsyncController();
+    final first = TextEditingController();
+    final second = TextEditingController(text: 'other');
+    addTearDown(async.dispose);
+    addTearDown(first.dispose);
+    addTearDown(second.dispose);
+    Widget build(TextEditingController text) => _app(
+      SmartField(
+        controller: text,
+        asyncValidation: SmartAsyncValidation(
+          controller: async,
+          debounceDuration: Duration.zero,
+          validator: (value) async => null,
+        ),
+      ),
+    );
+    await tester.pumpWidget(build(first));
+    await tester.enterText(find.byType(TextFormField), 'abc');
+    await tester.pump();
+    expect(async.status, SmartAsyncValidationStatus.valid);
+    await tester.pumpWidget(build(second));
+    expect(async.status, SmartAsyncValidationStatus.idle);
+  });
+
+  testWidgets('otp completion is not repeated by async state changes', (
+    tester,
+  ) async {
+    var completed = 0;
+    final controller = SmartFieldAsyncController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      _app(
+        SmartField.otp(
+          onCompleted: (_) => completed++,
+          asyncValidation: SmartAsyncValidation(
+            controller: controller,
+            debounceDuration: Duration.zero,
+            validator: (value) async => 'Wrong code',
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(find.byType(EditableText), '123456');
+    await tester.pump();
+    await tester.pump();
+    expect(completed, 1);
+    expect(controller.status, SmartAsyncValidationStatus.invalid);
+    expect(find.text('Wrong code'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+    expect(completed, 1);
+  });
+
+  testWidgets('search callback stays separate from async validation', (
+    tester,
+  ) async {
+    final searches = <String>[];
+    final checks = <String>[];
+    await tester.pumpWidget(
+      _app(
+        SmartField.search(
+          onSearch: searches.add,
+          debounceDuration: Duration.zero,
+          asyncValidation: SmartAsyncValidation(
+            debounceDuration: Duration.zero,
+            validator: (value) async {
+              checks.add(value);
+              return null;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(find.byType(TextFormField), 'shoes');
+    await tester.pump();
+    expect(searches, ['shoes']);
+    expect(checks, ['shoes']);
+  });
+
+  testWidgets('description keeps growing with async enabled', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        SmartField.description(
+          asyncValidation: SmartAsyncValidation(
+            debounceDuration: Duration.zero,
+            validator: (value) async => null,
+          ),
+        ),
+      ),
+    );
+    final before = tester.getSize(find.byType(TextFormField)).height;
+    await tester.enterText(find.byType(TextFormField), 'a\nb\nc\nd\ne\nf');
+    await tester.pump();
+    expect(
+      tester.getSize(find.byType(TextFormField)).height,
+      greaterThan(before),
+    );
+  });
+}
