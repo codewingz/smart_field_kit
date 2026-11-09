@@ -730,6 +730,16 @@ SmartField.otp(
 
 The control exposes one semantic text field, supports RTL and text scaling, and shrinks boxes and spacing to avoid horizontal overflow. WhatsApp codes can be pasted by the user or assigned through an app-owned controller; the package requests no message permissions and performs no message retrieval.
 
+## Design
+
+All fields except `SmartField.otp()` (which draws its own boxes through `SmartOtpStyle`) share one design resolver. Priority is the field's own `decoration`, then the app's `InputDecorationTheme`, then the package fallback:
+
+- Outline border, 12px radius, 1px normal border, 2px focused and error borders.
+- 16px horizontal and 12px vertical content padding.
+- Colors from the app `ColorScheme` (`outline`, `primary`, `error`, and a faint `onSurface` for disabled), so light, dark, and custom themes apply.
+
+If the field's `decoration` or the app theme sets any border property, no fallback borders are added; if either sets `contentPadding` (or `isCollapsed`), the fallback padding is not added. Focus styling follows the field's real focus. Fixed heights are never applied, so multiline, large text, error text, and RTL layouts can grow.
+
 ## Phone SmartField
 
 `SmartField.phone()` uses the native phone keyboard and telephone autofill. The simple field has no country or contact picker, no global length limit, and no destructive formatter. It accepts editable international or local text while validation rejects malformed symbols, letters, emoji, and misplaced `+` characters.
@@ -767,7 +777,7 @@ The controller, `onChanged`, custom validator, and `onSaved` always use the exac
 
 Phone policies are:
 
-- `SmartPhonePolicy.auto`, the default, uses country metadata when a country is selected and syntax-only validation otherwise.
+- `SmartPhonePolicy.auto`, the default, validates against the selected country's numbering rules; without a selected country it validates `+` international numbers using the country inferred by the phone parser; without a country or `+` prefix it falls back to syntax-only validation.
 - `SmartPhonePolicy.syntaxOnly` validates conventional phone characters without a country length rule.
 - `SmartPhonePolicy.countryAware` requires selected country context and validates against that country's metadata.
 - `SmartPhonePolicy.legacy` applies the original ASCII-digit rule to the field text exactly.
