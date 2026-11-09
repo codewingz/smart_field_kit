@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_input_mask.dart';
+import 'package:smart_field_kit/src/validation/smart_async_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_design.dart';
@@ -301,6 +304,8 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   final GlobalKey<FormFieldState<DateTime?>> _dropdownKey = GlobalKey();
   final Map<int, Offset> _pointerStarts = {};
   final Set<int> _suffixPointers = {};
+  bool _writingController = false;
+  SmartAsyncValidationEngine? _engine;
   int? _day;
   int? _month;
   int? _year;
@@ -327,13 +332,29 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
         widget.source.controller!.text = initial;
       }
     }
-    _loadPartsFrom(_config.initialDate);
+    _loadPartsFromController();
   }
 
   @override
   void didUpdateWidget(covariant SmartDateTimeField oldWidget) {
     super.didUpdateWidget(oldWidget);
     _syncBindings();
+    final wasDropdown =
+        oldWidget.config.kind == SmartDateTimeKind.date &&
+        oldWidget.config.dateMode == SmartDateMode.dropdowns;
+    if (_isDropdown &&
+        (!wasDropdown ||
+            !identical(
+              oldWidget.source.controller,
+              widget.source.controller,
+            ))) {
+      _loadPartsFromController();
+      scheduleMicrotask(() {
+        if (mounted) {
+          _dropdownKey.currentState?.didChange(_composeDate());
+        }
+      });
+    }
   }
 
   void _syncBindings() {
@@ -342,10 +363,72 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     _input.releaseUnused();
     _textBinding.bind(_controller);
     _serverBinding.bind(widget.source.serverError);
+    _syncAsync();
+  }
+
+  void _syncAsync() {
+    final config = _isDropdown ? widget.source.asyncValidation : null;
+    if (config == null) {
+      _engine?.dispose();
+      _engine = null;
+      return;
+    }
+    final engine = _engine ??= SmartAsyncValidationEngine(
+      readText: _dropdownText,
+      toRaw: _config.serialize,
+      syncError: (_) => _syncPartsError(),
+      isActive: () => mounted && _enabled && !widget.source.readOnly,
+      onUpdate: _asyncUpdated,
+    );
+    engine.configure(config);
+  }
+
+  void _asyncUpdated() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
+    final status = _engine?.status;
+    if (status == SmartAsyncValidationStatus.valid ||
+        status == SmartAsyncValidationStatus.invalid ||
+        status == SmartAsyncValidationStatus.unavailable) {
+      scheduleMicrotask(() {
+        if (mounted) {
+          _dropdownKey.currentState?.validate();
+        }
+      });
+    }
+  }
+
+  String _dropdownText() {
+    final value = _composeDate();
+    return value == null ? '' : _config.dateFormat.format(value);
+  }
+
+  void _writeController(String text) {
+    if (_controller.text == text) {
+      return;
+    }
+    _writingController = true;
+    try {
+      _controller.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    } finally {
+      _writingController = false;
+    }
+  }
+
+  void _loadPartsFromController() {
+    final parsed = _config.dateFormat.tryParse(_controller.text);
+    _loadPartsFrom(parsed);
   }
 
   @override
   void dispose() {
+    _engine?.dispose();
+    _engine = null;
     _listeners.unbindAll();
     _input.dispose();
     super.dispose();
@@ -372,9 +455,18 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   }
 
   void _handleControllerChange() {
-    if (mounted) {
-      setState(() {});
+    if (!mounted) {
+      return;
     }
+    if (_isDropdown && !_writingController) {
+      final text = _controller.text;
+      if (text != _dropdownText()) {
+        _loadPartsFromController();
+        _dropdownKey.currentState?.didChange(_composeDate());
+        _engine?.observe(_dropdownText());
+      }
+    }
+    setState(() {});
   }
 
   void _handleServerChange() {
@@ -717,9 +809,17 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   }
 
   String? _validateParts(DateTime? ignored) {
+    return _syncPartsError() ?? _engine?.errorFor(_dropdownText());
+  }
+
+  String? _syncPartsError() {
     final value = _composeDate();
     final anySet = _day != null || _month != null || _year != null;
     if (!anySet) {
+      final raw = _controller.text;
+      if (raw.isNotEmpty && _config.dateFormat.tryParse(raw) == null) {
+        return _config.defaultInvalidText;
+      }
       if (widget.source.isRequired) {
         return widget.source.requiredErrorText;
       }
@@ -761,6 +861,8 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     state.didChange(value);
     widget.source.serverError?.notifyFieldChanged();
     final text = value == null ? '' : _config.dateFormat.format(value);
+    _writeController(text);
+    _engine?.observe(text);
     widget.source.onChanged?.call(text);
     _config.onDateChanged?.call(value);
     if (value != null) {
@@ -777,102 +879,111 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
         ? 31
         : SmartDateUtils.daysInMonth(_year ?? 2000, _month!);
     final days = [for (var d = 1; d <= maxDay; d++) d];
-    return FormField<DateTime?>(
-      key: _dropdownKey,
-      initialValue: _config.initialDate == null
-          ? null
-          : SmartDateUtils.dateOnly(_config.initialDate!),
-      enabled: _enabled,
-      autovalidateMode: widget.source.autovalidateMode,
-      forceErrorText: widget.source.serverError?.errorText,
-      validator: _validateParts,
-      onSaved: (value) {
-        widget.source.onSaved?.call(
-          value == null ? null : _config.dateFormat.format(value),
-        );
-        _config.onRawSaved?.call(
-          value == null ? null : SmartDateUtils.toIsoDate(value),
-        );
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: (focused) {
+        if (!focused) {
+          _engine?.focusLost();
+        }
       },
-      onReset: () {
-        setState(() => _loadPartsFrom(_config.initialDate));
-      },
-      builder: (state) {
-        Widget dropdown<T>({
-          required String hint,
-          required T? value,
-          required List<T> items,
-          required String Function(T) labelOf,
-          required ValueChanged<T?> onChanged,
-        }) {
-          return Expanded(
-            child: Semantics(
-              label: hint,
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<T>(
-                  isExpanded: true,
-                  isDense: true,
-                  hint: Text(hint),
-                  value: value,
-                  items: [
-                    for (final item in items)
-                      DropdownMenuItem<T>(
-                        value: item,
-                        child: Text(
-                          labelOf(item),
-                          overflow: TextOverflow.ellipsis,
+      child: FormField<DateTime?>(
+        key: _dropdownKey,
+        initialValue: _composeDate(),
+        enabled: _enabled,
+        autovalidateMode: widget.source.autovalidateMode,
+        forceErrorText: widget.source.serverError?.errorText,
+        validator: _validateParts,
+        onSaved: (value) {
+          widget.source.onSaved?.call(
+            value == null ? null : _config.dateFormat.format(value),
+          );
+          _config.onRawSaved?.call(
+            value == null ? null : SmartDateUtils.toIsoDate(value),
+          );
+        },
+        onReset: () {
+          setState(() => _loadPartsFrom(_config.initialDate));
+          _writeController(_dropdownText());
+          _engine?.reset();
+        },
+        builder: (state) {
+          Widget dropdown<T>({
+            required String hint,
+            required T? value,
+            required List<T> items,
+            required String Function(T) labelOf,
+            required ValueChanged<T?> onChanged,
+          }) {
+            return Expanded(
+              child: Semantics(
+                label: hint,
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<T>(
+                    isExpanded: true,
+                    isDense: true,
+                    hint: Text(hint),
+                    value: value,
+                    items: [
+                      for (final item in items)
+                        DropdownMenuItem<T>(
+                          value: item,
+                          child: Text(
+                            labelOf(item),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                  ],
-                  onChanged: _enabled && !widget.source.readOnly
-                      ? onChanged
-                      : null,
+                    ],
+                    onChanged: _enabled && !widget.source.readOnly
+                        ? onChanged
+                        : null,
+                  ),
                 ),
               ),
+            );
+          }
+
+          final decoration = SmartFieldDesign.resolve(
+            context,
+            widget.source.decoration.copyWith(
+              labelText: widget.source.label,
+              errorText: state.errorText,
+              enabled: _enabled,
             ),
           );
-        }
-
-        final decoration = SmartFieldDesign.resolve(
-          context,
-          widget.source.decoration.copyWith(
-            labelText: widget.source.label,
-            errorText: state.errorText,
-            enabled: _enabled,
-          ),
-        );
-        return InputDecorator(
-          decoration: decoration,
-          isEmpty: false,
-          child: Row(
-            children: [
-              dropdown<int>(
-                hint: 'Day',
-                value: _day,
-                items: days,
-                labelOf: (value) => value.toString(),
-                onChanged: (value) => _setPart(state, day: value),
-              ),
-              const SizedBox(width: 8),
-              dropdown<int>(
-                hint: 'Month',
-                value: _month,
-                items: [for (var m = 1; m <= 12; m++) m],
-                labelOf: (value) => _config.monthNames[value - 1],
-                onChanged: (value) => _setPart(state, month: value),
-              ),
-              const SizedBox(width: 8),
-              dropdown<int>(
-                hint: 'Year',
-                value: _year,
-                items: years,
-                labelOf: (value) => value.toString(),
-                onChanged: (value) => _setPart(state, year: value),
-              ),
-            ],
-          ),
-        );
-      },
+          return InputDecorator(
+            decoration: decoration,
+            isEmpty: false,
+            child: Row(
+              children: [
+                dropdown<int>(
+                  hint: 'Day',
+                  value: _day,
+                  items: days,
+                  labelOf: (value) => value.toString(),
+                  onChanged: (value) => _setPart(state, day: value),
+                ),
+                const SizedBox(width: 8),
+                dropdown<int>(
+                  hint: 'Month',
+                  value: _month,
+                  items: [for (var m = 1; m <= 12; m++) m],
+                  labelOf: (value) => _config.monthNames[value - 1],
+                  onChanged: (value) => _setPart(state, month: value),
+                ),
+                const SizedBox(width: 8),
+                dropdown<int>(
+                  hint: 'Year',
+                  value: _year,
+                  items: years,
+                  labelOf: (value) => value.toString(),
+                  onChanged: (value) => _setPart(state, year: value),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
