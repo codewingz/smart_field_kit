@@ -1,5 +1,6 @@
 import 'package:characters/characters.dart';
 import 'package:smart_field_kit/src/formatting/smart_numeric_formatters.dart';
+import 'package:smart_field_kit/src/formatting/smart_text_utils.dart';
 import 'package:smart_field_kit/src/models/smart_phone_value.dart';
 import 'package:smart_field_kit/src/validation/smart_phone_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_url_validation.dart';
@@ -170,6 +171,34 @@ abstract final class SmartValidators {
         return message ?? 'Enter at least $length characters.';
       }
       return null;
+    };
+  }
+
+  static SmartValidator minWords(int count, {String? message}) {
+    if (count < 0) {
+      throw ArgumentError.value(count, 'count');
+    }
+    return (value) {
+      if (_isBlank(value)) {
+        return null;
+      }
+      return SmartTextUtils.countWords(value!) < count
+          ? message ?? 'Enter at least $count words.'
+          : null;
+    };
+  }
+
+  static SmartValidator maxWords(int count, {String? message}) {
+    if (count < 0) {
+      throw ArgumentError.value(count, 'count');
+    }
+    return (value) {
+      if (value == null) {
+        return null;
+      }
+      return SmartTextUtils.countWords(value) > count
+          ? message ?? 'Enter no more than $count words.'
+          : null;
     };
   }
 

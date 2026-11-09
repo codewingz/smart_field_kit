@@ -6,6 +6,14 @@ bool _hasValidLengthRange(int? minLength, int? maxLength) {
       (minLength == null || maxLength == null || minLength <= maxLength);
 }
 
+List<TextInputFormatter>? _composeFormatters(
+  List<TextInputFormatter> own,
+  List<TextInputFormatter>? developer,
+) {
+  final all = [...own, ...?developer];
+  return all.isEmpty ? null : all;
+}
+
 final class _SmartFieldCore {
   const _SmartFieldCore({
     this.fieldValidator,
@@ -22,6 +30,11 @@ final class _SmartFieldCore {
     this.isAmount = false,
     this.matchController,
     this.mismatchMessage = 'Passwords do not match.',
+    this.minWords,
+    this.maxWords,
+    this.showWordCount = false,
+    this.minWordsMessage,
+    this.maxWordsMessage,
   });
 
   final SmartValidator? fieldValidator;
@@ -38,6 +51,11 @@ final class _SmartFieldCore {
   final bool isAmount;
   final TextEditingController? matchController;
   final String mismatchMessage;
+  final int? minWords;
+  final int? maxWords;
+  final bool showWordCount;
+  final String? minWordsMessage;
+  final String? maxWordsMessage;
 }
 
 enum _SmartMaskKind { phone, account, amount }

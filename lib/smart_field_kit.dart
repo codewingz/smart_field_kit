@@ -1,5 +1,7 @@
 library;
 
+export 'src/formatting/smart_text_formatters.dart';
+export 'src/formatting/smart_text_utils.dart';
 export 'src/formatting/smart_numeric_formatters.dart'
     show SmartAmountFormatter, SmartCurrencyPosition;
 export 'src/masking/smart_masking.dart';
