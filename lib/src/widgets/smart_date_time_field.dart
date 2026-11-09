@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_input_mask.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
@@ -297,6 +299,8 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     _handleServerChange,
   );
   final GlobalKey<FormFieldState<DateTime?>> _dropdownKey = GlobalKey();
+  final Map<int, Offset> _pointerStarts = {};
+  final Set<int> _suffixPointers = {};
   int? _day;
   int? _month;
   int? _year;
@@ -447,15 +451,20 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     var last = _config.maxDate == null
         ? DateTime(2100, 12, 31)
         : SmartDateUtils.dateOnly(_config.maxDate!);
+    final includesToday = _config.kind == SmartDateTimeKind.dateTime;
     if (_config.restriction == SmartDateRestriction.pastOnly) {
-      final yesterday = today.subtract(const Duration(days: 1));
-      if (yesterday.isBefore(last)) {
-        last = yesterday;
+      final limit = includesToday
+          ? today
+          : today.subtract(const Duration(days: 1));
+      if (limit.isBefore(last)) {
+        last = limit;
       }
     } else if (_config.restriction == SmartDateRestriction.futureOnly) {
-      final tomorrow = DateTime(today.year, today.month, today.day + 1);
-      if (tomorrow.isAfter(first)) {
-        first = tomorrow;
+      final limit = includesToday
+          ? today
+          : DateTime(today.year, today.month, today.day + 1);
+      if (limit.isAfter(first)) {
+        first = limit;
       }
     }
     if (last.isBefore(first)) {
@@ -608,7 +617,15 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
         ),
       );
     }
-    return composeSuffixActions(children);
+    final composed = composeSuffixActions(children);
+    if (composed == null || !_config.usesPicker) {
+      return composed;
+    }
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (event) => _suffixPointers.add(event.pointer),
+      child: composed,
+    );
   }
 
   @override
@@ -645,20 +662,42 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     if (!_config.usesPicker) {
       return field;
     }
+    final canOpen = _enabled && !widget.source.readOnly;
     return Semantics(
-      container: true,
-      button: true,
-      enabled: _enabled && !widget.source.readOnly,
-      label: widget.source.label,
-      value: _controller.text,
-      onTap: _enabled && !widget.source.readOnly ? _openPicker : null,
-      excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _enabled && !widget.source.readOnly ? _openPicker : null,
-        child: AbsorbPointer(
-          absorbing: true,
-          child: ExcludeFocus(child: field),
+      onTap: canOpen ? _openPicker : null,
+      child: Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        onKeyEvent: (node, event) {
+          if (event is! KeyDownEvent || !canOpen) {
+            return KeyEventResult.ignored;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.enter ||
+              event.logicalKey == LogicalKeyboardKey.numpadEnter ||
+              event.logicalKey == LogicalKeyboardKey.space) {
+            _openPicker();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (event) =>
+              _pointerStarts[event.pointer] = event.position,
+          onPointerCancel: (event) {
+            _pointerStarts.remove(event.pointer);
+            _suffixPointers.remove(event.pointer);
+          },
+          onPointerUp: (event) {
+            final start = _pointerStarts.remove(event.pointer);
+            final onSuffix = _suffixPointers.remove(event.pointer);
+            if (start != null &&
+                !onSuffix &&
+                (event.position - start).distance < kTouchSlop) {
+              _openPicker();
+            }
+          },
+          child: field,
         ),
       ),
     );
