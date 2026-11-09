@@ -17,6 +17,8 @@ import 'package:smart_field_kit/src/validation/smart_async_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_phone_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_validation_options.dart';
 import 'package:smart_field_kit/src/validation/smart_url_validation.dart';
+import 'package:smart_field_kit/src/formatting/smart_card_utils.dart';
+import 'package:smart_field_kit/src/widgets/smart_credit_card_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_date_time_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_design.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
@@ -521,6 +523,129 @@ class SmartField extends StatefulWidget {
     required SmartDateTimeConfig config,
   }) : _core = _SmartFieldCore(dateTimeConfig: config),
        keyboardType = TextInputType.datetime,
+       textCapitalization = TextCapitalization.none,
+       autocorrect = false,
+       enableSuggestions = false,
+       autofillHints = null,
+       minLines = null,
+       maxLines = 1,
+       expands = false,
+       showVisibilityToggle = false,
+       onRawChanged = null,
+       onRawSaved = null,
+       inputFormatters = null,
+       minLength = null,
+       minLengthErrorText = null,
+       maxLength = null,
+       maxLengthErrorText = null,
+       restorationId = null;
+
+  factory SmartField.creditCard({
+    Key? key,
+    bool? enabled,
+    bool readOnly = false,
+    bool autofocus = false,
+    bool isRequired = false,
+    String requiredErrorText = 'This field is required.',
+    AutovalidateMode? autovalidateMode,
+    InputDecoration decoration = const InputDecoration(),
+    String numberLabel = 'Card number',
+    String expiryLabel = 'Expiry',
+    String cvvLabel = 'Security code',
+    String? numberHint,
+    String? expiryHint,
+    String? cvvHint,
+    TextEditingController? numberController,
+    TextEditingController? expiryController,
+    TextEditingController? cvvController,
+    FocusNode? numberFocusNode,
+    FocusNode? expiryFocusNode,
+    FocusNode? cvvFocusNode,
+    Set<SmartCardBrand>? acceptedBrands,
+    bool validateLuhn = true,
+    SmartExpiryFormat expiryFormat = SmartExpiryFormat.mmYy,
+    DateTime Function() now = DateTime.now,
+    Set<int>? cvvLengths,
+    bool concealCvv = true,
+    bool showBrand = true,
+    bool autoAdvance = true,
+    String numberErrorText = 'Enter a valid card number.',
+    String expiryErrorText = 'Enter a valid expiry date.',
+    String expiredErrorText = 'This card has expired.',
+    String? cvvErrorText,
+    SmartServerError? numberServerError,
+    SmartServerError? expiryServerError,
+    SmartServerError? cvvServerError,
+    ValueChanged<SmartCreditCardValue>? onChanged,
+    FormFieldSetter<SmartCreditCardValue>? onSaved,
+  }) {
+    return SmartField._creditCard(
+      key: key,
+      enabled: enabled,
+      readOnly: readOnly,
+      autofocus: autofocus,
+      isRequired: isRequired,
+      requiredErrorText: requiredErrorText,
+      autovalidateMode: autovalidateMode,
+      decoration: decoration,
+      config: SmartCreditCardConfig(
+        numberLabel: numberLabel,
+        expiryLabel: expiryLabel,
+        cvvLabel: cvvLabel,
+        numberHint: numberHint,
+        expiryHint: expiryHint,
+        cvvHint: cvvHint,
+        numberController: numberController,
+        expiryController: expiryController,
+        cvvController: cvvController,
+        numberFocusNode: numberFocusNode,
+        expiryFocusNode: expiryFocusNode,
+        cvvFocusNode: cvvFocusNode,
+        acceptedBrands: acceptedBrands,
+        validateLuhn: validateLuhn,
+        expiryFormat: expiryFormat,
+        now: now,
+        cvvLengths: cvvLengths,
+        concealCvv: concealCvv,
+        showBrand: showBrand,
+        autoAdvance: autoAdvance,
+        numberErrorText: numberErrorText,
+        expiryErrorText: expiryErrorText,
+        expiredErrorText: expiredErrorText,
+        cvvErrorText: cvvErrorText,
+        numberServerError: numberServerError,
+        expiryServerError: expiryServerError,
+        cvvServerError: cvvServerError,
+        onChanged: onChanged,
+        onSaved: onSaved,
+      ),
+    );
+  }
+
+  SmartField._creditCard({
+    super.key,
+    this.enabled,
+    this.readOnly = false,
+    this.autofocus = false,
+    this.isRequired = false,
+    this.requiredErrorText = 'This field is required.',
+    this.autovalidateMode,
+    this.decoration = const InputDecoration(),
+    required SmartCreditCardConfig config,
+  }) : _core = _SmartFieldCore(cardConfig: config),
+       label = null,
+       hintText = null,
+       controller = null,
+       focusNode = null,
+       textInputAction = null,
+       onChanged = null,
+       onSaved = null,
+       validator = null,
+       asyncValidation = null,
+       validationMode = SmartValidationMode.both,
+       builtInChecks = const {},
+       serverError = null,
+       keyboardType = TextInputType.number,
        textCapitalization = TextCapitalization.none,
        autocorrect = false,
        enableSuggestions = false,
@@ -1080,6 +1205,8 @@ class SmartField extends StatefulWidget {
     this.restorationId,
     this.decoration = const InputDecoration(),
     this.showVisibilityToggle = true,
+    this.keyboardType = TextInputType.visiblePassword,
+    this.inputFormatters,
     SmartPasswordPolicy? policy,
     String passwordErrorText = 'Password does not meet the selected policy.',
     TextEditingController? matchController,
@@ -1095,7 +1222,6 @@ class SmartField extends StatefulWidget {
          matchController: matchController,
          mismatchMessage: mismatchErrorText,
        ),
-       keyboardType = TextInputType.visiblePassword,
        textCapitalization = TextCapitalization.none,
        autocorrect = false,
        enableSuggestions = false,
@@ -1105,7 +1231,6 @@ class SmartField extends StatefulWidget {
        expands = false,
        onRawChanged = null,
        onRawSaved = null,
-       inputFormatters = null,
        assert(_hasValidLengthRange(minLength, maxLength));
 
   SmartField.number({
@@ -2688,6 +2813,19 @@ class _SmartFieldState extends State<SmartField> {
 
   @override
   Widget build(BuildContext context) {
+    final cardConfig = widget._core.cardConfig;
+    if (cardConfig != null) {
+      return SmartCreditCardField(
+        config: cardConfig,
+        enabled: widget.enabled,
+        readOnly: widget.readOnly,
+        autofocus: widget.autofocus,
+        isRequired: widget.isRequired,
+        requiredErrorText: widget.requiredErrorText,
+        autovalidateMode: widget.autovalidateMode,
+        decoration: widget.decoration,
+      );
+    }
     final dateTimeConfig = widget._core.dateTimeConfig;
     if (dateTimeConfig != null) {
       return SmartDateTimeField(
