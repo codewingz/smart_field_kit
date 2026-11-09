@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
 
@@ -347,4 +348,148 @@ void main() {
     expect(calls, 0);
     expect(find.text('%'), findsOneWidget);
   });
+
+  testWidgets('pastes and replaces in the middle keeping the caret', (
+    tester,
+  ) async {
+    final controller = TextEditingController(text: '1250');
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      _app(SmartField.percentage(controller: controller)),
+    );
+    await tester.showKeyboard(find.byType(TextFormField));
+
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '12.350',
+        selection: TextSelection.collapsed(offset: 4),
+      ),
+    );
+    await tester.pump();
+    expect(controller.text, '12.350');
+    expect(controller.selection, const TextSelection.collapsed(offset: 4));
+
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '12.3a50',
+        selection: TextSelection.collapsed(offset: 5),
+      ),
+    );
+    await tester.pump();
+    expect(controller.text, '12.350');
+
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '1.2.350',
+        selection: TextSelection.collapsed(offset: 2),
+      ),
+    );
+    await tester.pump();
+    expect(controller.text, '12.350');
+
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '12.5%',
+        selection: TextSelection.collapsed(offset: 5),
+      ),
+    );
+    await tester.pump();
+    expect(controller.text, '12.350');
+  });
+
+  testWidgets('does not rewrite text under active IME composition', (
+    tester,
+  ) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      _app(SmartField.percentage(controller: controller)),
+    );
+    await tester.showKeyboard(find.byType(TextFormField));
+
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '1',
+        selection: TextSelection.collapsed(offset: 1),
+        composing: TextRange(start: 0, end: 1),
+      ),
+    );
+    await tester.pump();
+    expect(controller.text, '1');
+    expect(controller.value.composing, const TextRange(start: 0, end: 1));
+  });
+
+  testWidgets('undo and redo restore raw text', (tester) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      _app(SmartField.percentage(controller: controller)),
+    );
+    await tester.showKeyboard(find.byType(TextFormField));
+
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '12',
+        selection: TextSelection.collapsed(offset: 2),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 1));
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '12.5',
+        selection: TextSelection.collapsed(offset: 4),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 1));
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.control);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
+    await tester.pump();
+    expect(controller.text, '12');
+    expect(controller.text.contains('%'), isFalse);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.control);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shift);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shift);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
+    await tester.pump();
+    expect(controller.text, '12.5');
+  });
+
+  testWidgets('exposes the percent suffix to semantics', (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(_app(SmartField.percentage(label: 'Rate')));
+    expect(find.bySemanticsLabel(RegExp('Rate')), findsWidgets);
+    expect(find.text('%'), findsOneWidget);
+    handle.dispose();
+  });
+
+  testWidgets(
+    'shows percent when empty and unfocused and keeps a custom suffix icon',
+    (tester) async {
+      await tester.pumpWidget(
+        _app(
+          Column(
+            children: [
+              SmartField.percentage(label: 'A'),
+              SmartField.percentage(
+                label: 'B',
+                decoration: const InputDecoration(suffixIcon: Icon(Icons.info)),
+              ),
+            ],
+          ),
+        ),
+      );
+      expect(
+        find.descendant(
+          of: find.byType(SmartField).first,
+          matching: find.text('%'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.info), findsOneWidget);
+    },
+  );
 }

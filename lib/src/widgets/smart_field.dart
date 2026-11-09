@@ -1650,7 +1650,10 @@ class _SmartFieldState extends State<SmartField> {
       hintText: decoration.hint == null && decoration.hintText == null
           ? widget.hintText
           : null,
-      suffixText: decoration.suffix == null && decoration.suffixText == null
+      suffixText:
+          decoration.suffix == null &&
+              decoration.suffixText == null &&
+              decoration.suffixIcon != null
           ? widget._percentageSuffix
           : null,
       prefixIcon: _searchPrefixIcon(_phonePrefixIcon(decoration.prefixIcon)),
@@ -1724,6 +1727,32 @@ class _SmartFieldState extends State<SmartField> {
 
   Widget? _suffixIcon(Widget? existing) {
     final children = <Widget>[?existing];
+
+    final percentSymbol = widget._percentageSuffix;
+    final decoration = widget.decoration;
+    if (percentSymbol != null &&
+        existing == null &&
+        decoration.suffix == null &&
+        decoration.suffixText == null) {
+      final theme = Theme.of(context);
+      final color = (widget.enabled ?? widget.decoration.enabled)
+          ? theme.colorScheme.onSurfaceVariant
+          : theme.disabledColor;
+      children.add(
+        Padding(
+          padding: const EdgeInsetsDirectional.only(end: 12),
+          child: Center(
+            widthFactor: 1,
+            child: Text(
+              percentSymbol,
+              style:
+                  decoration.suffixStyle ??
+                  theme.textTheme.bodyLarge?.copyWith(color: color),
+            ),
+          ),
+        ),
+      );
+    }
 
     if (widget._isPassword && widget.showVisibilityToggle) {
       children.add(_passwordToggle());
