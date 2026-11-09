@@ -262,6 +262,18 @@ final class _SmartFieldCore {
   final bool showWordCount;
   final String? minWordsMessage;
   final String? maxWordsMessage;
+
+  String? rawValue(String text, {bool partial = false}) {
+    final formatter = amountFormatter;
+    if (formatter != null) {
+      return formatter.normalize(text, allowPartial: partial);
+    }
+    final mask = inputMask;
+    if (mask != null) {
+      return mask.extractRaw(text);
+    }
+    return valueNormalizer?.call(text);
+  }
 }
 
 enum _SmartMaskKind { phone, account, amount }
@@ -280,6 +292,46 @@ final class _SmartMaskConfig {
   final int visibleSuffixDigits;
   final String maskCharacter;
   final bool revealOnFocus;
+
+  String render(String value, SmartAmountFormatter? amountFormatter) {
+    switch (kind) {
+      case _SmartMaskKind.phone:
+        return maskMobile(
+          value,
+          visibleSuffixDigits: visibleSuffixDigits,
+          maskCharacter: maskCharacter,
+        );
+      case _SmartMaskKind.account:
+        return maskAccountNumber(
+          value,
+          visibleSuffixCharacters: visibleSuffixDigits,
+          maskCharacter: maskCharacter,
+        );
+      case _SmartMaskKind.amount:
+        final formatter = amountFormatter!;
+        try {
+          return maskAmount(
+            value,
+            visibleSuffixDigits: visibleSuffixDigits,
+            maskCharacter: maskCharacter,
+            groupingSeparator: formatter.groupingSeparator,
+            decimalSeparator: formatter.decimalSeparator,
+          );
+        } on FormatException {
+          return maskAccountNumber(
+            value,
+            visibleSuffixCharacters: 0,
+            maskCharacter: maskCharacter,
+            preservedSeparators: {
+              ' ',
+              '-',
+              formatter.groupingSeparator,
+              formatter.decimalSeparator,
+            },
+          );
+        }
+    }
+  }
 }
 
 _SmartMaskConfig _createMaskConfig({
