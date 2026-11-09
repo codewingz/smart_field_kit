@@ -482,6 +482,56 @@ SmartField.url(label: 'Website or domain', allowBareDomain: true)
 
 If your backend later fetches submitted URLs, enforce a server-side URL policy and defend against SSRF, redirects, and DNS rebinding. Syntax validation does not prevent those attacks. URLs may contain tokens, so avoid logging full values.
 
+## Async validation
+
+Every `SmartField` constructor accepts an optional `asyncValidation:` configuration. The checker is your function; the package never makes network calls and cannot cancel your HTTP request. It only manages timing, state, and ignoring outdated results.
+
+```dart
+final formKey = GlobalKey<FormState>();
+final usernameAsync = SmartFieldAsyncController();
+
+SmartField.username(
+  label: 'Username',
+  isRequired: true,
+  asyncValidation: SmartAsyncValidation(
+    controller: usernameAsync,
+    debounceDuration: const Duration(milliseconds: 400),
+    validator: (value) async {
+      final available = await usernameService.isAvailable(value);
+      return available ? null : 'Username is already taken.';
+    },
+  ),
+)
+
+Future<void> submit() async {
+  if (!formKey.currentState!.validate()) return;
+  if (!await usernameAsync.validateAsync()) return;
+  if (!formKey.currentState!.validate()) return;
+  formKey.currentState!.save();
+}
+```
+
+Create and dispose the `SmartFieldAsyncController` in your own state. Attach one controller to one field. Several async fields: `final results = await Future.wait([a.validateAsync(), b.validateAsync()]);` and submit only if all are true. Disable your submit button while submitting to prevent duplicate submissions.
+
+`SmartAsyncValidation` options:
+
+- `validator`: `Future<String?> Function(String raw)`; return `null` when valid or an error message.
+- `trigger`: `onChanged` (default; debounced), `onUnfocus` (when focus leaves), or `manual` (only `validateAsync()`).
+- `debounceDuration`: default 400 ms; `Duration.zero` checks immediately. Each edit restarts the wait.
+- `timeout`: optional; a timeout counts as unavailable.
+- `unavailableErrorText`, `loadingIndicator`, `loadingSemanticsLabel`: customize messages and the suffix indicator.
+- `controller`: a `SmartFieldAsyncController` exposing `status`, `errorText`, and `validateAsync({force})`.
+
+Status values: `idle`, `pending`, `valid`, `invalid`, `unavailable`.
+
+- Order: required, field syntax and policies, length/value rules and your synchronous `validator`, then async. The checker is never called for empty or synchronously invalid values.
+- The checker receives the raw value: the typed text, the normalized number for `.amount()` and `.percentage()` (no grouping, currency symbol, or `%`), and the unmasked text for masked fields. Phone fields pass the entered text.
+- Any edit, clear, reset, controller replacement, or disabling discards the previous result and ignores late completions. `validateAsync()` returns `false` if the value changed while it ran.
+- A thrown error or timeout gives `unavailable` and the unavailable message; it never counts as valid. Calling `validateAsync()` again retries. A rejected value is cached until it changes; use `force: true` to ask again.
+- `FormState.validate()` stays synchronous. It fails for a rejected or unavailable result of the current value and does not wait for a pending check, so await `validateAsync()` before submitting.
+- Passwords and OTP codes are only sent to your checker, never anywhere else, and are never logged.
+- Local checks are a convenience: always validate again on your server.
+
 ## Search SmartField
 
 `SmartField.search()` is a native single-line search input. It uses the Material search keyboard action, provides a decorative search icon, and shows an accessible clear action only while editable text is present. It has no built-in search engine, network request, results list, history, or default text restriction.

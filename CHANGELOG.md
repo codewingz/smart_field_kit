@@ -14,3 +14,4 @@
 * Add SmartField.search with native search input behavior, accessible clear and loading states, and optional debounced search events.
 * Add SmartField.percentage with a visual percent suffix, exact raw decimal strings, and opt-in sign, precision, and range rules.
 * Add SmartField.url with raw-value preservation, complete http/https syntax validation, and opt-in scheme and bare-domain policies.
+* Add optional asynchronous validation for every SmartField type with debounce, triggers, stale-result protection, loading and unavailable states, and an awaitable SmartFieldAsyncController.
