@@ -2134,24 +2134,9 @@ class _SmartFieldState extends State<SmartField> {
     if (widget._isPhone) {
       setState(() {});
     }
-    final formatter = widget._amountFormatter;
-    if (formatter != null) {
-      final raw = formatter.normalize(value, allowPartial: true);
-      if (raw != null) {
-        widget.onRawChanged?.call(raw);
-      }
-    }
-    final mask = widget._core.inputMask;
-    if (mask != null) {
-      final raw = mask.extractRaw(value);
-      if (raw != null) {
-        widget.onRawChanged?.call(raw);
-      }
-    } else if (formatter == null && widget._valueNormalizer != null) {
-      final raw = widget._valueNormalizer!(value);
-      if (raw != null) {
-        widget.onRawChanged?.call(raw);
-      }
+    final raw = widget._core.rawValue(value, partial: true);
+    if (raw != null) {
+      widget.onRawChanged?.call(raw);
     }
   }
 
@@ -2206,16 +2191,8 @@ class _SmartFieldState extends State<SmartField> {
 
   void _handleSaved(String? value) {
     widget.onSaved?.call(value);
-    final formatter = widget._amountFormatter;
-    final mask = widget._core.inputMask;
     widget.onRawSaved?.call(
-      value == null
-          ? null
-          : formatter != null
-          ? formatter.normalize(value)
-          : mask != null
-          ? mask.extractRaw(value)
-          : widget._valueNormalizer?.call(value),
+      value == null ? null : widget._core.rawValue(value),
     );
   }
 
@@ -2235,45 +2212,10 @@ class _SmartFieldState extends State<SmartField> {
   }
 
   String _maskedText() {
-    final config = widget._maskConfig!;
-    final value = _effectiveController?.text ?? '';
-    switch (config.kind) {
-      case _SmartMaskKind.phone:
-        return maskMobile(
-          value,
-          visibleSuffixDigits: config.visibleSuffixDigits,
-          maskCharacter: config.maskCharacter,
-        );
-      case _SmartMaskKind.account:
-        return maskAccountNumber(
-          value,
-          visibleSuffixCharacters: config.visibleSuffixDigits,
-          maskCharacter: config.maskCharacter,
-        );
-      case _SmartMaskKind.amount:
-        final formatter = widget._amountFormatter!;
-        try {
-          return maskAmount(
-            value,
-            visibleSuffixDigits: config.visibleSuffixDigits,
-            maskCharacter: config.maskCharacter,
-            groupingSeparator: formatter.groupingSeparator,
-            decimalSeparator: formatter.decimalSeparator,
-          );
-        } on FormatException {
-          return maskAccountNumber(
-            value,
-            visibleSuffixCharacters: 0,
-            maskCharacter: config.maskCharacter,
-            preservedSeparators: {
-              ' ',
-              '-',
-              formatter.groupingSeparator,
-              formatter.decimalSeparator,
-            },
-          );
-        }
-    }
+    return widget._maskConfig!.render(
+      _effectiveController?.text ?? '',
+      widget._amountFormatter,
+    );
   }
 
   InputDecoration _maskedDecoration(String maskedText) {
