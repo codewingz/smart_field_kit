@@ -97,7 +97,9 @@ final class SmartInputMask {
     final offsets = <int>[0];
     var placed = 0;
     var pendingLiterals = StringBuffer();
-    for (final token in _tokens) {
+    var index = 0;
+    for (; index < _tokens.length; index++) {
+      final token = _tokens[index];
       if (placed >= characters.length) {
         break;
       }
@@ -110,6 +112,16 @@ final class SmartInputMask {
       buffer.write(characters[placed]);
       placed++;
       offsets.add(buffer.length);
+    }
+    if (placed == capacity && placed > 0) {
+      buffer.write(pendingLiterals);
+      for (; index < _tokens.length; index++) {
+        final token = _tokens[index];
+        if (!token.isSlot) {
+          buffer.write(token.character);
+        }
+      }
+      offsets[offsets.length - 1] = buffer.length;
     }
     return (display: buffer.toString(), offsets: offsets);
   }
