@@ -11,6 +11,7 @@ import 'package:smart_field_kit/src/models/smart_otp_style.dart';
 import 'package:smart_field_kit/src/models/smart_phone_value.dart';
 import 'package:smart_field_kit/src/validation/smart_async_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_phone_validation.dart';
+import 'package:smart_field_kit/src/validation/smart_validation_options.dart';
 import 'package:smart_field_kit/src/validation/smart_url_validation.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_design.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
@@ -48,6 +49,10 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.asyncValidation,
+    this.validationMode = SmartValidationMode.both,
+    this.builtInChecks = const {},
+    this.serverError,
+    this.restorationId,
     this.decoration = const InputDecoration(),
     this.inputFormatters,
   }) : _core = const _SmartFieldCore(),
@@ -91,6 +96,10 @@ class SmartField extends StatefulWidget {
     FormFieldValidator<String>? validator,
     AutovalidateMode? autovalidateMode,
     SmartAsyncValidation? asyncValidation,
+    SmartValidationMode validationMode = SmartValidationMode.both,
+    Set<SmartBuiltInCheck> builtInChecks = const {},
+    SmartServerError? serverError,
+    String? restorationId,
     InputDecoration decoration = const InputDecoration(),
     List<TextInputFormatter>? inputFormatters,
     SmartTextValidationPreset? validationPreset,
@@ -125,6 +134,10 @@ class SmartField extends StatefulWidget {
       validator: validator,
       autovalidateMode: autovalidateMode,
       asyncValidation: asyncValidation,
+      validationMode: validationMode,
+      builtInChecks: builtInChecks,
+      serverError: serverError,
+      restorationId: restorationId,
       decoration: decoration,
       inputFormatters: inputFormatters,
       validationPreset: validationPreset,
@@ -161,6 +174,10 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.asyncValidation,
+    this.validationMode = SmartValidationMode.both,
+    this.builtInChecks = const {},
+    this.serverError,
+    this.restorationId,
     this.decoration = const InputDecoration(),
     this.inputFormatters,
     SmartTextValidationPreset? validationPreset,
@@ -203,6 +220,10 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.asyncValidation,
+    this.validationMode = SmartValidationMode.both,
+    this.builtInChecks = const {},
+    this.serverError,
+    this.restorationId,
     this.decoration = const InputDecoration(),
     SmartEmailPolicy policy = SmartEmailPolicy.standard,
     String emailErrorText = 'Enter a valid email address.',
@@ -247,6 +268,10 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.asyncValidation,
+    this.validationMode = SmartValidationMode.both,
+    this.builtInChecks = const {},
+    this.serverError,
+    this.restorationId,
     this.decoration = const InputDecoration(),
     this.inputFormatters,
     Set<String> allowedSchemes = SmartUrlValidation.defaultSchemes,
@@ -294,6 +319,10 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.asyncValidation,
+    this.validationMode = SmartValidationMode.both,
+    this.builtInChecks = const {},
+    this.serverError,
+    this.restorationId,
     this.decoration = const InputDecoration(),
     this.inputFormatters,
     SmartTextValidationPreset? validationPreset,
@@ -340,6 +369,10 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.asyncValidation,
+    this.validationMode = SmartValidationMode.both,
+    this.builtInChecks = const {},
+    this.serverError,
+    this.restorationId,
     this.decoration = const InputDecoration(),
     this.inputFormatters,
     SmartTextValidationPreset? validationPreset,
@@ -387,6 +420,10 @@ class SmartField extends StatefulWidget {
     FormFieldValidator<String>? validator,
     AutovalidateMode? autovalidateMode,
     SmartAsyncValidation? asyncValidation,
+    SmartValidationMode validationMode = SmartValidationMode.both,
+    Set<SmartBuiltInCheck> builtInChecks = const {},
+    SmartServerError? serverError,
+    String? restorationId,
     InputDecoration decoration = const InputDecoration(),
     bool obscureText = false,
     SmartOtpPolicy policy = SmartOtpPolicy.standard,
@@ -430,6 +467,10 @@ class SmartField extends StatefulWidget {
       validator: validator,
       autovalidateMode: autovalidateMode,
       asyncValidation: asyncValidation,
+      validationMode: validationMode,
+      builtInChecks: builtInChecks,
+      serverError: serverError,
+      restorationId: restorationId,
       decoration: decoration,
       obscureText: obscureText,
       policy: policy,
@@ -462,6 +503,10 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.asyncValidation,
+    this.validationMode = SmartValidationMode.both,
+    this.builtInChecks = const {},
+    this.serverError,
+    this.restorationId,
     this.decoration = const InputDecoration(),
     this.inputFormatters,
     GestureTapCallback? onTap,
@@ -523,6 +568,10 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.asyncValidation,
+    this.validationMode = SmartValidationMode.both,
+    this.builtInChecks = const {},
+    this.serverError,
+    this.restorationId,
     this.decoration = const InputDecoration(),
     required bool obscureText,
     required SmartOtpPolicy policy,
@@ -584,6 +633,10 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.asyncValidation,
+    this.validationMode = SmartValidationMode.both,
+    this.builtInChecks = const {},
+    this.serverError,
+    this.restorationId,
     this.decoration = const InputDecoration(),
     bool mask = false,
     int maskVisibleSuffixDigits = 4,
@@ -667,10 +720,16 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.asyncValidation,
+    this.validationMode = SmartValidationMode.both,
+    this.builtInChecks = const {},
+    this.serverError,
+    this.restorationId,
     this.decoration = const InputDecoration(),
     this.showVisibilityToggle = true,
     SmartPasswordPolicy? policy,
     String passwordErrorText = 'Password does not meet the selected policy.',
+    TextEditingController? matchController,
+    String mismatchErrorText = 'Passwords do not match.',
   }) : _core = _SmartFieldCore(
          fieldValidator: policy == null
              ? null
@@ -679,6 +738,8 @@ class SmartField extends StatefulWidget {
                  message: passwordErrorText,
                ),
          isPassword: true,
+         matchController: matchController,
+         mismatchMessage: mismatchErrorText,
        ),
        keyboardType = TextInputType.visiblePassword,
        textCapitalization = TextCapitalization.none,
@@ -718,6 +779,10 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.asyncValidation,
+    this.validationMode = SmartValidationMode.both,
+    this.builtInChecks = const {},
+    this.serverError,
+    this.restorationId,
     this.decoration = const InputDecoration(),
     bool mask = false,
     int maskVisibleSuffixDigits = 4,
@@ -787,6 +852,10 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.asyncValidation,
+    this.validationMode = SmartValidationMode.both,
+    this.builtInChecks = const {},
+    this.serverError,
+    this.restorationId,
     this.decoration = const InputDecoration(),
     int? decimalPlaces,
     bool allowNegative = true,
@@ -876,6 +945,10 @@ class SmartField extends StatefulWidget {
     FormFieldValidator<String>? validator,
     AutovalidateMode? autovalidateMode,
     SmartAsyncValidation? asyncValidation,
+    SmartValidationMode validationMode = SmartValidationMode.both,
+    Set<SmartBuiltInCheck> builtInChecks = const {},
+    SmartServerError? serverError,
+    String? restorationId,
     InputDecoration decoration = const InputDecoration(),
     int? decimalPlaces,
     bool useGrouping = false,
@@ -927,6 +1000,10 @@ class SmartField extends StatefulWidget {
       validator: validator,
       autovalidateMode: autovalidateMode,
       asyncValidation: asyncValidation,
+      validationMode: validationMode,
+      builtInChecks: builtInChecks,
+      serverError: serverError,
+      restorationId: restorationId,
       decoration: decoration,
       formatter: formatter,
       policy: policy,
@@ -967,6 +1044,10 @@ class SmartField extends StatefulWidget {
     this.validator,
     this.autovalidateMode,
     this.asyncValidation,
+    this.validationMode = SmartValidationMode.both,
+    this.builtInChecks = const {},
+    this.serverError,
+    this.restorationId,
     this.decoration = const InputDecoration(),
     required SmartAmountFormatter formatter,
     required SmartAmountPolicy policy,
@@ -1053,6 +1134,10 @@ class SmartField extends StatefulWidget {
   final FormFieldValidator<String>? validator;
   final AutovalidateMode? autovalidateMode;
   final SmartAsyncValidation? asyncValidation;
+  final SmartValidationMode validationMode;
+  final Set<SmartBuiltInCheck> builtInChecks;
+  final SmartServerError? serverError;
+  final String? restorationId;
   final InputDecoration decoration;
   final bool showVisibilityToggle;
   SmartValidator? get _fieldValidator => _core.fieldValidator;
@@ -1095,6 +1180,8 @@ class _SmartFieldState extends State<SmartField> {
   TextEditingController? _asyncBoundController;
   TextEditingController? _ownedOtpController;
   final GlobalKey<FormFieldState<String>> _asyncFieldKey = GlobalKey();
+  TextEditingController? _boundMatchController;
+  SmartServerError? _boundServerError;
 
   static bool _usesOwnedState(SmartField source) {
     return source._isAmount ||
@@ -1126,6 +1213,7 @@ class _SmartFieldState extends State<SmartField> {
     _configureMaskState();
     _configureSearchState();
     _syncAsyncBinding();
+    _syncExternalBindings();
   }
 
   @override
@@ -1179,6 +1267,7 @@ class _SmartFieldState extends State<SmartField> {
       _ownedFocusNode = null;
     }
     _ensureOwnedState(oldController?.value);
+    _syncExternalBindings();
     _configureAmountState();
     _configurePhoneState();
     _configureMaskState();
@@ -1186,6 +1275,34 @@ class _SmartFieldState extends State<SmartField> {
     _syncAsyncBinding();
     if (!(widget.enabled ?? widget.decoration.enabled)) {
       _asyncEngine?.reset();
+    }
+  }
+
+  void _syncExternalBindings() {
+    final match = widget._core.matchController;
+    if (!identical(match, _boundMatchController)) {
+      _boundMatchController?.removeListener(_handleMatchChange);
+      _boundMatchController = match;
+      match?.addListener(_handleMatchChange);
+    }
+    final server = widget.serverError;
+    if (!identical(server, _boundServerError)) {
+      _boundServerError?.removeListener(_handleServerErrorChange);
+      _boundServerError = server;
+      server?.addListener(_handleServerErrorChange);
+    }
+  }
+
+  void _handleMatchChange() {
+    if (!mounted || _asyncText().isEmpty) {
+      return;
+    }
+    _activeFormFieldKey.currentState?.validate();
+  }
+
+  void _handleServerErrorChange() {
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -1876,23 +1993,34 @@ class _SmartFieldState extends State<SmartField> {
 
   String? _synchronousValidator(String? value) {
     final validators = <SmartValidator>[];
+    final mode = widget.validationMode;
+    final usesBuiltIn = mode != SmartValidationMode.custom;
+    final selectedOnly = mode == SmartValidationMode.selected;
+    final checks = widget.builtInChecks;
     if (widget.isRequired) {
       validators.add(
         SmartValidators.requiredField(message: widget.requiredErrorText),
       );
     }
-    if (widget._fieldValidator != null) {
-      validators.add(widget._fieldValidator!);
-    }
-    final phone = widget._phoneConfig;
-    if (phone != null) {
-      validators.add(
-        SmartValidators.phone(
-          policy: phone.policy,
-          country: _selectedCountry,
-          message: phone.errorText,
-        ),
-      );
+    if (usesBuiltIn) {
+      if (widget._isPassword && selectedOnly) {
+        validators.add(SmartValidators.passwordRules(checks));
+      }
+      if (widget._fieldValidator != null &&
+          (!selectedOnly || checks.contains(SmartBuiltInCheck.fieldFormat))) {
+        validators.add(widget._fieldValidator!);
+      }
+      final phone = widget._phoneConfig;
+      if (phone != null &&
+          (!selectedOnly || checks.contains(SmartBuiltInCheck.fieldFormat))) {
+        validators.add(
+          SmartValidators.phone(
+            policy: phone.policy,
+            country: _selectedCountry,
+            message: phone.errorText,
+          ),
+        );
+      }
     }
     if (widget.minLength != null) {
       validators.add(
@@ -1918,7 +2046,16 @@ class _SmartFieldState extends State<SmartField> {
     if (widget._maxValueValidator != null) {
       validators.add(widget._maxValueValidator!);
     }
-    if (widget.validator != null) {
+    final match = widget._core.matchController;
+    if (match != null) {
+      validators.add(
+        SmartValidators.matches(
+          () => match.text,
+          message: widget._core.mismatchMessage,
+        ),
+      );
+    }
+    if (widget.validator != null && mode != SmartValidationMode.builtIn) {
       validators.add(widget.validator!);
     }
     return SmartValidators.compose(validators)(value);
@@ -1926,6 +2063,7 @@ class _SmartFieldState extends State<SmartField> {
 
   void _handleChanged(String value) {
     widget.onChanged?.call(value);
+    widget.serverError?.notifyFieldChanged();
     _asyncEngine?.observe(value);
     if (widget._isSearch) {
       _scheduleSearch(value);
@@ -2069,6 +2207,8 @@ class _SmartFieldState extends State<SmartField> {
   void dispose() {
     _cancelPendingSearch();
     _asyncBoundController?.removeListener(_handleAsyncText);
+    _boundMatchController?.removeListener(_handleMatchChange);
+    _boundServerError?.removeListener(_handleServerErrorChange);
     _asyncEngine?.dispose();
     _ownedOtpController?.dispose();
     if (widget._supportsMasking) {
@@ -2094,7 +2234,8 @@ class _SmartFieldState extends State<SmartField> {
   Widget build(BuildContext context) {
     final otpConfig = widget._otpConfig;
     if (otpConfig != null) {
-      final asyncError = _asyncEngine?.errorFor(_asyncText());
+      final asyncError =
+          widget.serverError?.errorText ?? _asyncEngine?.errorFor(_asyncText());
       return _withAsyncFocus(
         SmartOtpField(
           configuration: otpConfig,
@@ -2125,7 +2266,8 @@ class _SmartFieldState extends State<SmartField> {
           ? _searchFieldKey
           : widget._supportsMasking
           ? _maskFieldKey
-          : widget.asyncValidation != null
+          : widget.asyncValidation != null ||
+                widget._core.matchController != null
           ? _asyncFieldKey
           : null,
       controller: _effectiveController,
@@ -2154,6 +2296,8 @@ class _SmartFieldState extends State<SmartField> {
       onFieldSubmitted: widget._isSearch ? _handleSubmitted : null,
       onSaved: _handleSaved,
       validator: _effectiveValidator,
+      forceErrorText: widget.serverError?.errorText,
+      restorationId: _restorationId,
       autovalidateMode: widget.autovalidateMode,
       decoration: showsMask
           ? _maskedDecoration(maskedText!)
@@ -2177,6 +2321,15 @@ class _SmartFieldState extends State<SmartField> {
         child: field,
       ),
     );
+  }
+
+  String? get _restorationId {
+    if (widget._isPassword ||
+        widget._otpConfig != null ||
+        _usesOwnedState(widget)) {
+      return null;
+    }
+    return widget.restorationId;
   }
 
   Widget _withAsyncFocus(Widget child) {
