@@ -1,5 +1,5 @@
 name: smart_field_kit
-description: "Reusable Flutter text fields built on native Material form behavior."
+description: "Flutter form fields on native Material behavior: validation, formatting, masking, phone, OTP, amount, card, and date inputs in one API."
 version: 0.0.1
 homepage: https://github.com/codewingz/smart_field_kit
 repository: https://github.com/codewingz/smart_field_kit
@@ -11,9 +11,9 @@ topics:
   - text-field
   - flutter
 screenshots:
-  - description: Amount formatting: 50,000.00 displayed, 50000.00 raw value, and a percentage field.
+  - description: "Amount formatting: 50,000.00 displayed, 50000.00 raw value, and a percentage field."
     path: screenshots/amount_percentage_light.png
-  - description: Phone field with country picker and parsed E.164 value, dark theme.
+  - description: "Phone field with country picker and parsed E.164 value, dark theme."
     path: screenshots/phone_parsing_dark.png
 
 environment:
