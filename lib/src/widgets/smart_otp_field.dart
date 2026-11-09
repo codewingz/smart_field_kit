@@ -62,6 +62,7 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
   late String _initialValue;
   late String _lastText;
   bool _nextChangeIsUser = false;
+  bool _composing = false;
   bool _wasComplete = false;
   bool _resetting = false;
 
@@ -128,6 +129,16 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
       _lastText = value.text;
       return;
     }
+    if (smartIsComposing(value)) {
+      _composing = true;
+      _nextChangeIsUser = false;
+      if (mounted) {
+        setState(() {});
+      }
+      return;
+    }
+    final committedComposition = _composing;
+    _composing = false;
     final textChanged = value.text != _lastText;
     if (!textChanged) {
       _nextChangeIsUser = false;
@@ -136,7 +147,7 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
       }
       return;
     }
-    final isUserChange = _nextChangeIsUser;
+    final isUserChange = _nextChangeIsUser || committedComposition;
     _nextChangeIsUser = false;
     _lastText = value.text;
     _formFieldKey.currentState?.didChange(value.text);
