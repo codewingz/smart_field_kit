@@ -636,4 +636,278 @@ void main() {
       greaterThan(before),
     );
   });
+
+  group('configuration transitions', () {
+    testWidgets('accepted cache is invalidated when validator changes', (
+      tester,
+    ) async {
+      final text = TextEditingController();
+      final async = SmartFieldAsyncController();
+      var firstCalls = 0;
+      var secondCalls = 0;
+      Future<String?> first(String value) async {
+        firstCalls++;
+        return null;
+      }
+
+      Future<String?> second(String value) async {
+        secondCalls++;
+        return 'Rejected by B';
+      }
+
+      addTearDown(text.dispose);
+      addTearDown(async.dispose);
+      Widget build(SmartAsyncValidator validator) => _app(
+        SmartField(
+          controller: text,
+          asyncValidation: SmartAsyncValidation(
+            controller: async,
+            trigger: SmartAsyncValidationTrigger.manual,
+            validator: validator,
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(build(first));
+      await tester.enterText(find.byType(TextFormField), 'candidate');
+      expect(await async.validateAsync(), isTrue);
+      await tester.pumpWidget(build(second));
+      expect(await async.validateAsync(), isFalse);
+      await tester.pump();
+      expect(firstCalls, 1);
+      expect(secondCalls, 1);
+      expect(find.text('Rejected by B'), findsOneWidget);
+    });
+
+    testWidgets('rejected cache is invalidated when validator changes', (
+      tester,
+    ) async {
+      final text = TextEditingController(text: 'candidate');
+      final async = SmartFieldAsyncController();
+      var secondCalls = 0;
+      Future<String?> first(String value) async => 'Rejected by A';
+      Future<String?> second(String value) async {
+        secondCalls++;
+        return null;
+      }
+
+      addTearDown(text.dispose);
+      addTearDown(async.dispose);
+      Widget build(SmartAsyncValidator validator) => _app(
+        SmartField(
+          controller: text,
+          asyncValidation: SmartAsyncValidation(
+            controller: async,
+            trigger: SmartAsyncValidationTrigger.manual,
+            validator: validator,
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(build(first));
+      expect(await async.validateAsync(), isFalse);
+      await tester.pumpWidget(build(second));
+      expect(await async.validateAsync(), isTrue);
+      expect(secondCalls, 1);
+      expect(async.status, SmartAsyncValidationStatus.valid);
+    });
+
+    testWidgets('pending validator is replaced and late result is ignored', (
+      tester,
+    ) async {
+      final text = TextEditingController(text: 'candidate');
+      final async = SmartFieldAsyncController();
+      final first = Completer<String?>();
+      final second = Completer<String?>();
+      var secondCalls = 0;
+      addTearDown(text.dispose);
+      addTearDown(async.dispose);
+      Widget build(SmartAsyncValidator validator) => _app(
+        SmartField(
+          controller: text,
+          asyncValidation: SmartAsyncValidation(
+            controller: async,
+            trigger: SmartAsyncValidationTrigger.manual,
+            validator: validator,
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(build((value) => first.future));
+      final obsolete = async.validateAsync();
+      await tester.pump();
+      await tester.pumpWidget(
+        build((value) {
+          secondCalls++;
+          return second.future;
+        }),
+      );
+      final latest = async.validateAsync();
+      await tester.pump();
+      expect(secondCalls, 1);
+      second.complete('Rejected by B');
+      await tester.pump();
+      expect(await latest, isFalse);
+      expect(async.status, SmartAsyncValidationStatus.invalid);
+      first.complete(null);
+      await tester.pump();
+      expect(await obsolete, isFalse);
+      expect(async.status, SmartAsyncValidationStatus.invalid);
+      expect(async.errorText, 'Rejected by B');
+    });
+
+    testWidgets('removing async validation detaches pending work', (
+      tester,
+    ) async {
+      final text = TextEditingController(text: 'candidate');
+      final async = SmartFieldAsyncController();
+      final pending = Completer<String?>();
+      addTearDown(text.dispose);
+      addTearDown(async.dispose);
+      await tester.pumpWidget(
+        _app(
+          SmartField(
+            controller: text,
+            asyncValidation: SmartAsyncValidation(
+              controller: async,
+              trigger: SmartAsyncValidationTrigger.manual,
+              validator: (value) => pending.future,
+            ),
+          ),
+        ),
+      );
+      final obsolete = async.validateAsync();
+      await tester.pump();
+      await tester.pumpWidget(_app(SmartField(controller: text)));
+      pending.complete('Late');
+      await tester.pump();
+      expect(await obsolete, isFalse);
+      expect(async.status, SmartAsyncValidationStatus.idle);
+      expect(await async.validateAsync(), isFalse);
+      expect(find.text('Late'), findsNothing);
+    });
+
+    testWidgets('adding async validation observes existing populated text', (
+      tester,
+    ) async {
+      final text = TextEditingController(text: 'candidate');
+      final calls = <String>[];
+      addTearDown(text.dispose);
+      await tester.pumpWidget(_app(SmartField(controller: text)));
+      await tester.pumpWidget(
+        _app(
+          SmartField(
+            controller: text,
+            asyncValidation: SmartAsyncValidation(
+              debounceDuration: Duration.zero,
+              validator: (value) async {
+                calls.add(value);
+                return null;
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(calls, ['candidate']);
+    });
+
+    testWidgets('disabling invalidates pending validation', (tester) async {
+      final text = TextEditingController(text: 'candidate');
+      final async = SmartFieldAsyncController();
+      final pending = Completer<String?>();
+      addTearDown(text.dispose);
+      addTearDown(async.dispose);
+      Widget build(bool enabled) => _app(
+        SmartField(
+          controller: text,
+          enabled: enabled,
+          asyncValidation: SmartAsyncValidation(
+            controller: async,
+            trigger: SmartAsyncValidationTrigger.manual,
+            validator: (value) => pending.future,
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(build(true));
+      final obsolete = async.validateAsync();
+      await tester.pump();
+      await tester.pumpWidget(build(false));
+      expect(async.status, SmartAsyncValidationStatus.idle);
+      pending.complete('Late');
+      await tester.pump();
+      expect(await obsolete, isFalse);
+      expect(async.status, SmartAsyncValidationStatus.idle);
+    });
+
+    testWidgets('equivalent configuration keeps a valid cached result', (
+      tester,
+    ) async {
+      final text = TextEditingController(text: 'candidate');
+      final async = SmartFieldAsyncController();
+      var calls = 0;
+      Future<String?> validator(String value) async {
+        calls++;
+        return null;
+      }
+
+      final config = SmartAsyncValidation(
+        controller: async,
+        trigger: SmartAsyncValidationTrigger.manual,
+        validator: validator,
+      );
+      addTearDown(text.dispose);
+      addTearDown(async.dispose);
+      Widget build() =>
+          _app(SmartField(controller: text, asyncValidation: config));
+
+      await tester.pumpWidget(build());
+      expect(await async.validateAsync(), isTrue);
+      await tester.pumpWidget(build());
+      expect(await async.validateAsync(), isTrue);
+      expect(calls, 1);
+      expect(async.status, SmartAsyncValidationStatus.valid);
+    });
+
+    testWidgets('onChanged pending request restarts with the new validator', (
+      tester,
+    ) async {
+      final text = TextEditingController();
+      final async = SmartFieldAsyncController();
+      final first = Completer<String?>();
+      final calls = <String>[];
+      addTearDown(text.dispose);
+      addTearDown(async.dispose);
+      Widget build(SmartAsyncValidator validator) => _app(
+        SmartField(
+          controller: text,
+          asyncValidation: SmartAsyncValidation(
+            controller: async,
+            debounceDuration: Duration.zero,
+            validator: validator,
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(build((value) => first.future));
+      await tester.enterText(find.byType(TextFormField), 'candidate');
+      await tester.pump();
+      expect(async.status, SmartAsyncValidationStatus.pending);
+      await tester.pumpWidget(
+        build((value) async {
+          calls.add(value);
+          return 'Rejected by B';
+        }),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(calls, ['candidate']);
+      expect(async.status, SmartAsyncValidationStatus.invalid);
+      first.complete(null);
+      await tester.pump();
+      expect(async.status, SmartAsyncValidationStatus.invalid);
+      expect(async.errorText, 'Rejected by B');
+    });
+  });
 }

@@ -489,7 +489,7 @@ final class _SearchFeature extends _FieldFeature {
 }
 
 final class _AsyncFeature extends _FieldFeature {
-  _AsyncFeature(super.host) {
+  _AsyncFeature(super.host, {this.observeExisting = false}) {
     _binding = SmartListenerBinding(_textChanged);
     engine = SmartAsyncValidationEngine(
       readText: () => currentText,
@@ -503,6 +503,8 @@ final class _AsyncFeature extends _FieldFeature {
     );
   }
 
+  final bool observeExisting;
+  bool _observedExisting = false;
   late final SmartAsyncValidationEngine engine;
   late final SmartListenerBinding _binding;
   TextEditingController? _ownedOtpController;
@@ -541,6 +543,13 @@ final class _AsyncFeature extends _FieldFeature {
     _lastController = controller;
     if (!(host.field.enabled ?? host.field.decoration.enabled)) {
       engine.reset();
+    } else if (observeExisting && !_observedExisting) {
+      _observedExisting = true;
+      scheduleMicrotask(() {
+        if (host.mounted) {
+          engine.observe(currentText);
+        }
+      });
     }
   }
 
