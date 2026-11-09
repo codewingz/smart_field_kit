@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:smart_field_kit/src/formatting/smart_numeric_formatters.dart';
+import 'package:smart_field_kit/src/formatting/smart_text_formatters.dart';
+import 'package:smart_field_kit/src/formatting/smart_text_utils.dart';
 import 'package:smart_field_kit/src/masking/smart_masking.dart';
 import 'package:smart_field_kit/src/models/smart_otp_style.dart';
 import 'package:smart_field_kit/src/models/smart_phone_value.dart';
@@ -102,6 +104,13 @@ class SmartField extends StatefulWidget {
     String? restorationId,
     InputDecoration decoration = const InputDecoration(),
     List<TextInputFormatter>? inputFormatters,
+    SmartTextCase textCase = SmartTextCase.none,
+    bool collapseWhitespace = false,
+    int? minWords,
+    int? maxWords,
+    bool showWordCount = false,
+    String? minWordsErrorText,
+    String? maxWordsErrorText,
     SmartTextValidationPreset? validationPreset,
     String? validationPresetErrorText,
   }) {
@@ -140,6 +149,13 @@ class SmartField extends StatefulWidget {
       restorationId: restorationId,
       decoration: decoration,
       inputFormatters: inputFormatters,
+      textCase: textCase,
+      collapseWhitespace: collapseWhitespace,
+      minWords: minWords,
+      maxWords: maxWords,
+      showWordCount: showWordCount,
+      minWordsErrorText: minWordsErrorText,
+      maxWordsErrorText: maxWordsErrorText,
       validationPreset: validationPreset,
       validationPresetErrorText: validationPresetErrorText,
     );
@@ -179,7 +195,14 @@ class SmartField extends StatefulWidget {
     this.serverError,
     this.restorationId,
     this.decoration = const InputDecoration(),
-    this.inputFormatters,
+    List<TextInputFormatter>? inputFormatters,
+    SmartTextCase textCase = SmartTextCase.none,
+    bool collapseWhitespace = false,
+    int? minWords,
+    int? maxWords,
+    bool showWordCount = false,
+    String? minWordsErrorText,
+    String? maxWordsErrorText,
     SmartTextValidationPreset? validationPreset,
     String? validationPresetErrorText,
   }) : _core = _SmartFieldCore(
@@ -189,14 +212,24 @@ class SmartField extends StatefulWidget {
                  validationPreset,
                  message: validationPresetErrorText,
                ),
+         minWords: minWords,
+         maxWords: maxWords,
+         showWordCount: showWordCount,
+         minWordsMessage: minWordsErrorText,
+         maxWordsMessage: maxWordsErrorText,
        ),
        showVisibilityToggle = false,
        onRawChanged = null,
        onRawSaved = null,
+       inputFormatters = _composeFormatters([
+         if (textCase != SmartTextCase.none) SmartTextCaseFormatter(textCase),
+         if (collapseWhitespace) const SmartWhitespaceFormatter(),
+       ], inputFormatters),
        assert(minLines == null || minLines > 0),
        assert(maxLines == null || maxLines > 0),
        assert(minLines == null || maxLines == null || maxLines >= minLines),
        assert(!expands || (minLines == null && maxLines == null)),
+       assert(_hasValidLengthRange(minWords, maxWords)),
        assert(_hasValidLengthRange(minLength, maxLength));
 
   SmartField.email({
@@ -324,7 +357,8 @@ class SmartField extends StatefulWidget {
     this.serverError,
     this.restorationId,
     this.decoration = const InputDecoration(),
-    this.inputFormatters,
+    List<TextInputFormatter>? inputFormatters,
+    bool capitalizeWords = false,
     SmartTextValidationPreset? validationPreset,
     String? validationPresetErrorText,
   }) : _core = _SmartFieldCore(
@@ -345,6 +379,10 @@ class SmartField extends StatefulWidget {
        showVisibilityToggle = false,
        onRawChanged = null,
        onRawSaved = null,
+       inputFormatters = _composeFormatters([
+         if (capitalizeWords)
+           const SmartTextCaseFormatter(SmartTextCase.capitalizeWords),
+       ], inputFormatters),
        assert(_hasValidLengthRange(minLength, maxLength));
 
   SmartField.username({
@@ -374,7 +412,9 @@ class SmartField extends StatefulWidget {
     this.serverError,
     this.restorationId,
     this.decoration = const InputDecoration(),
-    this.inputFormatters,
+    List<TextInputFormatter>? inputFormatters,
+    SmartTextCase usernameCase = SmartTextCase.none,
+    SmartUsernameCharacters allowedCharacters = SmartUsernameCharacters.any,
     SmartTextValidationPreset? validationPreset,
     String? validationPresetErrorText,
   }) : _core = _SmartFieldCore(
@@ -395,6 +435,14 @@ class SmartField extends StatefulWidget {
        showVisibilityToggle = false,
        onRawChanged = null,
        onRawSaved = null,
+       inputFormatters = _composeFormatters([
+         if (usernameCase != SmartTextCase.none ||
+             allowedCharacters != SmartUsernameCharacters.any)
+           SmartUsernameFormatter(
+             allowedCharacters: allowedCharacters,
+             textCase: usernameCase,
+           ),
+       ], inputFormatters),
        assert(_hasValidLengthRange(minLength, maxLength));
 
   factory SmartField.otp({
@@ -1181,6 +1229,7 @@ class _SmartFieldState extends State<SmartField> {
   TextEditingController? _ownedOtpController;
   final GlobalKey<FormFieldState<String>> _asyncFieldKey = GlobalKey();
   TextEditingController? _boundMatchController;
+  TextEditingController? _boundWordController;
   SmartServerError? _boundServerError;
 
   static bool _usesOwnedState(SmartField source) {
@@ -1285,11 +1334,34 @@ class _SmartFieldState extends State<SmartField> {
       _boundMatchController = match;
       match?.addListener(_handleMatchChange);
     }
+    final wordController = widget._core.showWordCount
+        ? _effectiveController
+        : null;
+    if (!identical(wordController, _boundWordController)) {
+      _boundWordController?.removeListener(_handleWordCountChange);
+      _boundWordController = wordController;
+      wordController?.addListener(_handleWordCountChange);
+    }
     final server = widget.serverError;
     if (!identical(server, _boundServerError)) {
       _boundServerError?.removeListener(_handleServerErrorChange);
       _boundServerError = server;
       server?.addListener(_handleServerErrorChange);
+    }
+  }
+
+  String _wordCountText() {
+    final count = SmartTextUtils.countWords(_asyncText());
+    final maxWords = widget._core.maxWords;
+    if (maxWords != null) {
+      return '$count / $maxWords words';
+    }
+    return count == 1 ? '1 word' : '$count words';
+  }
+
+  void _handleWordCountChange() {
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -1564,6 +1636,12 @@ class _SmartFieldState extends State<SmartField> {
             : null,
         hintText: decoration.hint == null && decoration.hintText == null
             ? widget.hintText
+            : null,
+        counterText:
+            widget._core.showWordCount &&
+                decoration.counter == null &&
+                decoration.counterText == null
+            ? _wordCountText()
             : null,
         suffixText:
             decoration.suffix == null &&
@@ -2046,6 +2124,24 @@ class _SmartFieldState extends State<SmartField> {
     if (widget._maxValueValidator != null) {
       validators.add(widget._maxValueValidator!);
     }
+    final minWords = widget._core.minWords;
+    if (minWords != null) {
+      validators.add(
+        SmartValidators.minWords(
+          minWords,
+          message: widget._core.minWordsMessage,
+        ),
+      );
+    }
+    final maxWords = widget._core.maxWords;
+    if (maxWords != null) {
+      validators.add(
+        SmartValidators.maxWords(
+          maxWords,
+          message: widget._core.maxWordsMessage,
+        ),
+      );
+    }
     final match = widget._core.matchController;
     if (match != null) {
       validators.add(
@@ -2064,6 +2160,9 @@ class _SmartFieldState extends State<SmartField> {
   void _handleChanged(String value) {
     widget.onChanged?.call(value);
     widget.serverError?.notifyFieldChanged();
+    if (widget._core.showWordCount && _boundWordController == null) {
+      setState(() {});
+    }
     _asyncEngine?.observe(value);
     if (widget._isSearch) {
       _scheduleSearch(value);
@@ -2208,6 +2307,7 @@ class _SmartFieldState extends State<SmartField> {
     _cancelPendingSearch();
     _asyncBoundController?.removeListener(_handleAsyncText);
     _boundMatchController?.removeListener(_handleMatchChange);
+    _boundWordController?.removeListener(_handleWordCountChange);
     _boundServerError?.removeListener(_handleServerErrorChange);
     _asyncEngine?.dispose();
     _ownedOtpController?.dispose();
@@ -2266,8 +2366,7 @@ class _SmartFieldState extends State<SmartField> {
           ? _searchFieldKey
           : widget._supportsMasking
           ? _maskFieldKey
-          : widget.asyncValidation != null ||
-                widget._core.matchController != null
+          : _needsFieldKey
           ? _asyncFieldKey
           : null,
       controller: _effectiveController,
@@ -2321,6 +2420,12 @@ class _SmartFieldState extends State<SmartField> {
         child: field,
       ),
     );
+  }
+
+  bool get _needsFieldKey {
+    return widget.asyncValidation != null ||
+        widget._core.matchController != null ||
+        widget._core.showWordCount;
   }
 
   String? get _restorationId {
