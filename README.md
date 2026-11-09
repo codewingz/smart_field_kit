@@ -423,6 +423,35 @@ The legacy policy remains opt-in. The standard policy follows the configured pre
 
 For number and amount fields, validation runs in this order: required, field syntax or selected legacy policy, configured length rules, minimum value, maximum value, then the custom validator. The first error is displayed.
 
+## Percentage SmartField
+
+`SmartField.percentage()` is a single-line decimal input with a visual `%` suffix. The suffix is not part of the controller text, `onChanged`, `onSaved`, or validator values.
+
+```dart
+SmartField.percentage(label: 'Growth rate', hintText: 'Enter percentage')
+
+SmartField.percentage(
+  label: 'Progress',
+  isRequired: true,
+  minValue: '0',
+  maxValue: '100',
+  decimalPlaces: 2,
+  allowNegative: false,
+)
+```
+
+- The raw value is in percent points: `12.5%` is the string `'12.5'`, not `0.125`. The package never multiplies or divides by 100.
+- By default the field is optional and accepts `0`, `12.5`, `100`, `250`, and `-5`. There is no default range, decimal limit, or length limit.
+- Typed text is preserved exactly: `12.50` stays `12.50` and no `.00` is appended.
+- Input accepts ASCII digits, one `.`, and a leading `-` (disabled by `allowNegative: false`). Letters, spaces, exponent notation, and pasted `%` are rejected rather than stripped.
+- Partial states such as `-`, `.`, `-.5`, and `12.` are editable but fail validation.
+- `decimalPlaces`, when set, limits fractional digits at input and in validation; values are never rounded.
+- `minValue` and `maxValue` are exact decimal strings in percent points.
+- `percentSymbol` customizes the suffix; a `suffix` or `suffixText` in `decoration` takes precedence.
+- Validation order: required, percentage syntax, configured length, minimum, maximum, custom validator.
+
+Whether a value such as `250%` is acceptable is an application business rule.
+
 ## Search SmartField
 
 `SmartField.search()` is a native single-line search input. It uses the Material search keyboard action, provides a decorative search icon, and shows an accessible clear action only while editable text is present. It has no built-in search engine, network request, results list, history, or default text restriction.

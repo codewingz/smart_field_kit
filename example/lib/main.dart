@@ -91,6 +91,17 @@ class _ExampleAppState extends State<ExampleApp> {
                     mask: true,
                   ),
                   const SizedBox(height: 16),
+                  SmartField.percentage(label: 'Growth rate'),
+                  const SizedBox(height: 16),
+                  SmartField.percentage(
+                    label: 'Progress',
+                    isRequired: true,
+                    minValue: '0',
+                    maxValue: '100',
+                    decimalPlaces: 2,
+                    allowNegative: false,
+                  ),
+                  const SizedBox(height: 16),
                   SmartField.otp(
                     label: 'Verification code',
                     onCompleted: (code) {},

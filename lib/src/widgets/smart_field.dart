@@ -56,6 +56,7 @@ class SmartField extends StatefulWidget {
        _phoneConfig = null,
        _otpConfig = null,
        _searchConfig = null,
+       _percentageSuffix = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -183,6 +184,7 @@ class SmartField extends StatefulWidget {
        _phoneConfig = null,
        _otpConfig = null,
        _searchConfig = null,
+       _percentageSuffix = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -240,6 +242,7 @@ class SmartField extends StatefulWidget {
        _phoneConfig = null,
        _otpConfig = null,
        _searchConfig = null,
+       _percentageSuffix = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -295,6 +298,7 @@ class SmartField extends StatefulWidget {
        _phoneConfig = null,
        _otpConfig = null,
        _searchConfig = null,
+       _percentageSuffix = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -350,6 +354,7 @@ class SmartField extends StatefulWidget {
        _phoneConfig = null,
        _otpConfig = null,
        _searchConfig = null,
+       _percentageSuffix = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -493,6 +498,7 @@ class SmartField extends StatefulWidget {
          searchIcon: searchIcon,
          clearIcon: clearIcon,
        ),
+       _percentageSuffix = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -564,6 +570,7 @@ class SmartField extends StatefulWidget {
          style: style,
        ),
        _searchConfig = null,
+       _percentageSuffix = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -655,6 +662,7 @@ class SmartField extends StatefulWidget {
        ),
        _otpConfig = null,
        _searchConfig = null,
+       _percentageSuffix = null,
        _isPassword = false,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -710,6 +718,7 @@ class SmartField extends StatefulWidget {
        _phoneConfig = null,
        _otpConfig = null,
        _searchConfig = null,
+       _percentageSuffix = null,
        _isPassword = true,
        _isAmount = false,
        assert(minLength == null || minLength >= 0),
@@ -785,8 +794,102 @@ class SmartField extends StatefulWidget {
        _phoneConfig = null,
        _otpConfig = null,
        _searchConfig = null,
+       _percentageSuffix = null,
        _isPassword = false,
        _isAmount = false,
+       assert(minLength == null || minLength >= 0),
+       assert(maxLength == null || maxLength >= 0),
+       assert(minLength == null || maxLength == null || minLength <= maxLength);
+
+  SmartField.percentage({
+    super.key,
+    this.label,
+    this.hintText,
+    this.controller,
+    this.focusNode,
+    this.autofocus = false,
+    this.enabled,
+    this.readOnly = false,
+    this.textInputAction,
+    this.onChanged,
+    this.onSaved,
+    this.isRequired = false,
+    this.requiredErrorText = 'This field is required.',
+    this.minLength,
+    this.minLengthErrorText,
+    this.maxLength,
+    this.maxLengthErrorText,
+    String? minValue,
+    String? minValueErrorText,
+    String? maxValue,
+    String? maxValueErrorText,
+    this.validator,
+    this.autovalidateMode,
+    this.decoration = const InputDecoration(),
+    int? decimalPlaces,
+    bool allowNegative = true,
+    String? percentSymbol = '%',
+    String percentageErrorText = 'Enter a valid percentage.',
+  }) : keyboardType = TextInputType.numberWithOptions(
+         decimal: true,
+         signed: allowNegative,
+       ),
+       textCapitalization = TextCapitalization.none,
+       autocorrect = false,
+       enableSuggestions = false,
+       autofillHints = null,
+       minLines = null,
+       maxLines = 1,
+       expands = false,
+       showVisibilityToggle = false,
+       onRawChanged = null,
+       onRawSaved = null,
+       _fieldValidator = SmartValidators.amount(
+         formatter: SmartAmountFormatter(
+           decimalPlaces: decimalPlaces,
+           allowNegative: allowNegative,
+         ),
+         message: percentageErrorText,
+       ),
+       _valueNormalizer = SmartAmountFormatter(
+         decimalPlaces: decimalPlaces,
+         allowNegative: allowNegative,
+       ).normalize,
+       _minValueValidator = minValue == null
+           ? null
+           : SmartValidators.minValue(
+               minValue,
+               normalizer: SmartAmountFormatter(
+                 decimalPlaces: decimalPlaces,
+                 allowNegative: allowNegative,
+               ).normalize,
+               message: minValueErrorText,
+             ),
+       _maxValueValidator = maxValue == null
+           ? null
+           : SmartValidators.maxValue(
+               maxValue,
+               normalizer: SmartAmountFormatter(
+                 decimalPlaces: decimalPlaces,
+                 allowNegative: allowNegative,
+               ).normalize,
+               message: maxValueErrorText,
+             ),
+       inputFormatters = [
+         SmartAmountFormatter(
+           decimalPlaces: decimalPlaces,
+           allowNegative: allowNegative,
+         ),
+       ],
+       _amountFormatter = null,
+       _maskConfig = null,
+       _phoneConfig = null,
+       _otpConfig = null,
+       _searchConfig = null,
+       _percentageSuffix = percentSymbol,
+       _isPassword = false,
+       _isAmount = false,
+       assert(decimalPlaces == null || decimalPlaces >= 0),
        assert(minLength == null || minLength >= 0),
        assert(maxLength == null || maxLength >= 0),
        assert(minLength == null || maxLength == null || minLength <= maxLength);
@@ -960,6 +1063,7 @@ class SmartField extends StatefulWidget {
        _phoneConfig = null,
        _otpConfig = null,
        _searchConfig = null,
+       _percentageSuffix = null,
        _isPassword = false,
        _isAmount = true,
        assert(minLength == null || minLength >= 0),
@@ -1006,6 +1110,7 @@ class SmartField extends StatefulWidget {
   final _SmartPhoneConfig? _phoneConfig;
   final SmartOtpConfiguration? _otpConfig;
   final _SmartSearchConfig? _searchConfig;
+  final String? _percentageSuffix;
   final bool _isPassword;
   final bool _isAmount;
 
@@ -1544,6 +1649,9 @@ class _SmartFieldState extends State<SmartField> {
           : null,
       hintText: decoration.hint == null && decoration.hintText == null
           ? widget.hintText
+          : null,
+      suffixText: decoration.suffix == null && decoration.suffixText == null
+          ? widget._percentageSuffix
           : null,
       prefixIcon: _searchPrefixIcon(_phonePrefixIcon(decoration.prefixIcon)),
       suffixIcon: _suffixIcon(decoration.suffixIcon),

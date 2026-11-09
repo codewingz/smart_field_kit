@@ -12,3 +12,4 @@
 * Add SmartField.description and SmartField.text with native multiline layout, automatic height growth, shared line configuration, and the final two legacy text presets.
 * Add independent phone, account, and amount masking utilities plus opt-in masked presentation for phone, number, and amount fields.
 * Add SmartField.search with native search input behavior, accessible clear and loading states, and optional debounced search events.
+* Add SmartField.percentage with a visual percent suffix, exact raw decimal strings, and opt-in sign, precision, and range rules.
