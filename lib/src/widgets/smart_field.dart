@@ -28,6 +28,7 @@ import 'package:smart_field_kit/src/widgets/smart_search_debouncer.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_otp_field.dart';
 
+part 'smart_field_features.dart';
 part 'smart_field_internals.dart';
 part 'smart_field_phone.dart';
 
@@ -140,6 +141,9 @@ abstract class _SmartFieldBase extends StatefulWidget {
   bool get _isAmount => _core.isAmount;
   bool get _isPhone => _phoneConfig != null;
   bool get _isSearch => _searchConfig != null;
+
+  bool get _asyncActive =>
+      asyncValidation != null && _core.dateTimeConfig == null;
   bool get _supportsMasking => _maskConfig != null;
 }
 
@@ -1195,40 +1199,11 @@ class SmartField extends _SmartFieldBase {
   State<SmartField> createState() => _SmartFieldState();
 }
 
-class _SmartFieldState extends State<SmartField> implements _PhoneHost {
-  late bool _obscureText = widget._isPassword;
+class _SmartFieldState extends State<SmartField> implements _FieldHost {
   TextEditingController? _ownedController;
   FocusNode? _ownedFocusNode;
   GlobalKey<FormFieldState<String>> _fieldKey = GlobalKey();
-  _PhoneBehavior? _phoneBehavior;
-  final SmartAmountDisplay _amountDisplay = SmartAmountDisplay();
-  final SmartSearchDebouncer _search = SmartSearchDebouncer();
-  SmartAsyncValidationEngine? _asyncEngine;
-  TextEditingController? _ownedOtpController;
-  final SmartListenerGroup _listeners = SmartListenerGroup();
-  TextEditingController? _lastAsyncController;
-  late final SmartListenerBinding _amountController = _listeners.add(
-    _handleAmountControllerChange,
-  );
-  late final SmartListenerBinding _amountFocus = _listeners.add(
-    _handleAmountFocusChange,
-  );
-  late final SmartListenerBinding _phoneController = _listeners.add(
-    () => _phone?.handleControllerChange(),
-  );
-  late final SmartListenerBinding _maskController = _listeners.add(_rebuild);
-  late final SmartListenerBinding _maskFocus = _listeners.add(_rebuild);
-  late final SmartListenerBinding _searchController = _listeners.add(
-    _handleSearchControllerChange,
-  );
-  late final SmartListenerBinding _matchBinding = _listeners.add(
-    _handleMatchChange,
-  );
-  late final SmartListenerBinding _wordBinding = _listeners.add(_rebuild);
-  late final SmartListenerBinding _serverBinding = _listeners.add(_rebuild);
-  late final SmartListenerBinding _asyncTextBinding = _listeners.add(
-    _handleAsyncText,
-  );
+  late List<_FieldFeature> _features = _createFeatures();
 
   static bool _usesOwnedState(SmartField source) {
     return source._isAmount ||
@@ -1236,6 +1211,54 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
         source._isSearch ||
         source._supportsMasking ||
         source._core.strength != null;
+  }
+
+  static int _featureKey(SmartField source) {
+    final flags = [
+      source._percentageSuffix != null,
+      source._maskConfig?.enabled ?? false,
+      source._asyncActive,
+      source._isPassword,
+      source._isPhone,
+      source._isSearch,
+      source._isAmount,
+      source._core.showWordCount,
+      source._core.strength != null,
+      source._core.matchController != null,
+      source.serverError != null,
+    ];
+    var key = 0;
+    for (final flag in flags) {
+      key = (key << 1) | (flag ? 1 : 0);
+    }
+    return key;
+  }
+
+  List<_FieldFeature> _createFeatures() {
+    final source = widget;
+    return [
+      if (source._percentageSuffix != null) _PercentageFeature(this),
+      if (source._maskConfig?.enabled ?? false) _MaskFeature(this),
+      if (source._asyncActive) _AsyncFeature(this),
+      if (source._isPassword) _PasswordFeature(this),
+      if (source._isPhone) _PhoneFeature(this),
+      if (source._isSearch) _SearchFeature(this),
+      if (source._isAmount) _AmountFeature(this),
+      if (source._core.showWordCount) _WordCountFeature(this),
+      if (source._core.strength != null) _StrengthFeature(this),
+      if (source._core.matchController != null) _MatchFeature(this),
+      if (source.serverError != null)
+        _RebuildFeature(this, () => widget.serverError),
+    ];
+  }
+
+  T? _feature<T extends _FieldFeature>() {
+    for (final feature in _features) {
+      if (feature is T) {
+        return feature;
+      }
+    }
+    return null;
   }
 
   TextEditingController? _controllerFor(SmartField source) {
@@ -1248,41 +1271,58 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
         (_usesOwnedState(source) ? _ownedFocusNode : null);
   }
 
-  TextEditingController? get _effectiveController => _controllerFor(widget);
+  @override
+  SmartField get field => widget;
 
-  FocusNode? get _effectiveFocusNode => _focusNodeFor(widget);
+  @override
+  TextEditingController? get textController => _controllerFor(widget);
+
+  @override
+  FocusNode? get focusNode => _focusNodeFor(widget);
+
+  @override
+  GlobalKey<FormFieldState<String>> get fieldKey => _fieldKey;
+
+  @override
+  bool get isInteractive {
+    return (widget.enabled ?? widget.decoration.enabled) && !widget.readOnly;
+  }
+
+  @override
+  String get currentText =>
+      textController?.text ?? _fieldKey.currentState?.value ?? '';
+
+  @override
+  String? validateSync(String? value) => _synchronousValidator(value);
+
+  @override
+  void rebuild() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void notifyChanged(String value) => _handleChanged(value);
 
   @override
   void initState() {
     super.initState();
     _ensureOwnedState(null);
-    _syncBindings();
+    _bindFeatures();
   }
 
   @override
   void didUpdateWidget(covariant SmartField oldWidget) {
     final oldController = _controllerFor(oldWidget);
-    _listeners.unbindAll();
-    super.didUpdateWidget(oldWidget);
-
-    final oldSearch = oldWidget._searchConfig;
-    final search = widget._searchConfig;
-    if (oldSearch == null ||
-        search == null ||
-        oldWidget.controller != widget.controller ||
-        !oldSearch.hasSameDebounceBehavior(search) ||
-        !_isInteractive) {
-      _search.cancel();
+    for (final feature in _features) {
+      feature.unbind();
     }
+    super.didUpdateWidget(oldWidget);
 
     if (oldWidget.controller != widget.controller &&
         (widget._supportsMasking || widget._isSearch)) {
       _fieldKey = GlobalKey();
-    }
-
-    if (oldWidget._isPassword != widget._isPassword ||
-        oldWidget.showVisibilityToggle && !widget.showVisibilityToggle) {
-      _obscureText = widget._isPassword;
     }
 
     if (_usesOwnedState(oldWidget) &&
@@ -1298,81 +1338,23 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
       _ownedFocusNode = null;
     }
     _ensureOwnedState(oldController?.value);
-    _syncBindings();
-    if (!(widget.enabled ?? widget.decoration.enabled)) {
-      _asyncEngine?.reset();
+    if (_featureKey(oldWidget) != _featureKey(widget)) {
+      for (final feature in _features) {
+        feature.retire();
+      }
+      _features = _createFeatures();
+    } else {
+      for (final feature in _features) {
+        feature.didUpdate(oldWidget);
+      }
     }
+    _bindFeatures();
   }
 
-  _PhoneBehavior? get _phone {
-    if (!widget._isPhone) {
-      return null;
+  void _bindFeatures() {
+    for (final feature in _features) {
+      feature.bind();
     }
-    return _phoneBehavior ??= _PhoneBehavior(this);
-  }
-
-  @override
-  _SmartPhoneConfig get phoneConfig => widget._phoneConfig!;
-
-  @override
-  TextEditingController? get textController => _effectiveController;
-
-  @override
-  GlobalKey<FormFieldState<String>> get phoneFieldKey => _fieldKey;
-
-  @override
-  bool get isInteractive => _isInteractive;
-
-  @override
-  ValueChanged<String>? get onChanged => widget.onChanged;
-
-  @override
-  void rebuild() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  void _syncBindings() {
-    final controller = _effectiveController;
-    final focusNode = _effectiveFocusNode;
-    _amountController.bind(widget._isAmount ? controller : null);
-    _amountFocus.bind(widget._isAmount ? focusNode : null);
-    _phoneController.bind(widget._isPhone ? controller : null);
-    final masked = widget._maskConfig?.enabled ?? false;
-    _maskController.bind(masked ? controller : null);
-    _maskFocus.bind(masked ? focusNode : null);
-    _searchController.bind(widget._isSearch ? controller : null);
-    _matchBinding.bind(widget._core.matchController);
-    _wordBinding.bind(_tracksText ? controller : null);
-    _serverBinding.bind(widget.serverError);
-    if (widget._isAmount && !(focusNode?.hasFocus ?? false)) {
-      _amountDisplay.showDisplay(widget._amountFormatter!, controller);
-    }
-    _phone?.initialize();
-    _syncAsyncBinding();
-  }
-
-  String _wordCountText() {
-    final count = SmartTextUtils.countWords(_asyncText());
-    final maxWords = widget._core.maxWords;
-    if (maxWords != null) {
-      return '$count / $maxWords words';
-    }
-    return count == 1 ? '1 word' : '$count words';
-  }
-
-  void _rebuild() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  void _handleMatchChange() {
-    if (!mounted || _asyncText().isEmpty) {
-      return;
-    }
-    _activeFormFieldKey.currentState?.validate();
   }
 
   void _ensureOwnedState(TextEditingValue? initialValue) {
@@ -1387,276 +1369,42 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
     }
   }
 
-  TextEditingController? get _asyncTextController {
-    if (widget._otpConfig != null) {
-      return widget.controller ?? _ownedOtpController;
-    }
-    return _effectiveController;
-  }
-
-  GlobalKey<FormFieldState<String>> get _activeFormFieldKey => _fieldKey;
-
-  String _asyncText() {
-    return _asyncTextController?.text ??
-        _activeFormFieldKey.currentState?.value ??
-        '';
-  }
-
-  String? _asyncRaw(String text) {
-    final normalizer = widget._valueNormalizer;
-    return normalizer == null ? text : normalizer(text);
-  }
-
-  void _syncAsyncBinding() {
-    final config = widget._core.dateTimeConfig != null
-        ? null
-        : widget.asyncValidation;
-    if (config == null) {
-      _lastAsyncController = null;
-      _asyncEngine?.dispose();
-      _asyncEngine = null;
-      _releaseOwnedOtpController();
-      return;
-    }
-    if (widget._otpConfig != null && widget.controller == null) {
-      _ownedOtpController ??= TextEditingController();
-    } else {
-      _releaseOwnedOtpController();
-    }
-    final engine = _asyncEngine ??= SmartAsyncValidationEngine(
-      readText: _asyncText,
-      toRaw: _asyncRaw,
-      syncError: _synchronousValidator,
-      isActive: () => mounted && _isInteractive,
-      onUpdate: _handleAsyncUpdate,
-    );
-    engine.configure(config);
-    final controller = _asyncTextController;
-    _asyncTextBinding.bind(controller);
-    if (_lastAsyncController != null &&
-        !identical(_lastAsyncController, controller)) {
-      engine.reset();
-    }
-    _lastAsyncController = controller;
-  }
-
-  void _releaseOwnedOtpController() {
-    final owned = _ownedOtpController;
-    if (owned == null) {
-      return;
-    }
-    _ownedOtpController = null;
-    WidgetsBinding.instance.addPostFrameCallback((_) => owned.dispose());
-  }
-
-  void _handleAsyncText() {
-    _asyncEngine?.observe(_asyncTextController?.text ?? '');
-  }
-
-  void _handleAsyncUpdate() {
-    if (!mounted) {
-      return;
-    }
-    setState(() {});
-    final status = _asyncEngine?.status;
-    if (widget._otpConfig == null &&
-        (status == SmartAsyncValidationStatus.valid ||
-            status == SmartAsyncValidationStatus.invalid ||
-            status == SmartAsyncValidationStatus.unavailable)) {
-      _activeFormFieldKey.currentState?.validate();
-    }
-  }
-
-  void _handleSearchControllerChange() {
-    _search.cancel();
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  void _handleAmountFocusChange() {
-    _amountDisplay.handleFocus(
-      widget._amountFormatter!,
-      _effectiveController,
-      _effectiveFocusNode,
-    );
-  }
-
-  void _handleAmountControllerChange() {
-    _amountDisplay.handleControllerChange(
-      widget._amountFormatter!,
-      _effectiveController,
-      _effectiveFocusNode,
-    );
-  }
-
   InputDecoration get _effectiveDecoration {
     final decoration = widget.decoration;
-    return SmartFieldDesign.resolve(
-      context,
-      decoration.copyWith(
-        labelText: decoration.label == null && decoration.labelText == null
-            ? widget.label
-            : null,
-        hintText: decoration.hint == null && decoration.hintText == null
-            ? widget.hintText
-            : null,
-        counterText:
-            widget._core.showWordCount &&
-                decoration.counter == null &&
-                decoration.counterText == null
-            ? _wordCountText()
-            : null,
-        suffixText:
-            decoration.suffix == null &&
-                decoration.suffixText == null &&
-                decoration.suffixIcon != null
-            ? widget._percentageSuffix
-            : null,
-        prefixIcon: _searchPrefixIcon(
-          _phone?.prefixIcon(decoration.prefixIcon),
-        ),
-        suffixIcon: _suffixIcon(decoration.suffixIcon),
-      ),
+    var prefix = decoration.prefixIcon;
+    for (final feature in _features) {
+      prefix = feature.prefix(prefix);
+    }
+    final actions = <Widget>[?decoration.suffixIcon];
+    for (final feature in _features) {
+      feature.addSuffix(actions);
+    }
+    var composed = decoration.copyWith(
+      labelText: decoration.label == null && decoration.labelText == null
+          ? widget.label
+          : null,
+      hintText: decoration.hint == null && decoration.hintText == null
+          ? widget.hintText
+          : null,
+      prefixIcon: prefix,
+      suffixIcon: composeSuffixActions(actions),
     );
-  }
-
-  Widget? _searchPrefixIcon(Widget? existing) {
-    final icon = widget._searchConfig?.searchIcon;
-    if (widget._isSearch && existing == null && icon != null) {
-      return ExcludeSemantics(child: icon);
+    for (final feature in _features) {
+      composed = feature.decorate(composed);
     }
-    return existing;
-  }
-
-  bool get _isInteractive {
-    return (widget.enabled ?? widget.decoration.enabled) && !widget.readOnly;
-  }
-
-  Widget? _suffixIcon(Widget? existing) {
-    final children = <Widget>[?existing];
-
-    final percentSymbol = widget._percentageSuffix;
-    final decoration = widget.decoration;
-    if (percentSymbol != null &&
-        existing == null &&
-        decoration.suffix == null &&
-        decoration.suffixText == null) {
-      final theme = Theme.of(context);
-      final color = (widget.enabled ?? widget.decoration.enabled)
-          ? theme.colorScheme.onSurfaceVariant
-          : theme.disabledColor;
-      children.add(
-        Padding(
-          padding: const EdgeInsetsDirectional.only(end: 12),
-          child: Center(
-            widthFactor: 1,
-            child: Text(
-              percentSymbol,
-              style:
-                  decoration.suffixStyle ??
-                  theme.textTheme.bodyLarge?.copyWith(color: color),
-            ),
-          ),
-        ),
-      );
+    var resolved = SmartFieldDesign.resolve(context, composed);
+    for (final feature in _features) {
+      resolved = feature.present(resolved);
     }
-
-    final asyncConfig = widget.asyncValidation;
-    if (asyncConfig != null && (_asyncEngine?.isPending ?? false)) {
-      children.add(
-        Padding(
-          padding: const EdgeInsetsDirectional.only(end: 12),
-          child: Semantics(
-            label: asyncConfig.loadingSemanticsLabel,
-            liveRegion: true,
-            child:
-                asyncConfig.loadingIndicator ??
-                const SizedBox.square(
-                  dimension: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-          ),
-        ),
-      );
-    }
-
-    if (widget._isPassword && widget.showVisibilityToggle) {
-      children.add(_passwordToggle());
-    }
-
-    children.addAll(_phone?.suffixActions() ?? const []);
-
-    final search = widget._searchConfig;
-    if (search != null) {
-      if (search.isLoading) {
-        children.add(
-          Semantics(
-            label: 'Loading search',
-            child: ExcludeSemantics(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: Padding(
-                  padding: EdgeInsets.all(4),
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            ),
-          ),
-        );
-      }
-      if (search.showClearButton &&
-          search.clearIcon != null &&
-          _isInteractive &&
-          (_effectiveController?.text.isNotEmpty ?? false)) {
-        children.add(
-          Semantics(
-            label: 'Clear search',
-            button: true,
-            child: ExcludeSemantics(
-              child: IconButton(
-                tooltip: 'Clear search',
-                onPressed: _clearSearch,
-                icon: search.clearIcon!,
-              ),
-            ),
-          ),
-        );
-      }
-    }
-
-    return composeSuffixActions(children);
-  }
-
-  Widget _passwordToggle() {
-    final label = _obscureText ? 'Show password' : 'Hide password';
-    final isEnabled = widget.enabled ?? widget.decoration.enabled;
-    return Semantics(
-      label: label,
-      button: true,
-      enabled: isEnabled,
-      child: ExcludeSemantics(
-        child: IconButton(
-          tooltip: label,
-          onPressed: !isEnabled
-              ? null
-              : () => setState(() => _obscureText = !_obscureText),
-          icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off),
-        ),
-      ),
-    );
+    return resolved;
   }
 
   SmartValidator get _effectiveValidator {
-    final engine = _asyncEngine;
-    if (engine == null || widget._otpConfig != null) {
+    final async = _feature<_AsyncFeature>();
+    if (async == null || widget._otpConfig != null) {
       return _synchronousValidator;
     }
-    return SmartValidators.compose([
-      _synchronousValidator,
-      (value) => engine.errorFor(value ?? ''),
-    ]);
+    return SmartValidators.compose([_synchronousValidator, async.errorFor]);
   }
 
   String? _synchronousValidator(String? value) {
@@ -1679,7 +1427,7 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
           if (phone != null)
             SmartValidators.phone(
               policy: phone.policy,
-              country: _phone?.selectedCountry,
+              country: _feature<_PhoneFeature>()?.selectedCountry,
               message: phone.errorText,
             ),
         ]),
@@ -1737,15 +1485,8 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
   void _handleChanged(String value) {
     widget.onChanged?.call(value);
     widget.serverError?.notifyFieldChanged();
-    if (_tracksText && !_wordBinding.isBound) {
-      setState(() {});
-    }
-    _asyncEngine?.observe(value);
-    if (widget._isSearch) {
-      _scheduleSearch(value);
-    }
-    if (widget._isPhone) {
-      setState(() {});
+    for (final feature in _features) {
+      feature.textChanged(value);
     }
     final raw = widget._core.rawValue(value, partial: true);
     if (raw != null) {
@@ -1753,33 +1494,8 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
     }
   }
 
-  void _scheduleSearch(String query) {
-    final config = widget._searchConfig;
-    _search.schedule(
-      query: query,
-      onSearch: config?.onSearch,
-      debounce: config?.debounceDuration ?? Duration.zero,
-      canSearch: () => mounted && _isInteractive,
-      currentText: () => _effectiveController?.text ?? '',
-    );
-  }
-
   void _handleSubmitted(String value) {
-    _search.cancel();
-    widget._searchConfig?.onSubmitted?.call(value);
-  }
-
-  void _clearSearch() {
-    final controller = _effectiveController;
-    final config = widget._searchConfig;
-    if (controller == null || controller.text.isEmpty || config == null) {
-      return;
-    }
-    _search.cancel();
-    controller.clear();
-    _fieldKey.currentState?.didChange('');
-    _handleChanged('');
-    config.onCleared?.call();
+    _feature<_SearchFeature>()?.submitted(value);
   }
 
   void _handleSaved(String? value) {
@@ -1789,46 +1505,22 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
     );
   }
 
-  bool get _showsMaskedPresentation {
-    final config = widget._maskConfig;
-    final controller = _effectiveController;
-    if (config == null ||
-        !config.enabled ||
-        controller == null ||
-        controller.text.isEmpty) {
-      return false;
-    }
-    if (!_isInteractive || !config.revealOnFocus) {
-      return true;
-    }
-    return !(_effectiveFocusNode?.hasFocus ?? false);
-  }
-
-  String _maskedText() {
-    return widget._maskConfig!.render(
-      _effectiveController?.text ?? '',
-      widget._amountFormatter,
-    );
-  }
-
-  InputDecoration _maskedDecoration(String maskedText) {
-    final decoration = _effectiveDecoration;
-    return decoration.copyWith(
-      prefixText: '${decoration.prefixText ?? ''}$maskedText',
-      prefixStyle:
-          decoration.prefixStyle ?? Theme.of(context).textTheme.bodyLarge,
-    );
-  }
-
   @override
   void dispose() {
-    _search.cancel();
-    _listeners.unbindAll();
-    _asyncEngine?.dispose();
-    _ownedOtpController?.dispose();
+    for (final feature in _features) {
+      feature.dispose();
+    }
     _ownedController?.dispose();
     _ownedFocusNode?.dispose();
     super.dispose();
+  }
+
+  Widget _wrapFeatures(Widget child) {
+    var wrapped = child;
+    for (final feature in _features) {
+      wrapped = feature.wrap(wrapped);
+    }
+    return wrapped;
   }
 
   @override
@@ -1843,13 +1535,14 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
     }
     final otpConfig = widget._otpConfig;
     if (otpConfig != null) {
+      final async = _feature<_AsyncFeature>();
       final asyncError =
-          widget.serverError?.errorText ?? _asyncEngine?.errorFor(_asyncText());
-      return _withAsyncFocus(
+          widget.serverError?.errorText ?? async?.errorFor(async.currentText);
+      return _wrapFeatures(
         SmartOtpField(
           configuration: otpConfig,
           source: widget,
-          controller: widget.controller ?? _ownedOtpController,
+          controller: async?.otpController ?? widget.controller,
           onChanged: _handleOtpChanged,
           validator: _synchronousValidator,
           decoration: asyncError == null || widget.decoration.errorText != null
@@ -1858,17 +1551,15 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
         ),
       );
     }
-    final showsMask = _showsMaskedPresentation;
-    final maskedText = showsMask ? _maskedText() : null;
+    final mask = _feature<_MaskFeature>();
+    final showsMask = mask?.shows ?? false;
     final field = TextFormField(
       key: _hasFieldKey ? _fieldKey : null,
-      controller: _effectiveController,
-      focusNode: _effectiveFocusNode,
+      controller: textController,
+      focusNode: focusNode,
       autofocus: widget.autofocus,
       enabled: widget.enabled,
-      readOnly:
-          widget.readOnly ||
-          (showsMask && !(widget._maskConfig?.revealOnFocus ?? true)),
+      readOnly: widget.readOnly || (showsMask && !mask!.config.revealOnFocus),
       keyboardType: widget.keyboardType,
       textCapitalization: widget.textCapitalization,
       autocorrect: widget.autocorrect,
@@ -1878,7 +1569,7 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
       minLines: widget.minLines,
       maxLines: widget.maxLines,
       expands: widget.expands,
-      obscureText: _obscureText,
+      obscureText: _feature<_PasswordFeature>()?.obscure ?? false,
       style: showsMask ? const TextStyle(color: Colors.transparent) : null,
       showCursor: showsMask ? false : null,
       enableInteractiveSelection: !showsMask,
@@ -1891,31 +1582,10 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
       forceErrorText: widget.serverError?.errorText,
       restorationId: _restorationId,
       autovalidateMode: widget.autovalidateMode,
-      decoration: showsMask
-          ? _maskedDecoration(maskedText!)
-          : _effectiveDecoration,
+      decoration: _effectiveDecoration,
     );
-    if (!showsMask) {
-      return _withStrength(_withAsyncFocus(field));
-    }
-    final enabled = widget.enabled ?? widget.decoration.enabled;
-    final canReveal = _isInteractive && widget._maskConfig!.revealOnFocus;
-    return _withAsyncFocus(
-      Semantics(
-        container: true,
-        excludeSemantics: true,
-        textField: true,
-        enabled: enabled,
-        readOnly: !canReveal,
-        label: widget.label,
-        value: maskedText,
-        onTap: canReveal ? () => _effectiveFocusNode?.requestFocus() : null,
-        child: field,
-      ),
-    );
+    return _wrapFeatures(field);
   }
-
-  bool get _tracksText => widget._core.showWordCount;
 
   bool get _hasFieldKey {
     return widget._isPhone ||
@@ -1923,7 +1593,7 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
         widget._supportsMasking ||
         widget.asyncValidation != null ||
         widget._core.matchController != null ||
-        _tracksText;
+        widget._core.showWordCount;
   }
 
   String? get _restorationId {
@@ -1933,46 +1603,5 @@ class _SmartFieldState extends State<SmartField> implements _PhoneHost {
       return null;
     }
     return widget.restorationId;
-  }
-
-  Widget _withStrength(Widget child) {
-    final config = widget._core.strength;
-    final controller = _effectiveController;
-    if (config == null || controller == null) {
-      return child;
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        child,
-        const SizedBox(height: 8),
-        ListenableBuilder(
-          listenable: controller,
-          builder: (context, _) => SmartPasswordStrengthIndicator(
-            password: controller.text,
-            criteria: config.criteria,
-            labels: config.labels,
-            showChecklist: config.showChecklist,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _withAsyncFocus(Widget child) {
-    final engine = _asyncEngine;
-    if (engine == null) {
-      return child;
-    }
-    return Focus(
-      canRequestFocus: false,
-      skipTraversal: true,
-      onFocusChange: (focused) {
-        if (!focused) {
-          engine.focusLost();
-        }
-      },
-      child: child,
-    );
   }
 }
