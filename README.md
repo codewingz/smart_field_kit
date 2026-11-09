@@ -730,6 +730,103 @@ SmartField.otp(
 
 The control exposes one semantic text field, supports RTL and text scaling, and shrinks boxes and spacing to avoid horizontal overflow. WhatsApp codes can be pasted by the user or assigned through an app-owned controller; the package requests no message permissions and performs no message retrieval.
 
+## Validation modes
+
+Every constructor accepts `validationMode` and `builtInChecks`:
+
+- `SmartValidationMode.both` (default): the field's built-in rule, then your `validator`.
+- `SmartValidationMode.builtIn`: built-in rule only; your `validator` is ignored.
+- `SmartValidationMode.custom`: only your `validator`; the built-in format rule is skipped.
+- `SmartValidationMode.selected`: only the checks listed in `builtInChecks`, plus your `validator`.
+
+Selectable checks: `fieldFormat` (the field's own format rule: email, URL, phone, number, amount, percentage, OTP, or the password policy) and the password rules `passwordUppercase`, `passwordLowercase`, `passwordDigit`, `passwordSpecialCharacter`, `passwordNoWhitespace`.
+
+Required, `minLength`/`maxLength`, value limits, and word limits are opt-in parameters and apply in every mode. Order: required, built-in rules, length, value range, word limits, password match, your validator, then async validation (still explicit; await `validateAsync()` before submitting). Async checks never run when a synchronous check fails.
+
+```dart
+SmartField.password(
+  label: 'Password',
+  validationMode: SmartValidationMode.selected,
+  builtInChecks: const {
+    SmartBuiltInCheck.passwordUppercase,
+    SmartBuiltInCheck.passwordDigit,
+  },
+  validator: (value) => value!.contains('password') ? 'Too common' : null,
+)
+```
+
+## Confirm password
+
+Use two `SmartField.password()` fields. The second names the first field's controller:
+
+```dart
+final password = TextEditingController();
+
+SmartField.password(label: 'Password', controller: password)
+SmartField.password(
+  label: 'Confirm password',
+  matchController: password,
+  mismatchErrorText: 'Passwords do not match.',
+)
+```
+
+An empty confirmation passes unless `isRequired` is set. The confirmation revalidates when the original changes (typing, programmatic changes, or `FormState.reset`) as long as it is not empty. Passwords are never logged or stored. `SmartValidators.matches()` is the standalone helper.
+
+## Word limits
+
+`SmartField.description()` and `SmartField.text()` accept `minWords`, `maxWords`, `showWordCount`, `minWordsErrorText`, and `maxWordsErrorText`. A word is any run of non-whitespace characters, so newlines, Unicode spaces, other scripts, and emoji are handled. The counter reads `12 / 200 words` (or `12 words` without a maximum). Word limits are separate from `minLength`/`maxLength` and never block typing.
+
+## Text formatters
+
+All formatters are optional.
+
+- `SmartField.name(capitalizeWords: true)`.
+- `SmartField.username(usernameCase: SmartTextCase.lowercase, allowedCharacters: SmartUsernameCharacters.usernameSafe)`. Disallowed edits are rejected rather than stripped.
+- `SmartField.text()` / `.description()`: `textCase` (`capitalizeFirstLetter`, `capitalizeWords`, `capitalizeSentences`, `lowercase`, `uppercase`) and `collapseWhitespace`.
+- Email, password, OTP, phone, URL, amount, and number have no case or whitespace formatters, so case-sensitive and secret values are never rewritten.
+
+The same classes (`SmartTextCaseFormatter`, `SmartUsernameFormatter`, `SmartWhitespaceFormatter`) work as ordinary `inputFormatters`. They keep the caret, ignore active IME composition, and map selections across edits.
+
+## Amount decimals, rounding, and grouping
+
+```dart
+SmartField.amount(
+  label: 'Amount',
+  useGrouping: true,
+  decimalLength: 2,
+  rounding: SmartRoundingMode.halfUp,
+  groupingStyle: SmartGroupingStyle.indian,
+)
+```
+
+- `decimalLength` accepts exactly `false`, `1`, `2`, or `3`; anything else throws `ArgumentError`. With grouping, `1500` shows `1,500`, `1,500.0`, `1,500.00`, or `1,500.000` after editing. `false` allows no decimal digits.
+- `decimalPlaces` still works for any digit count. If both are given they must agree, otherwise `ArgumentError`. `decimalLength` has no effect on the formatter when omitted.
+- Rounding is off by default: with `SmartRoundingMode.none`, extra digits are rejected while typing, never rounded. `halfUp`, `halfEven`, `down` (toward zero), and `up` (away from zero) round exactly with decimal-string arithmetic, only when editing finishes and for `onRawSaved`/validation; while typing, `onRawChanged` shows the unrounded value.
+- `groupingStyle: SmartGroupingStyle.indian` groups as `1,23,45,678`. Grouping separators and decimal separators remain configurable.
+- `SmartDecimalUtils.round()`, `SmartDecimalLength.from()`, and `SmartAmountFormatter` work without a widget.
+
+## Server errors
+
+```dart
+final serverError = SmartServerError();
+
+SmartField.email(label: 'Email', serverError: serverError)
+
+serverError.set('Email already registered');
+final applied = await serverError.track(api.checkEmail(value));
+serverError.clear();
+```
+
+The message uses the normal error UI and semantics on every field, makes `FormState.validate()` fail while shown, and clears on the next user edit (`SmartServerError(clearOnChange: false)` keeps it until you call `clear()`). `track()` ignores a response when a newer `track`, `set`, or `clear` happened first, and returns whether it was applied. Dispose the object in your own state.
+
+## State restoration
+
+Pass `restorationId` (inside a `RestorationScope`, for example `MaterialApp.restorationScopeId`) to restore a field's text. Limitations: restoration works only for fields without a developer controller and without a package-owned controller, so `.amount()`, `.phone()`, `.search()`, and masked fields are not restored; use your own `RestorableTextEditingController` for those. `.password()` and `.otp()` ignore `restorationId` and are never restored.
+
+## Utilities without a widget
+
+`SmartValidators` (including `passwordRules`, `matches`, `minWords`, `maxWords`, `url`, `phone`), `SmartUrlValidation`, `SmartPhoneValidation`, `SmartTextUtils` (`countWords`, case helpers, `collapseWhitespace`), `SmartAmountFormatter`, `SmartDecimalUtils`, `maskMobile`, `maskAccountNumber`, `maskAmount`, and `formatNumber` call the same code as the widgets.
+
 ## Design
 
 All fields except `SmartField.otp()` (which draws its own boxes through `SmartOtpStyle`) share one design resolver. Priority is the field's own `decoration`, then the app's `InputDecorationTheme`, then the package fallback:
