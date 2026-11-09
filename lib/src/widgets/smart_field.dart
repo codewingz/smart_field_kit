@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
+import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_input_mask.dart';
 import 'package:smart_field_kit/src/formatting/smart_numeric_formatters.dart';
 import 'package:smart_field_kit/src/formatting/smart_text_formatters.dart';
@@ -16,6 +17,7 @@ import 'package:smart_field_kit/src/validation/smart_async_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_phone_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_validation_options.dart';
 import 'package:smart_field_kit/src/validation/smart_url_validation.dart';
+import 'package:smart_field_kit/src/widgets/smart_date_time_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_design.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_otp_field.dart';
@@ -200,6 +202,7 @@ class SmartField extends StatefulWidget {
     SmartTextCase textCase = SmartTextCase.none,
     bool collapseWhitespace = false,
     String? inputMask,
+    SmartValueNormalizer? rawValueBuilder,
     String inputMaskErrorText = 'Complete the value.',
     this.onRawChanged,
     this.onRawSaved,
@@ -219,9 +222,9 @@ class SmartField extends StatefulWidget {
                ),
          inputMask: inputMask == null ? null : SmartInputMask(inputMask),
          inputMaskMessage: inputMaskErrorText,
-         valueNormalizer: inputMask == null
-             ? null
-             : SmartInputMask(inputMask).extractRaw,
+         valueNormalizer:
+             rawValueBuilder ??
+             (inputMask == null ? null : SmartInputMask(inputMask).extractRaw),
          minWords: minWords,
          maxWords: maxWords,
          showWordCount: showWordCount,
@@ -240,6 +243,300 @@ class SmartField extends StatefulWidget {
        assert(!expands || (minLines == null && maxLines == null)),
        assert(_hasValidLengthRange(minWords, maxWords)),
        assert(_hasValidLengthRange(minLength, maxLength));
+
+  factory SmartField.date({
+    Key? key,
+    String? label,
+    String? hintText,
+    TextEditingController? controller,
+    FocusNode? focusNode,
+    bool autofocus = false,
+    bool? enabled,
+    bool readOnly = false,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onChanged,
+    FormFieldSetter<String>? onSaved,
+    ValueChanged<String>? onRawChanged,
+    FormFieldSetter<String>? onRawSaved,
+    bool isRequired = false,
+    String requiredErrorText = 'This field is required.',
+    FormFieldValidator<String>? validator,
+    AutovalidateMode? autovalidateMode,
+    SmartAsyncValidation? asyncValidation,
+    SmartValidationMode validationMode = SmartValidationMode.both,
+    Set<SmartBuiltInCheck> builtInChecks = const {},
+    SmartServerError? serverError,
+    InputDecoration decoration = const InputDecoration(),
+    bool showClearButton = false,
+    String? invalidErrorText,
+    String? minErrorText,
+    String? maxErrorText,
+    DateTime Function() now = DateTime.now,
+    SmartDateMode mode = SmartDateMode.manual,
+    String dateFormat = 'dd/MM/yyyy',
+    DateTime? initialDate,
+    DateTime? minDate,
+    DateTime? maxDate,
+    SmartDateRestriction restriction = SmartDateRestriction.none,
+    List<String> monthNames = smartEnglishMonthNames,
+    int? firstYear,
+    int? lastYear,
+    String incompleteErrorText = 'Select a complete date.',
+    String pastErrorText = 'Choose a date in the past.',
+    String futureErrorText = 'Choose a date in the future.',
+    ValueChanged<DateTime?>? onDateChanged,
+  }) {
+    assert((firstYear == null) == (lastYear == null));
+    return SmartField._dateTime(
+      key: key,
+      label: label,
+      hintText: hintText,
+      controller: controller,
+      focusNode: focusNode,
+      autofocus: autofocus,
+      enabled: enabled,
+      readOnly: readOnly,
+      textInputAction: textInputAction,
+      onChanged: onChanged,
+      onSaved: onSaved,
+      isRequired: isRequired,
+      requiredErrorText: requiredErrorText,
+      validator: validator,
+      autovalidateMode: autovalidateMode,
+      asyncValidation: asyncValidation,
+      validationMode: validationMode,
+      builtInChecks: builtInChecks,
+      serverError: serverError,
+      decoration: decoration,
+      config: SmartDateTimeConfig(
+        kind: SmartDateTimeKind.date,
+        dateMode: mode,
+        dateFormat: SmartDateFormat(dateFormat),
+        minDate: minDate,
+        maxDate: maxDate,
+        restriction: restriction,
+        initialDate: initialDate == null
+            ? null
+            : SmartDateUtils.dateOnly(initialDate),
+        now: now,
+        monthNames: monthNames,
+        showClearButton: showClearButton,
+        invalidErrorText: invalidErrorText,
+        incompleteErrorText: incompleteErrorText,
+        minErrorText: minErrorText,
+        maxErrorText: maxErrorText,
+        pastErrorText: pastErrorText,
+        futureErrorText: futureErrorText,
+        onDateChanged: onDateChanged,
+        onRawChanged: onRawChanged,
+        onRawSaved: onRawSaved,
+        yearRange: firstYear == null ? null : (firstYear, lastYear!),
+      ),
+    );
+  }
+
+  factory SmartField.time({
+    Key? key,
+    String? label,
+    String? hintText,
+    TextEditingController? controller,
+    FocusNode? focusNode,
+    bool autofocus = false,
+    bool? enabled,
+    bool readOnly = false,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onChanged,
+    FormFieldSetter<String>? onSaved,
+    ValueChanged<String>? onRawChanged,
+    FormFieldSetter<String>? onRawSaved,
+    bool isRequired = false,
+    String requiredErrorText = 'This field is required.',
+    FormFieldValidator<String>? validator,
+    AutovalidateMode? autovalidateMode,
+    SmartAsyncValidation? asyncValidation,
+    SmartValidationMode validationMode = SmartValidationMode.both,
+    Set<SmartBuiltInCheck> builtInChecks = const {},
+    SmartServerError? serverError,
+    InputDecoration decoration = const InputDecoration(),
+    bool showClearButton = false,
+    String? invalidErrorText,
+    String? minErrorText,
+    String? maxErrorText,
+    DateTime Function() now = DateTime.now,
+    SmartTimeMode mode = SmartTimeMode.manual,
+    bool use24Hour = true,
+    TimeOfDay? initialTime,
+    TimeOfDay? minTime,
+    TimeOfDay? maxTime,
+    ValueChanged<TimeOfDay?>? onTimeChanged,
+  }) {
+    return SmartField._dateTime(
+      key: key,
+      label: label,
+      hintText: hintText,
+      controller: controller,
+      focusNode: focusNode,
+      autofocus: autofocus,
+      enabled: enabled,
+      readOnly: readOnly,
+      textInputAction: textInputAction,
+      onChanged: onChanged,
+      onSaved: onSaved,
+      isRequired: isRequired,
+      requiredErrorText: requiredErrorText,
+      validator: validator,
+      autovalidateMode: autovalidateMode,
+      asyncValidation: asyncValidation,
+      validationMode: validationMode,
+      builtInChecks: builtInChecks,
+      serverError: serverError,
+      decoration: decoration,
+      config: SmartDateTimeConfig(
+        kind: SmartDateTimeKind.time,
+        timeMode: mode,
+        timeFormat: SmartTimeFormat(use24Hour: use24Hour),
+        minTime: minTime,
+        maxTime: maxTime,
+        initialTime: initialTime,
+        now: now,
+        showClearButton: showClearButton,
+        invalidErrorText: invalidErrorText,
+        minErrorText: minErrorText,
+        maxErrorText: maxErrorText,
+        onTimeChanged: onTimeChanged,
+        onRawChanged: onRawChanged,
+        onRawSaved: onRawSaved,
+      ),
+    );
+  }
+
+  factory SmartField.dateTime({
+    Key? key,
+    String? label,
+    String? hintText,
+    TextEditingController? controller,
+    FocusNode? focusNode,
+    bool autofocus = false,
+    bool? enabled,
+    bool readOnly = false,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onChanged,
+    FormFieldSetter<String>? onSaved,
+    ValueChanged<String>? onRawChanged,
+    FormFieldSetter<String>? onRawSaved,
+    bool isRequired = false,
+    String requiredErrorText = 'This field is required.',
+    FormFieldValidator<String>? validator,
+    AutovalidateMode? autovalidateMode,
+    SmartAsyncValidation? asyncValidation,
+    SmartValidationMode validationMode = SmartValidationMode.both,
+    Set<SmartBuiltInCheck> builtInChecks = const {},
+    SmartServerError? serverError,
+    InputDecoration decoration = const InputDecoration(),
+    bool showClearButton = false,
+    String? invalidErrorText,
+    String? minErrorText,
+    String? maxErrorText,
+    DateTime Function() now = DateTime.now,
+    SmartTimeMode mode = SmartTimeMode.manual,
+    bool use24Hour = true,
+    String dateFormat = 'dd/MM/yyyy',
+    DateTime? initialDateTime,
+    DateTime? minDateTime,
+    DateTime? maxDateTime,
+    SmartDateRestriction restriction = SmartDateRestriction.none,
+    String pastErrorText = 'Choose a date and time in the past.',
+    String futureErrorText = 'Choose a date and time in the future.',
+    ValueChanged<DateTime?>? onDateTimeChanged,
+  }) {
+    assert(mode != SmartTimeMode.wheel);
+    return SmartField._dateTime(
+      key: key,
+      label: label,
+      hintText: hintText,
+      controller: controller,
+      focusNode: focusNode,
+      autofocus: autofocus,
+      enabled: enabled,
+      readOnly: readOnly,
+      textInputAction: textInputAction,
+      onChanged: onChanged,
+      onSaved: onSaved,
+      isRequired: isRequired,
+      requiredErrorText: requiredErrorText,
+      validator: validator,
+      autovalidateMode: autovalidateMode,
+      asyncValidation: asyncValidation,
+      validationMode: validationMode,
+      builtInChecks: builtInChecks,
+      serverError: serverError,
+      decoration: decoration,
+      config: SmartDateTimeConfig(
+        kind: SmartDateTimeKind.dateTime,
+        dateMode: mode == SmartTimeMode.manual
+            ? SmartDateMode.manual
+            : SmartDateMode.calendar,
+        timeMode: mode,
+        dateFormat: SmartDateFormat(dateFormat),
+        timeFormat: SmartTimeFormat(use24Hour: use24Hour),
+        minDate: minDateTime,
+        maxDate: maxDateTime,
+        restriction: restriction,
+        initialDate: initialDateTime,
+        now: now,
+        showClearButton: showClearButton,
+        invalidErrorText: invalidErrorText,
+        minErrorText: minErrorText,
+        maxErrorText: maxErrorText,
+        pastErrorText: pastErrorText,
+        futureErrorText: futureErrorText,
+        onDateTimeChanged: onDateTimeChanged,
+        onRawChanged: onRawChanged,
+        onRawSaved: onRawSaved,
+      ),
+    );
+  }
+
+  SmartField._dateTime({
+    super.key,
+    this.label,
+    this.hintText,
+    this.controller,
+    this.focusNode,
+    this.autofocus = false,
+    this.enabled,
+    this.readOnly = false,
+    this.textInputAction,
+    this.onChanged,
+    this.onSaved,
+    this.isRequired = false,
+    this.requiredErrorText = 'This field is required.',
+    this.validator,
+    this.autovalidateMode,
+    this.asyncValidation,
+    this.validationMode = SmartValidationMode.both,
+    this.builtInChecks = const {},
+    this.serverError,
+    this.decoration = const InputDecoration(),
+    required SmartDateTimeConfig config,
+  }) : _core = _SmartFieldCore(dateTimeConfig: config),
+       keyboardType = TextInputType.datetime,
+       textCapitalization = TextCapitalization.none,
+       autocorrect = false,
+       enableSuggestions = false,
+       autofillHints = null,
+       minLines = null,
+       maxLines = 1,
+       expands = false,
+       showVisibilityToggle = false,
+       onRawChanged = null,
+       onRawSaved = null,
+       inputFormatters = null,
+       minLength = null,
+       minLengthErrorText = null,
+       maxLength = null,
+       maxLengthErrorText = null,
+       restorationId = null;
 
   SmartField.email({
     super.key,
@@ -1448,7 +1745,9 @@ class _SmartFieldState extends State<SmartField> {
   }
 
   void _syncAsyncBinding() {
-    final config = widget.asyncValidation;
+    final config = widget._core.dateTimeConfig != null
+        ? null
+        : widget.asyncValidation;
     if (config == null) {
       _asyncBoundController?.removeListener(_handleAsyncText);
       _asyncBoundController = null;
@@ -2221,6 +2520,11 @@ class _SmartFieldState extends State<SmartField> {
       if (raw != null) {
         widget.onRawChanged?.call(raw);
       }
+    } else if (formatter == null && widget._valueNormalizer != null) {
+      final raw = widget._valueNormalizer!(value);
+      if (raw != null) {
+        widget.onRawChanged?.call(raw);
+      }
     }
   }
 
@@ -2282,7 +2586,9 @@ class _SmartFieldState extends State<SmartField> {
           ? null
           : formatter != null
           ? formatter.normalize(value)
-          : mask?.extractRaw(value),
+          : mask != null
+          ? mask.extractRaw(value)
+          : widget._valueNormalizer?.call(value),
     );
   }
 
@@ -2382,6 +2688,31 @@ class _SmartFieldState extends State<SmartField> {
 
   @override
   Widget build(BuildContext context) {
+    final dateTimeConfig = widget._core.dateTimeConfig;
+    if (dateTimeConfig != null) {
+      return SmartDateTimeField(
+        config: dateTimeConfig,
+        label: widget.label,
+        hintText: widget.hintText,
+        controller: widget.controller,
+        focusNode: widget.focusNode,
+        autofocus: widget.autofocus,
+        enabled: widget.enabled,
+        readOnly: widget.readOnly,
+        textInputAction: widget.textInputAction,
+        onChanged: widget.onChanged,
+        onSaved: widget.onSaved,
+        isRequired: widget.isRequired,
+        requiredErrorText: widget.requiredErrorText,
+        validator: widget.validator,
+        autovalidateMode: widget.autovalidateMode,
+        asyncValidation: widget.asyncValidation,
+        validationMode: widget.validationMode,
+        builtInChecks: widget.builtInChecks,
+        serverError: widget.serverError,
+        decoration: widget.decoration,
+      );
+    }
     final otpConfig = widget._otpConfig;
     if (otpConfig != null) {
       final asyncError =
