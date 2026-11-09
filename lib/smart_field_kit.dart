@@ -3,7 +3,13 @@ library;
 export 'src/formatting/smart_text_formatters.dart';
 export 'src/formatting/smart_text_utils.dart';
 export 'src/formatting/smart_numeric_formatters.dart'
-    show SmartAmountFormatter, SmartCurrencyPosition;
+    show
+        SmartAmountFormatter,
+        SmartCurrencyPosition,
+        SmartDecimalLength,
+        SmartDecimalUtils,
+        SmartGroupingStyle,
+        SmartRoundingMode;
 export 'src/masking/smart_masking.dart';
 export 'src/models/smart_otp_style.dart';
 export 'src/models/smart_phone_value.dart';
