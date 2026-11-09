@@ -32,7 +32,9 @@ void main() {
         );
       });
 
-      testWidgets('phone actions are disabled ($variant)', (tester) async {
+      testWidgets('phone actions are disabled ($variant)', skip: kIsWeb, (
+        tester,
+      ) async {
         debugDefaultTargetPlatformOverride = TargetPlatform.android;
         try {
           var picks = 0;

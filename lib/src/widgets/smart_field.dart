@@ -1450,9 +1450,21 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
     _ensureOwnedState(carried);
     if (restoreFocus && _ownedFocusNode != null) {
       final node = _ownedFocusNode!;
+      final selection = carried?.selection;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && identical(node, _ownedFocusNode)) {
           node.requestFocus();
+          if (selection != null && selection.isValid) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final controller = _ownedController;
+              if (mounted &&
+                  controller != null &&
+                  node.hasFocus &&
+                  selection.end <= controller.text.length) {
+                controller.selection = selection;
+              }
+            });
+          }
         }
       });
     }
