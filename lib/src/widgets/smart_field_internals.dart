@@ -20,6 +20,8 @@ final class _SmartFieldCore {
     this.percentageSuffix,
     this.isPassword = false,
     this.isAmount = false,
+    this.matchController,
+    this.mismatchMessage = 'Passwords do not match.',
   });
 
   final SmartValidator? fieldValidator;
@@ -34,6 +36,8 @@ final class _SmartFieldCore {
   final String? percentageSuffix;
   final bool isPassword;
   final bool isAmount;
+  final TextEditingController? matchController;
+  final String mismatchMessage;
 }
 
 enum _SmartMaskKind { phone, account, amount }

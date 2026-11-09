@@ -14,5 +14,6 @@ export 'src/validation/smart_async_validation.dart'
         SmartFieldAsyncController;
 export 'src/validation/smart_phone_validation.dart';
 export 'src/validation/smart_url_validation.dart';
+export 'src/validation/smart_validation_options.dart';
 export 'src/validation/smart_validators.dart';
 export 'src/widgets/smart_field.dart';
