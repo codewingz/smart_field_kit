@@ -433,7 +433,7 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       LengthLimitingTextInputFormatter(4),
     ];
     final cvv = _config.concealCvv
-        ? SmartField.password(
+        ? smartConcealedSecurityCodeField(
             label: _config.cvvLabel,
             hintText: _config.cvvHint,
             controller: _cvv,
