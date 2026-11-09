@@ -26,7 +26,33 @@ final class _PhoneFeature extends _FieldFeature {
   void unbind() => _binding.dispose();
 
   @override
-  void dispose() => _binding.dispose();
+  void dispose() {
+    _pickerGeneration++;
+    _binding.dispose();
+  }
+
+  int _pickerGeneration = 0;
+
+  @override
+  void didUpdate(SmartField previous) {
+    final before = previous._phoneConfig;
+    final after = _config;
+    final behaviorChanged =
+        before == null ||
+        before.policy != after.policy ||
+        before.showCountryPicker != after.showCountryPicker ||
+        !listEquals(before.allowedCountryCodes, after.allowedCountryCodes);
+    if (behaviorChanged || !host.isInteractive) {
+      _pickerGeneration++;
+    }
+  }
+
+  bool _isCurrentPick(int generation, TextEditingController? controller) {
+    return host.mounted &&
+        host.isInteractive &&
+        generation == _pickerGeneration &&
+        identical(host.textController, controller);
+  }
 
   @override
   void addSuffix(List<Widget> actions) {
@@ -205,6 +231,8 @@ final class _PhoneFeature extends _FieldFeature {
 
   Future<void> _runContactPicker() async {
     final config = _config;
+    final generation = _pickerGeneration;
+    final target = host.textController;
     if (!_supportsContactPicker) {
       _reportPhonePickerError(
         const SmartPhonePickerError(
@@ -218,7 +246,7 @@ final class _PhoneFeature extends _FieldFeature {
       String? number;
       if (config.contactPicker == null) {
         final contact = await FlutterNativeContactPicker().selectPhoneNumber();
-        if (!host.mounted || contact == null) {
+        if (!_isCurrentPick(generation, target) || contact == null) {
           return;
         }
         number = contact.selectedPhoneNumber;
@@ -234,7 +262,7 @@ final class _PhoneFeature extends _FieldFeature {
       } else {
         number = await config.contactPicker!();
       }
-      if (!host.mounted || number == null) {
+      if (!_isCurrentPick(generation, target) || number == null) {
         return;
       }
       if (number.isEmpty) {
@@ -286,7 +314,7 @@ final class _PhoneFeature extends _FieldFeature {
         host.rebuild();
       }
     } on Object catch (error) {
-      if (!host.mounted) {
+      if (!_isCurrentPick(generation, target)) {
         return;
       }
       _reportPhonePickerError(
