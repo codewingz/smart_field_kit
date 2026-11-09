@@ -178,6 +178,7 @@ abstract final class SmartValidators {
   static SmartValidator cardNumber({
     Set<SmartCardBrand>? acceptedBrands,
     bool validateLuhn = true,
+    Set<SmartCardBrand> luhnExemptBrands = const {},
     String message = 'Enter a valid card number.',
     String? brandMessage,
     String? luhnMessage,
@@ -186,21 +187,23 @@ abstract final class SmartValidators {
       if (value == null || value.isEmpty) {
         return null;
       }
-      if (!RegExp(r'^[0-9 \-]+$').hasMatch(value)) {
-        return message;
+      final assessment = SmartCardUtils.assessNumber(
+        value,
+        acceptedBrands: acceptedBrands,
+        validateLuhn: validateLuhn,
+        luhnExemptBrands: luhnExemptBrands,
+      );
+      if (assessment.isLocallyValid) {
+        return null;
       }
-      final digits = SmartCardUtils.digitsOnly(value);
-      final brand = SmartCardUtils.detectBrand(digits);
-      if (acceptedBrands != null && !acceptedBrands.contains(brand)) {
-        return brandMessage ?? 'This card type is not accepted.';
+      switch (assessment.issue) {
+        case SmartCardNumberIssue.brandNotAccepted:
+          return brandMessage ?? 'This card type is not accepted.';
+        case SmartCardNumberIssue.failsChecksum:
+          return luhnMessage ?? 'Check the card number.';
+        default:
+          return message;
       }
-      if (!brand.lengths.contains(digits.length)) {
-        return message;
-      }
-      if (validateLuhn && !SmartCardUtils.passesLuhn(value)) {
-        return luhnMessage ?? 'Check the card number.';
-      }
-      return null;
     };
   }
 
