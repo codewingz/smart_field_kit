@@ -1133,7 +1133,7 @@ class SmartField extends _SmartFieldBase {
     FocusNode? cvvFocusNode,
     Set<SmartCardBrand>? acceptedBrands,
     bool validateLuhn = true,
-    Set<SmartCardBrand> luhnExemptBrands = const {},
+    Set<SmartCardBrand> luhnExemptBrands = const {SmartCardBrand.unionPay},
     bool showNumberStatus = true,
     String? Function(SmartCardNumberAssessment assessment)? numberStatusBuilder,
     String brandErrorText = 'This card type is not accepted.',
@@ -1304,6 +1304,9 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
 
   @override
   void notifyChanged(String value) => _handleChanged(value);
+
+  @override
+  bool get showsMask => _feature<_MaskFeature>()?.shows ?? false;
 
   @override
   void initState() {
@@ -1552,7 +1555,6 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
       );
     }
     final mask = _feature<_MaskFeature>();
-    final showsMask = mask?.shows ?? false;
     final field = TextFormField(
       key: _hasFieldKey ? _fieldKey : null,
       controller: textController,

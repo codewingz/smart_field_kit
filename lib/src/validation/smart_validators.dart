@@ -178,7 +178,7 @@ abstract final class SmartValidators {
   static SmartValidator cardNumber({
     Set<SmartCardBrand>? acceptedBrands,
     bool validateLuhn = true,
-    Set<SmartCardBrand> luhnExemptBrands = const {},
+    Set<SmartCardBrand> luhnExemptBrands = const {SmartCardBrand.unionPay},
     String message = 'Enter a valid card number.',
     String? brandMessage,
     String? luhnMessage,

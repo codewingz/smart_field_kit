@@ -367,7 +367,7 @@ abstract final class SmartCardUtils {
     String value, {
     Set<SmartCardBrand>? acceptedBrands,
     bool validateLuhn = true,
-    Set<SmartCardBrand> luhnExemptBrands = const {},
+    Set<SmartCardBrand> luhnExemptBrands = const {SmartCardBrand.unionPay},
   }) {
     final match = matchBrand(value);
     SmartCardNumberAssessment result(

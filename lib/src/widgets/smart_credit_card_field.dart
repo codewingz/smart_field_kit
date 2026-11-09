@@ -56,7 +56,7 @@ final class SmartCreditCardConfig {
     this.cvvFocusNode,
     this.acceptedBrands,
     this.validateLuhn = true,
-    this.luhnExemptBrands = const {},
+    this.luhnExemptBrands = const {SmartCardBrand.unionPay},
     this.showNumberStatus = true,
     this.numberStatusBuilder,
     this.brandErrorText = 'This card type is not accepted.',
