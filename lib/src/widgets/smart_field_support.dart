@@ -17,18 +17,45 @@ final class SmartInputHandle {
   TextEditingController? _ownedController;
   FocusNode? _ownedFocusNode;
 
-  void update({TextEditingController? controller, FocusNode? focusNode}) {
+  TextEditingValue? _seed;
+
+  void update({
+    TextEditingController? controller,
+    FocusNode? focusNode,
+    TextEditingValue? seed,
+  }) {
     _externalController = controller;
     _externalFocusNode = focusNode;
+    _seed = seed ?? _seed;
+  }
+
+  void releaseUnused() {
+    if (_externalController != null) {
+      _ownedController?.dispose();
+      _ownedController = null;
+    }
+    if (_externalFocusNode != null) {
+      _ownedFocusNode?.dispose();
+      _ownedFocusNode = null;
+    }
   }
 
   bool get ownsController => _externalController == null;
 
   TextEditingController get controller {
-    return _externalController ??
-        (_ownedController ??= redacted
-            ? SmartRedactedTextEditingController(text: initialText)
-            : TextEditingController(text: initialText));
+    return _externalController ?? (_ownedController ??= _createController());
+  }
+
+  TextEditingController _createController() {
+    final seed = _seed;
+    if (redacted) {
+      return SmartRedactedTextEditingController(
+        text: seed?.text ?? initialText,
+      );
+    }
+    return seed == null
+        ? TextEditingController(text: initialText)
+        : TextEditingController.fromValue(seed);
   }
 
   FocusNode get focusNode {

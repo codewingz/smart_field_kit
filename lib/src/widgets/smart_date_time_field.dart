@@ -369,7 +369,9 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   }
 
   void _syncBindings() {
+    _textBinding.bind(null);
     _input.update(controller: widget.controller);
+    _input.releaseUnused();
     _textBinding.bind(_controller);
     _serverBinding.bind(widget.serverError);
   }

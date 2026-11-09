@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/models/smart_otp_style.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
+import 'package:smart_field_kit/src/widgets/smart_field_support.dart';
+import 'package:smart_field_kit/src/widgets/smart_listener_binding.dart';
 
 class SmartOtpConfiguration {
   const SmartOtpConfiguration({
@@ -63,61 +65,56 @@ class SmartOtpField extends StatefulWidget {
 
 class _SmartOtpFieldState extends State<SmartOtpField> {
   final GlobalKey<FormFieldState<String>> _formFieldKey = GlobalKey();
-  TextEditingController? _ownedController;
-  FocusNode? _ownedFocusNode;
+  final SmartInputHandle _input = SmartInputHandle();
+  final SmartListenerGroup _listeners = SmartListenerGroup();
+  late final SmartListenerBinding _controllerBinding = _listeners.add(
+    _handleControllerChange,
+  );
+  late final SmartListenerBinding _focusBinding = _listeners.add(
+    _handleFocusChange,
+  );
   late String _initialValue;
   late String _lastText;
   bool _nextChangeIsUser = false;
   bool _wasComplete = false;
   bool _resetting = false;
 
-  TextEditingController get _controller =>
-      widget.controller ?? _ownedController!;
+  TextEditingController get _controller => _input.controller;
 
-  FocusNode get _focusNode => widget.focusNode ?? _ownedFocusNode!;
+  FocusNode get _focusNode => _input.focusNode;
 
   bool get _enabled => widget.enabled ?? widget.decoration.enabled;
 
   @override
   void initState() {
     super.initState();
-    _ownedController = widget.controller == null
-        ? TextEditingController()
-        : null;
-    _ownedFocusNode = widget.focusNode == null ? FocusNode() : null;
+    _input.update(controller: widget.controller, focusNode: widget.focusNode);
     _initialValue = _controller.text;
     _lastText = _controller.text;
     _wasComplete = _isComplete(_lastText);
-    _controller.addListener(_handleControllerChange);
-    _focusNode.addListener(_handleFocusChange);
+    _controllerBinding.bind(_controller);
+    _focusBinding.bind(_focusNode);
   }
 
   @override
   void didUpdateWidget(covariant SmartOtpField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final oldController = oldWidget.controller ?? _ownedController;
-    final oldFocusNode = oldWidget.focusNode ?? _ownedFocusNode;
-    if (oldWidget.controller != widget.controller) {
-      oldController?.removeListener(_handleControllerChange);
-      if (oldWidget.controller == null) {
-        _ownedController?.dispose();
-        _ownedController = null;
+    final controllerChanged = oldWidget.controller != widget.controller;
+    if (controllerChanged || oldWidget.focusNode != widget.focusNode) {
+      final previousValue = _controller.value;
+      _listeners.unbindAll();
+      _input.update(
+        controller: widget.controller,
+        focusNode: widget.focusNode,
+        seed: previousValue,
+      );
+      _input.releaseUnused();
+      if (controllerChanged) {
+        _initialValue = _controller.text;
+        _lastText = _controller.text;
       }
-      _ownedController ??= widget.controller == null
-          ? TextEditingController.fromValue(oldController?.value)
-          : null;
-      _initialValue = _controller.text;
-      _lastText = _controller.text;
-      _controller.addListener(_handleControllerChange);
-    }
-    if (oldWidget.focusNode != widget.focusNode) {
-      oldFocusNode?.removeListener(_handleFocusChange);
-      if (oldWidget.focusNode == null) {
-        _ownedFocusNode?.dispose();
-        _ownedFocusNode = null;
-      }
-      _ownedFocusNode ??= widget.focusNode == null ? FocusNode() : null;
-      _focusNode.addListener(_handleFocusChange);
+      _controllerBinding.bind(_controller);
+      _focusBinding.bind(_focusNode);
     }
     if (oldWidget.configuration.length != widget.configuration.length ||
         oldWidget.validator != widget.validator) {
@@ -205,10 +202,8 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
 
   @override
   void dispose() {
-    _controller.removeListener(_handleControllerChange);
-    _focusNode.removeListener(_handleFocusChange);
-    _ownedController?.dispose();
-    _ownedFocusNode?.dispose();
+    _listeners.unbindAll();
+    _input.dispose();
     super.dispose();
   }
 
