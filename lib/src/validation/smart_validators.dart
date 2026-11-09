@@ -1,4 +1,5 @@
 import 'package:characters/characters.dart';
+import 'package:smart_field_kit/src/formatting/smart_card_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_numeric_formatters.dart';
 import 'package:smart_field_kit/src/formatting/smart_text_utils.dart';
 import 'package:smart_field_kit/src/models/smart_phone_value.dart';
@@ -171,6 +172,80 @@ abstract final class SmartValidators {
         return message ?? 'Enter at least $length characters.';
       }
       return null;
+    };
+  }
+
+  static SmartValidator cardNumber({
+    Set<SmartCardBrand>? acceptedBrands,
+    bool validateLuhn = true,
+    String message = 'Enter a valid card number.',
+    String? brandMessage,
+    String? luhnMessage,
+  }) {
+    return (value) {
+      if (value == null || value.isEmpty) {
+        return null;
+      }
+      if (!RegExp(r'^[0-9 \-]+$').hasMatch(value)) {
+        return message;
+      }
+      final digits = SmartCardUtils.digitsOnly(value);
+      final brand = SmartCardUtils.detectBrand(digits);
+      if (acceptedBrands != null && !acceptedBrands.contains(brand)) {
+        return brandMessage ?? 'This card type is not accepted.';
+      }
+      if (!brand.lengths.contains(digits.length)) {
+        return message;
+      }
+      if (validateLuhn && !SmartCardUtils.passesLuhn(value)) {
+        return luhnMessage ?? 'Check the card number.';
+      }
+      return null;
+    };
+  }
+
+  static SmartValidator cardExpiry({
+    SmartExpiryFormat format = SmartExpiryFormat.mmYy,
+    DateTime Function() now = DateTime.now,
+    String message = 'Enter a valid expiry date.',
+    String expiredMessage = 'This card has expired.',
+  }) {
+    return (value) {
+      if (value == null || value.isEmpty) {
+        return null;
+      }
+      final expiry = SmartCardUtils.tryParseExpiry(value, format: format);
+      if (expiry == null) {
+        return message;
+      }
+      return expiry.isExpired(now()) ? expiredMessage : null;
+    };
+  }
+
+  static SmartValidator cardCvv({
+    required SmartCardBrand Function() brand,
+    Set<int>? allowedLengths,
+    String? message,
+  }) {
+    return (value) {
+      if (value == null || value.isEmpty) {
+        return null;
+      }
+      final resolved = brand();
+      if (SmartCardUtils.isCvvLengthValid(
+        value,
+        resolved,
+        allowedLengths: allowedLengths,
+      )) {
+        return null;
+      }
+      final lengths =
+          allowedLengths ??
+          (resolved == SmartCardBrand.unknown
+              ? const {3, 4}
+              : {resolved.cvvLength});
+      final text = (lengths.toList()..sort()).join(' or ');
+      return message ?? 'Enter the $text-digit security code.';
     };
   }
 

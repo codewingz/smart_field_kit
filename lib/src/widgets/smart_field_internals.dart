@@ -31,6 +31,7 @@ final class _SmartFieldCore {
     this.matchController,
     this.mismatchMessage = 'Passwords do not match.',
     this.dateTimeConfig,
+    this.cardConfig,
     this.inputMask,
     this.inputMaskMessage = 'Complete the value.',
     this.minWords,
@@ -55,6 +56,7 @@ final class _SmartFieldCore {
   final TextEditingController? matchController;
   final String mismatchMessage;
   final SmartDateTimeConfig? dateTimeConfig;
+  final SmartCreditCardConfig? cardConfig;
   final SmartInputMask? inputMask;
   final String inputMaskMessage;
   final int? minWords;
