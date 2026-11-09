@@ -24,6 +24,10 @@ final class SmartInputHandle {
     FocusNode? focusNode,
     TextEditingValue? seed,
   }) {
+    final previous = _externalController;
+    if (previous != null && controller == null && _ownedController == null) {
+      _seed = previous.value;
+    }
     _externalController = controller;
     _externalFocusNode = focusNode;
     _seed = seed ?? _seed;
