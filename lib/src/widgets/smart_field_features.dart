@@ -12,6 +12,7 @@ abstract interface class _FieldHost {
   String? validateSync(String? value);
   void rebuild();
   void notifyChanged(String value);
+  bool get showsMask;
 }
 
 abstract class _FieldFeature {
@@ -130,7 +131,7 @@ final class _StrengthFeature extends _FieldFeature {
   Widget wrap(Widget child) {
     final config = host.field._core.strength;
     final controller = host.textController;
-    if (config == null || controller == null) {
+    if (config == null || controller == null || host.showsMask) {
       return child;
     }
     return Column(

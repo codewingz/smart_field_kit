@@ -455,28 +455,52 @@ void main() {
           _complete('620', 16).replaceRange(15, 16, '1') == _complete('620', 16)
           ? _complete('620', 16).replaceRange(15, 16, '2')
           : _complete('620', 16).replaceRange(15, 16, '1');
+      expect(SmartCardUtils.passesLuhn(bad), isFalse);
       expect(
         SmartCardUtils.assessNumber(bad).status,
+        SmartCardNumberStatus.valid,
+      );
+      expect(SmartValidators.cardNumber()(bad), isNull);
+      expect(
+        SmartCardUtils.assessNumber(bad, luhnExemptBrands: const {}).status,
         SmartCardNumberStatus.invalid,
+      );
+      expect(
+        SmartValidators.cardNumber(luhnExemptBrands: const {})(bad),
+        isNotNull,
       );
       expect(
         SmartCardUtils.assessNumber(bad, validateLuhn: false).status,
         SmartCardNumberStatus.valid,
       );
-      expect(
-        SmartCardUtils.assessNumber(
-          bad,
-          luhnExemptBrands: {SmartCardBrand.unionPay},
-        ).status,
-        SmartCardNumberStatus.valid,
-      );
-      expect(
-        SmartValidators.cardNumber(luhnExemptBrands: {SmartCardBrand.unionPay})(
-          bad,
-        ),
-        isNull,
-      );
     });
+
+    test(
+      'UnionPay skips Luhn by default; every other brand still needs it',
+      () {
+        for (final item in _cases) {
+          final brand = item.brand;
+          if (brand == SmartCardBrand.unionPay) {
+            continue;
+          }
+          final prefix = item.prefixes.first;
+          final length = brand.primaryLength;
+          final good = _complete(prefix, length);
+          final last = int.parse(good[length - 1]);
+          final bad = '${good.substring(0, length - 1)}${(last + 1) % 10}';
+          expect(SmartCardUtils.passesLuhn(bad), isFalse, reason: brand.name);
+          expect(
+            SmartCardUtils.assessNumber(bad).status,
+            isNot(SmartCardNumberStatus.valid),
+            reason: brand.name,
+          );
+        }
+        expect(
+          SmartCardUtils.assessNumber(_complete('620', 16)).status,
+          SmartCardNumberStatus.valid,
+        );
+      },
+    );
 
     test('assessment is pure, fast, and printable without digits', () {
       final watch = Stopwatch()..start();
