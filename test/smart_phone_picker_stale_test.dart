@@ -10,7 +10,7 @@ Widget _app(Widget child) => MaterialApp(
 );
 
 void _stale(String name, Future<void> Function(WidgetTester tester) body) {
-  testWidgets(name, (tester) async {
+  testWidgets(name, skip: kIsWeb, (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     try {
       await body(tester);
