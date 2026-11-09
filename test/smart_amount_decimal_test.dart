@@ -39,12 +39,45 @@ void main() {
       expect(SmartDecimalLength.from(1).places, 1);
       expect(SmartDecimalLength.from(2).places, 2);
       expect(SmartDecimalLength.from(3).places, 3);
-      for (final bad in <Object?>[true, 0, 4, -1, 2.0, '2', null, 'false']) {
+      for (final bad in <Object?>[
+        true,
+        0,
+        4,
+        -1,
+        2.5,
+        1.5,
+        0.5,
+        double.nan,
+        '2',
+        null,
+        'false',
+        Object(),
+        <int>[2],
+      ]) {
         expect(
           () => SmartDecimalLength.from(bad),
           throwsArgumentError,
           reason: '$bad',
         );
+      }
+    });
+
+    test('integral doubles follow the platform number model', () {
+      final jsNumbers = identical(2, 2.0);
+      if (jsNumbers) {
+        expect(SmartDecimalLength.from(2.0).places, 2);
+      } else {
+        expect(() => SmartDecimalLength.from(2.0), throwsArgumentError);
+      }
+    });
+
+    test('the amount constructor validates decimalLength the same way', () {
+      expect(() => SmartField.amount(decimalLength: 4), throwsArgumentError);
+      expect(() => SmartField.amount(decimalLength: 2.5), throwsArgumentError);
+      expect(() => SmartField.amount(decimalLength: '2'), throwsArgumentError);
+      expect(() => SmartField.amount(decimalLength: true), throwsArgumentError);
+      for (final ok in <Object>[false, 1, 2, 3]) {
+        expect(() => SmartField.amount(decimalLength: ok), returnsNormally);
       }
     });
 
