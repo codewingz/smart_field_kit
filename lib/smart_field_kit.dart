@@ -35,4 +35,4 @@ export 'src/widgets/smart_date_time_field.dart'
         SmartDateRestriction,
         SmartTimeMode,
         smartEnglishMonthNames;
-export 'src/widgets/smart_field.dart';
+export 'src/widgets/smart_field.dart' hide smartConcealedSecurityCodeField;

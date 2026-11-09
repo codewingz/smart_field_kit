@@ -681,6 +681,32 @@ class SmartField extends _SmartFieldBase {
          autofillHints: const [AutofillHints.password],
        );
 
+  SmartField._securityCode({
+    super.label,
+    super.hintText,
+    super.controller,
+    super.focusNode,
+    super.enabled,
+    super.readOnly,
+    super.keyboardType,
+    super.inputFormatters,
+    super.textInputAction,
+    super.onChanged,
+    super.isRequired,
+    super.requiredErrorText,
+    super.validator,
+    super.autovalidateMode,
+    super.serverError,
+    super.decoration,
+  }) : super(
+         _SmartFieldCore(
+           isPassword: true,
+           mismatchMessage: 'Passwords do not match.',
+         ),
+         showVisibilityToggle: true,
+         autofillHints: const [AutofillHints.creditCardSecurityCode],
+       );
+
   SmartField.number({
     super.key,
     super.label,
@@ -1656,4 +1682,42 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
     }
     return widget.restorationId;
   }
+}
+
+SmartField smartConcealedSecurityCodeField({
+  String? label,
+  String? hintText,
+  TextEditingController? controller,
+  FocusNode? focusNode,
+  bool? enabled,
+  bool readOnly = false,
+  TextInputType? keyboardType,
+  List<TextInputFormatter>? inputFormatters,
+  TextInputAction? textInputAction,
+  ValueChanged<String>? onChanged,
+  bool isRequired = false,
+  String requiredErrorText = 'This field is required.',
+  FormFieldValidator<String>? validator,
+  AutovalidateMode? autovalidateMode,
+  SmartServerError? serverError,
+  InputDecoration decoration = const InputDecoration(),
+}) {
+  return SmartField._securityCode(
+    label: label,
+    hintText: hintText,
+    controller: controller,
+    focusNode: focusNode,
+    enabled: enabled,
+    readOnly: readOnly,
+    keyboardType: keyboardType,
+    inputFormatters: inputFormatters,
+    textInputAction: textInputAction,
+    onChanged: onChanged,
+    isRequired: isRequired,
+    requiredErrorText: requiredErrorText,
+    validator: validator,
+    autovalidateMode: autovalidateMode,
+    serverError: serverError,
+    decoration: decoration,
+  );
 }
