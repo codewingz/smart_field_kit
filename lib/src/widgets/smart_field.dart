@@ -712,28 +712,18 @@ class SmartField extends _SmartFieldBase {
     SmartNumberPolicy policy = SmartNumberPolicy.standard,
     String numberErrorText = 'Enter a valid whole number.',
   }) : super(
-         _SmartFieldCore(
-           fieldValidator: SmartValidators.number(
-             policy: policy,
-             allowNegative: allowNegative,
-             message: numberErrorText,
-           ),
-           minValueValidator: minValue == null
-               ? null
-               : SmartValidators.minValue(minValue, message: minValueErrorText),
-           maxValueValidator: maxValue == null
-               ? null
-               : SmartValidators.maxValue(maxValue, message: maxValueErrorText),
-           maskConfig: _createMaskConfig(
-             enabled: mask,
-             kind: _SmartMaskKind.account,
-             visibleSuffixDigits: maskVisibleSuffixDigits,
-             maskCharacter: maskCharacter,
-             revealOnFocus: revealMaskOnFocus,
-           ),
-           formatters: [
-             SmartNumberInputFormatter(allowNegative: allowNegative),
-           ],
+         _numberCore(
+           minValue: minValue,
+           minValueErrorText: minValueErrorText,
+           maxValue: maxValue,
+           maxValueErrorText: maxValueErrorText,
+           mask: mask,
+           maskVisibleSuffixDigits: maskVisibleSuffixDigits,
+           maskCharacter: maskCharacter,
+           revealMaskOnFocus: revealMaskOnFocus,
+           allowNegative: allowNegative,
+           policy: policy,
+           errorText: numberErrorText,
          ),
          keyboardType: TextInputType.numberWithOptions(signed: allowNegative),
        );

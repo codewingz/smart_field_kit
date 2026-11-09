@@ -7,6 +7,7 @@ import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_support.dart';
 import 'package:smart_field_kit/src/widgets/smart_listener_binding.dart';
+import 'package:smart_field_kit/src/formatting/smart_composing.dart';
 
 class SmartOtpConfiguration {
   const SmartOtpConfiguration({
@@ -438,7 +439,7 @@ class _SmartOtpInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    if (!newValue.composing.isCollapsed) {
+    if (smartIsComposing(newValue)) {
       return newValue;
     }
     final isDigits = RegExp(r'^[0-9]*$').hasMatch(newValue.text);

@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:smart_field_kit/src/formatting/smart_composing.dart';
 
 final class _MaskToken {
   const _MaskToken.literal(this.character) : slot = null;
@@ -171,7 +172,7 @@ final class SmartMaskFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    if (newValue.composing.isValid && !newValue.composing.isCollapsed) {
+    if (smartIsComposing(newValue)) {
       return newValue;
     }
     final scanned = mask.scan(newValue.text);

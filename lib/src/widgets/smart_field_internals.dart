@@ -6,6 +6,71 @@ bool _hasValidLengthRange(int? minLength, int? maxLength) {
       (minLength == null || maxLength == null || minLength <= maxLength);
 }
 
+typedef _ValueLimits = ({SmartValidator? min, SmartValidator? max});
+
+_ValueLimits _valueLimits({
+  String? minValue,
+  String? minValueErrorText,
+  String? maxValue,
+  String? maxValueErrorText,
+  SmartValueNormalizer? normalizer,
+}) {
+  return (
+    min: minValue == null
+        ? null
+        : SmartValidators.minValue(
+            minValue,
+            normalizer: normalizer,
+            message: minValueErrorText,
+          ),
+    max: maxValue == null
+        ? null
+        : SmartValidators.maxValue(
+            maxValue,
+            normalizer: normalizer,
+            message: maxValueErrorText,
+          ),
+  );
+}
+
+_SmartFieldCore _numberCore({
+  String? minValue,
+  String? minValueErrorText,
+  String? maxValue,
+  String? maxValueErrorText,
+  required bool mask,
+  required int maskVisibleSuffixDigits,
+  required String maskCharacter,
+  required bool revealMaskOnFocus,
+  required bool allowNegative,
+  required SmartNumberPolicy policy,
+  required String errorText,
+}) {
+  final limits = _valueLimits(
+    minValue: minValue,
+    minValueErrorText: minValueErrorText,
+    maxValue: maxValue,
+    maxValueErrorText: maxValueErrorText,
+  );
+  return _SmartFieldCore(
+    fieldValidator: SmartValidators.number(
+      policy: policy,
+      allowNegative: allowNegative,
+      message: errorText,
+    ),
+    minValueValidator: limits.min,
+    maxValueValidator: limits.max,
+    maskConfig: _createMaskConfig(
+      enabled: mask,
+      kind: _SmartMaskKind.account,
+      visibleSuffixDigits: maskVisibleSuffixDigits,
+      maskCharacter: maskCharacter,
+      revealOnFocus: revealMaskOnFocus,
+    ),
+    formatters: [SmartNumberInputFormatter(allowNegative: allowNegative)],
+  );
+}
+
 _SmartFieldCore _textCore({
   SmartTextCase textCase = SmartTextCase.none,
   bool collapseWhitespace = false,
@@ -60,26 +125,21 @@ _SmartFieldCore _percentageCore({
     decimalPlaces: decimalPlaces,
     allowNegative: allowNegative,
   );
+  final limits = _valueLimits(
+    minValue: minValue,
+    minValueErrorText: minValueErrorText,
+    maxValue: maxValue,
+    maxValueErrorText: maxValueErrorText,
+    normalizer: formatter.normalize,
+  );
   return _SmartFieldCore(
     fieldValidator: SmartValidators.amount(
       formatter: formatter,
       message: errorText,
     ),
     valueNormalizer: formatter.normalize,
-    minValueValidator: minValue == null
-        ? null
-        : SmartValidators.minValue(
-            minValue,
-            normalizer: formatter.normalize,
-            message: minValueErrorText,
-          ),
-    maxValueValidator: maxValue == null
-        ? null
-        : SmartValidators.maxValue(
-            maxValue,
-            normalizer: formatter.normalize,
-            message: maxValueErrorText,
-          ),
+    minValueValidator: limits.min,
+    maxValueValidator: limits.max,
     percentageSuffix: percentSymbol,
     formatters: [formatter],
   );
@@ -133,6 +193,13 @@ _SmartFieldCore _amountCore({
     groupingStyle: groupingStyle,
     roundingMode: rounding,
   );
+  final limits = _valueLimits(
+    minValue: minValue,
+    minValueErrorText: minValueErrorText,
+    maxValue: maxValue,
+    maxValueErrorText: maxValueErrorText,
+    normalizer: formatter.normalize,
+  );
   return _SmartFieldCore(
     fieldValidator: SmartValidators.amount(
       formatter: formatter,
@@ -140,20 +207,8 @@ _SmartFieldCore _amountCore({
       message: errorText,
     ),
     valueNormalizer: formatter.normalize,
-    minValueValidator: minValue == null
-        ? null
-        : SmartValidators.minValue(
-            minValue,
-            normalizer: formatter.normalize,
-            message: minValueErrorText,
-          ),
-    maxValueValidator: maxValue == null
-        ? null
-        : SmartValidators.maxValue(
-            maxValue,
-            normalizer: formatter.normalize,
-            message: maxValueErrorText,
-          ),
+    minValueValidator: limits.min,
+    maxValueValidator: limits.max,
     amountFormatter: formatter,
     maskConfig: _createMaskConfig(
       enabled: mask,
@@ -179,16 +234,6 @@ _SmartFieldCore _otpCore({
   required bool notifyOnProgrammaticChanges,
   required SmartOtpStyle style,
 }) {
-  if (length <= 0) {
-    throw ArgumentError.value(length, 'length');
-  }
-  if (policy == SmartOtpPolicy.legacy && length != 6) {
-    throw ArgumentError.value(
-      length,
-      'length',
-      'The legacy OTP policy requires a length of 6.',
-    );
-  }
   return _SmartFieldCore(
     fieldValidator: SmartValidators.otp(
       length: length,
