@@ -22,6 +22,7 @@ import 'package:smart_field_kit/src/formatting/smart_card_utils.dart';
 import 'package:smart_field_kit/src/widgets/smart_credit_card_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_date_time_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_design.dart';
+import 'package:smart_field_kit/src/widgets/smart_field_support.dart';
 import 'package:smart_field_kit/src/widgets/smart_listener_binding.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_otp_field.dart';
@@ -1802,13 +1803,7 @@ class _SmartFieldState extends State<SmartField> {
       }
     }
 
-    if (children.isEmpty) {
-      return null;
-    }
-    if (children.length == 1) {
-      return children.single;
-    }
-    return Row(mainAxisSize: MainAxisSize.min, children: children);
+    return composeSuffixActions(children);
   }
 
   Widget _passwordToggle() {

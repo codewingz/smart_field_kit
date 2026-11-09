@@ -7,6 +7,8 @@ import 'package:smart_field_kit/src/validation/smart_validation_options.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_design.dart';
+import 'package:smart_field_kit/src/widgets/smart_field_support.dart';
+import 'package:smart_field_kit/src/widgets/smart_listener_binding.dart';
 
 enum SmartDateMode { manual, calendar, dropdowns, wheel }
 
@@ -322,7 +324,16 @@ class SmartDateTimeField extends StatefulWidget {
 }
 
 class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
-  TextEditingController? _ownedController;
+  late final SmartInputHandle _input = SmartInputHandle(
+    initialText: _initialText(),
+  );
+  final SmartListenerGroup _listeners = SmartListenerGroup();
+  late final SmartListenerBinding _textBinding = _listeners.add(
+    _handleControllerChange,
+  );
+  late final SmartListenerBinding _serverBinding = _listeners.add(
+    _handleServerChange,
+  );
   final GlobalKey<FormFieldState<DateTime?>> _dropdownKey = GlobalKey();
   int? _day;
   int? _month;
@@ -330,8 +341,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
 
   SmartDateTimeConfig get _config => widget.config;
 
-  TextEditingController get _controller =>
-      widget.controller ?? _ownedController!;
+  TextEditingController get _controller => _input.controller;
 
   bool get _enabled => widget.enabled ?? widget.decoration.enabled;
 
@@ -342,47 +352,32 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   @override
   void initState() {
     super.initState();
-    if (widget.controller == null) {
-      _ownedController = TextEditingController(text: _initialText());
-    }
+    _syncBindings();
     if (widget.controller != null && widget.controller!.text.isEmpty) {
       final initial = _initialText();
       if (initial.isNotEmpty) {
         widget.controller!.text = initial;
       }
     }
-    _controller.addListener(_handleControllerChange);
     _loadPartsFrom(_config.initialDate);
-    widget.serverError?.addListener(_handleServerChange);
   }
 
   @override
   void didUpdateWidget(covariant SmartDateTimeField oldWidget) {
-    if (oldWidget.controller != widget.controller) {
-      (oldWidget.controller ?? _ownedController)?.removeListener(
-        _handleControllerChange,
-      );
-      if (oldWidget.controller == null) {
-        _ownedController?.dispose();
-        _ownedController = null;
-      }
-      if (widget.controller == null) {
-        _ownedController = TextEditingController(text: _initialText());
-      }
-      _controller.addListener(_handleControllerChange);
-    }
-    if (oldWidget.serverError != widget.serverError) {
-      oldWidget.serverError?.removeListener(_handleServerChange);
-      widget.serverError?.addListener(_handleServerChange);
-    }
     super.didUpdateWidget(oldWidget);
+    _syncBindings();
+  }
+
+  void _syncBindings() {
+    _input.update(controller: widget.controller);
+    _textBinding.bind(_controller);
+    _serverBinding.bind(widget.serverError);
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_handleControllerChange);
-    widget.serverError?.removeListener(_handleServerChange);
-    _ownedController?.dispose();
+    _listeners.unbindAll();
+    _input.dispose();
     super.dispose();
   }
 
@@ -647,12 +642,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
         ),
       );
     }
-    if (children.isEmpty) {
-      return null;
-    }
-    return children.length == 1
-        ? children.single
-        : Row(mainAxisSize: MainAxisSize.min, children: children);
+    return composeSuffixActions(children);
   }
 
   @override

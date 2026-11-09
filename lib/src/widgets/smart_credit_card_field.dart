@@ -5,6 +5,8 @@ import 'package:smart_field_kit/src/formatting/smart_input_mask.dart';
 import 'package:smart_field_kit/src/validation/smart_validation_options.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_field.dart';
+import 'package:smart_field_kit/src/widgets/smart_field_support.dart';
+import 'package:smart_field_kit/src/widgets/smart_listener_binding.dart';
 
 final class SmartCreditCardValue {
   const SmartCreditCardValue({
@@ -113,11 +115,6 @@ final class SmartCreditCardConfig {
   final FormFieldSetter<SmartCreditCardValue>? onSaved;
 }
 
-final class _RedactedTextEditingController extends TextEditingController {
-  @override
-  String toString() => 'TextEditingController(redacted)';
-}
-
 class SmartCreditCardField extends StatefulWidget {
   const SmartCreditCardField({
     super.key,
@@ -145,72 +142,70 @@ class SmartCreditCardField extends StatefulWidget {
 }
 
 class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
-  TextEditingController? _ownedNumber;
-  TextEditingController? _ownedExpiry;
-  TextEditingController? _ownedCvv;
-  FocusNode? _ownedNumberFocus;
-  FocusNode? _ownedExpiryFocus;
-  FocusNode? _ownedCvvFocus;
+  final SmartInputHandle _numberInput = SmartInputHandle(redacted: true);
+  final SmartInputHandle _expiryInput = SmartInputHandle(redacted: true);
+  final SmartInputHandle _cvvInput = SmartInputHandle(redacted: true);
   final SmartServerError _numberDisplay = SmartServerError(
     clearOnChange: false,
   );
   final SmartServerError _cvvDisplay = SmartServerError(clearOnChange: false);
+  final SmartListenerGroup _listeners = SmartListenerGroup();
+  late final SmartListenerBinding _numberText = _listeners.add(
+    _handleNumberController,
+  );
+  late final SmartListenerBinding _numberServer = _listeners.add(
+    _handleNumberServerChange,
+  );
+  late final SmartListenerBinding _cvvServer = _listeners.add(
+    _handleCvvServerChange,
+  );
   String? _cvvBrandError;
-  SmartServerError? _boundNumberServer;
-  SmartServerError? _boundCvvServer;
-  TextEditingController? _boundNumberController;
   String _lastNumberText = '';
 
   SmartCreditCardConfig get _config => widget.config;
 
-  TextEditingController get _number =>
-      _config.numberController ?? _ownedNumber!;
-  TextEditingController get _expiry =>
-      _config.expiryController ?? _ownedExpiry!;
-  TextEditingController get _cvv => _config.cvvController ?? _ownedCvv!;
-  FocusNode get _numberFocus => _config.numberFocusNode ?? _ownedNumberFocus!;
-  FocusNode get _expiryFocus => _config.expiryFocusNode ?? _ownedExpiryFocus!;
-  FocusNode get _cvvFocus => _config.cvvFocusNode ?? _ownedCvvFocus!;
+  TextEditingController get _number => _numberInput.controller;
+  TextEditingController get _expiry => _expiryInput.controller;
+  TextEditingController get _cvv => _cvvInput.controller;
+  FocusNode get _numberFocus => _numberInput.focusNode;
+  FocusNode get _expiryFocus => _expiryInput.focusNode;
+  FocusNode get _cvvFocus => _cvvInput.focusNode;
 
   SmartCardBrand get _brand => SmartCardUtils.detectBrand(_number.text);
 
   @override
   void initState() {
     super.initState();
-    _ownedNumber = _config.numberController == null
-        ? _RedactedTextEditingController()
-        : null;
-    _ownedExpiry = _config.expiryController == null
-        ? _RedactedTextEditingController()
-        : null;
-    _ownedCvv = _config.cvvController == null
-        ? _RedactedTextEditingController()
-        : null;
-    _ownedNumberFocus = _config.numberFocusNode == null ? FocusNode() : null;
-    _ownedExpiryFocus = _config.expiryFocusNode == null ? FocusNode() : null;
-    _ownedCvvFocus = _config.cvvFocusNode == null ? FocusNode() : null;
-    _bindServerErrors();
-    _bindNumberController();
+    _syncInputs();
     _refreshNumberDisplay();
   }
 
   @override
   void didUpdateWidget(covariant SmartCreditCardField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _bindNumberController();
-    _bindServerErrors();
+    _syncInputs();
     _refreshNumberDisplay();
     _refreshCvvDisplay();
   }
 
-  void _bindNumberController() {
-    final controller = _number;
-    if (!identical(controller, _boundNumberController)) {
-      _boundNumberController?.removeListener(_handleNumberController);
-      _boundNumberController = controller;
-      _lastNumberText = controller.text;
-      controller.addListener(_handleNumberController);
+  void _syncInputs() {
+    _numberInput.update(
+      controller: _config.numberController,
+      focusNode: _config.numberFocusNode,
+    );
+    _expiryInput.update(
+      controller: _config.expiryController,
+      focusNode: _config.expiryFocusNode,
+    );
+    _cvvInput.update(
+      controller: _config.cvvController,
+      focusNode: _config.cvvFocusNode,
+    );
+    if (_numberText.bind(_number)) {
+      _lastNumberText = _number.text;
     }
+    _numberServer.bind(_config.numberServerError);
+    _cvvServer.bind(_config.cvvServerError);
   }
 
   void _handleNumberController() {
@@ -220,19 +215,6 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
     }
     _lastNumberText = text;
     _onNumberChanged(text);
-  }
-
-  void _bindServerErrors() {
-    if (!identical(_boundNumberServer, _config.numberServerError)) {
-      _boundNumberServer?.removeListener(_handleNumberServerChange);
-      _boundNumberServer = _config.numberServerError;
-      _boundNumberServer?.addListener(_handleNumberServerChange);
-    }
-    if (!identical(_boundCvvServer, _config.cvvServerError)) {
-      _boundCvvServer?.removeListener(_handleCvvServerChange);
-      _boundCvvServer = _config.cvvServerError;
-      _boundCvvServer?.addListener(_handleCvvServerChange);
-    }
   }
 
   void _handleNumberServerChange() => _refreshNumberDisplay();
@@ -315,17 +297,12 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
 
   @override
   void dispose() {
-    _boundNumberController?.removeListener(_handleNumberController);
-    _boundNumberServer?.removeListener(_handleNumberServerChange);
-    _boundCvvServer?.removeListener(_handleCvvServerChange);
+    _listeners.unbindAll();
     _numberDisplay.dispose();
     _cvvDisplay.dispose();
-    _ownedNumber?.dispose();
-    _ownedExpiry?.dispose();
-    _ownedCvv?.dispose();
-    _ownedNumberFocus?.dispose();
-    _ownedExpiryFocus?.dispose();
-    _ownedCvvFocus?.dispose();
+    _numberInput.dispose();
+    _expiryInput.dispose();
+    _cvvInput.dispose();
     super.dispose();
   }
 
