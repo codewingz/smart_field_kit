@@ -558,6 +558,39 @@ abstract final class SmartValidators {
     };
   }
 
+  static bool runsBuiltIn(
+    SmartValidationMode mode,
+    Set<SmartBuiltInCheck> checks, [
+    SmartBuiltInCheck? check,
+  ]) {
+    switch (mode) {
+      case SmartValidationMode.custom:
+        return false;
+      case SmartValidationMode.selected:
+        return check == null || checks.contains(check);
+      case SmartValidationMode.builtIn:
+      case SmartValidationMode.both:
+        return true;
+    }
+  }
+
+  static bool runsCustom(SmartValidationMode mode) {
+    return mode != SmartValidationMode.builtIn;
+  }
+
+  static SmartValidator modeAware({
+    required SmartValidationMode mode,
+    required Set<SmartBuiltInCheck> checks,
+    SmartValidator? builtIn,
+    SmartValidator? custom,
+    SmartBuiltInCheck? check = SmartBuiltInCheck.fieldFormat,
+  }) {
+    return compose([
+      if (builtIn != null && runsBuiltIn(mode, checks, check)) builtIn,
+      if (custom != null && runsCustom(mode)) custom,
+    ]);
+  }
+
   static SmartValidator compose(Iterable<SmartValidator> validators) {
     return (value) {
       for (final validator in validators) {
