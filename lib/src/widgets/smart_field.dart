@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:country_picker/country_picker.dart' as country_picker;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -1203,6 +1205,7 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
   TextEditingController? _ownedController;
   FocusNode? _ownedFocusNode;
   GlobalKey<FormFieldState<String>> _fieldKey = GlobalKey();
+  bool _initialized = false;
   late List<_FieldFeature> _features = _createFeatures();
 
   static bool _usesOwnedState(SmartField source) {
@@ -1239,7 +1242,8 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
     return [
       if (source._percentageSuffix != null) _PercentageFeature(this),
       if (source._maskConfig?.enabled ?? false) _MaskFeature(this),
-      if (source._asyncActive) _AsyncFeature(this),
+      if (source._asyncActive)
+        _AsyncFeature(this, observeExisting: _initialized),
       if (source._isPassword) _PasswordFeature(this),
       if (source._isPhone) _PhoneFeature(this),
       if (source._isSearch) _SearchFeature(this),
@@ -1313,6 +1317,7 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
     super.initState();
     _ensureOwnedState(null);
     _bindFeatures();
+    _initialized = true;
   }
 
   @override

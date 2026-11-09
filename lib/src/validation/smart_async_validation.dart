@@ -76,6 +76,8 @@ class SmartAsyncValidationEngine {
   String? _resultRaw;
   String? _pendingRaw;
   Future<bool>? _pendingFuture;
+  SmartAsyncValidator? _pendingValidator;
+  SmartAsyncValidator? _resultValidator;
   SmartAsyncValidationStatus _status = SmartAsyncValidationStatus.idle;
   String? _message;
 
@@ -87,6 +89,8 @@ class SmartAsyncValidationEngine {
 
   void configure(SmartAsyncValidation config) {
     final previous = _controller;
+    final replacedValidator =
+        _config != null && _config!.validator != config.validator;
     _config = config;
     if (!identical(previous, config.controller)) {
       if (previous != null && identical(previous._engine, this)) {
@@ -95,6 +99,32 @@ class SmartAsyncValidationEngine {
       _controller = config.controller;
       _controller?._engine = this;
     }
+    if (replacedValidator && _pendingFuture != null) {
+      _restartAfterValidatorChange();
+    }
+  }
+
+  void _restartAfterValidatorChange() {
+    final raw = _pendingRaw;
+    final generation = ++_generation;
+    _pendingRaw = null;
+    _pendingFuture = null;
+    _pendingValidator = null;
+    scheduleMicrotask(() {
+      if (_disposed || generation != _generation) {
+        return;
+      }
+      final config = _config;
+      if (config != null &&
+          raw != null &&
+          config.trigger == SmartAsyncValidationTrigger.onChanged &&
+          isActive() &&
+          toRaw(readText()) == raw) {
+        unawaited(_run(raw));
+      } else {
+        _invalidate();
+      }
+    });
   }
 
   String? errorFor(String text) {
@@ -163,7 +193,8 @@ class SmartAsyncValidationEngine {
       return true;
     }
     _lastRaw = raw;
-    if (!force && _resultRaw == raw) {
+    final validator = config.validator;
+    if (!force && _resultRaw == raw && _resultValidator == validator) {
       if (_status == SmartAsyncValidationStatus.valid) {
         return true;
       }
@@ -171,7 +202,9 @@ class SmartAsyncValidationEngine {
         return false;
       }
     }
-    if (_pendingRaw == raw && _pendingFuture != null) {
+    if (_pendingRaw == raw &&
+        _pendingFuture != null &&
+        _pendingValidator == validator) {
       return _pendingFuture!;
     }
     return _run(raw);
@@ -181,7 +214,9 @@ class SmartAsyncValidationEngine {
     final config = _config!;
     final generation = ++_generation;
     _pendingRaw = raw;
+    _pendingValidator = config.validator;
     _resultRaw = null;
+    _resultValidator = null;
     _message = null;
     _setStatus(SmartAsyncValidationStatus.pending);
     final future = _execute(config, raw, generation);
@@ -211,7 +246,9 @@ class SmartAsyncValidationEngine {
     }
     _pendingRaw = null;
     _pendingFuture = null;
+    _pendingValidator = null;
     _resultRaw = raw;
+    _resultValidator = config.validator;
     if (unavailable) {
       _message = config.unavailableErrorText;
       _setStatus(SmartAsyncValidationStatus.unavailable);
@@ -233,7 +270,9 @@ class SmartAsyncValidationEngine {
     _generation++;
     _pendingRaw = null;
     _pendingFuture = null;
+    _pendingValidator = null;
     _resultRaw = null;
+    _resultValidator = null;
     _message = null;
     if (_status != SmartAsyncValidationStatus.idle) {
       _setStatus(SmartAsyncValidationStatus.idle);
