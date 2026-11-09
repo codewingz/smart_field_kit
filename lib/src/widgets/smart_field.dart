@@ -1320,9 +1320,34 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
     _initialized = true;
   }
 
+  EditableTextState? _innerEditable() {
+    EditableTextState? found;
+    void visit(Element element) {
+      if (found != null) {
+        return;
+      }
+      if (element is StatefulElement && element.state is EditableTextState) {
+        found = element.state as EditableTextState;
+        return;
+      }
+      element.visitChildren(visit);
+    }
+
+    final context = _fieldKey.currentContext;
+    if (context is Element) {
+      context.visitChildren(visit);
+    }
+    return found;
+  }
+
   @override
   void didUpdateWidget(covariant SmartField oldWidget) {
+    final inner = _innerEditable();
     final oldController = _controllerFor(oldWidget);
+    final carried = oldController?.value ?? inner?.widget.controller.value;
+    final restoreFocus =
+        _focusNodeFor(oldWidget) == null &&
+        (inner?.widget.focusNode.hasFocus ?? false);
     for (final feature in _features) {
       feature.unbind();
     }
@@ -1345,7 +1370,15 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
       _ownedFocusNode?.dispose();
       _ownedFocusNode = null;
     }
-    _ensureOwnedState(oldController?.value);
+    _ensureOwnedState(carried);
+    if (restoreFocus && _ownedFocusNode != null) {
+      final node = _ownedFocusNode!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && identical(node, _ownedFocusNode)) {
+          node.requestFocus();
+        }
+      });
+    }
     if (_featureKey(oldWidget) != _featureKey(widget)) {
       for (final feature in _features) {
         feature.retire();
@@ -1561,7 +1594,7 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
     }
     final mask = _feature<_MaskFeature>();
     final field = TextFormField(
-      key: _hasFieldKey ? _fieldKey : null,
+      key: _fieldKey,
       controller: textController,
       focusNode: focusNode,
       autofocus: widget.autofocus,
@@ -1592,15 +1625,6 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
       decoration: _effectiveDecoration,
     );
     return _wrapFeatures(field);
-  }
-
-  bool get _hasFieldKey {
-    return widget._isPhone ||
-        widget._isSearch ||
-        widget._supportsMasking ||
-        widget.asyncValidation != null ||
-        widget._core.matchController != null ||
-        widget._core.showWordCount;
   }
 
   String? get _restorationId {
