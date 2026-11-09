@@ -452,6 +452,36 @@ SmartField.percentage(
 
 Whether a value such as `250%` is acceptable is an application business rule.
 
+## URL SmartField
+
+`SmartField.url()` checks URL **syntax only**. It never opens, fetches, resolves, or previews a URL, and a syntactically valid URL is not proof that a site exists or is safe.
+
+```dart
+SmartField.url(label: 'Website', hintText: 'https://example.com')
+
+SmartField.url(
+  label: 'Company website',
+  isRequired: true,
+  allowedSchemes: const {'https'},
+  validator: (value) =>
+      value!.contains('blocked.example') ? 'This website is not allowed.' : null,
+)
+
+SmartField.url(label: 'Website or domain', allowBareDomain: true)
+```
+
+- Optional by default; empty input is valid. No length or value limit is applied unless `minLength`/`maxLength` are set.
+- Uses `TextInputType.url`, `TextInputAction.done`, no capitalization, autocorrect, or suggestions.
+- Text is never edited: no trimming, lowercasing, encoding, scheme prefix, or slash normalization. The controller, `onChanged`, `onSaved`, and validators receive exactly what was entered. Typing is never blocked; use `inputFormatters` for input restrictions.
+- By default a nonempty value must be an absolute `http://` or `https://` URL with a well-formed host. Leading/trailing or embedded whitespace, control characters, `<`, `>`, `"`, `\`, malformed `%` escapes, invalid ports, missing hosts, and other schemes (`javascript:`, `data:`, `file:`, `ftp:`, `mailto:`) are rejected.
+- Accepted hosts include subdomains, `localhost`, intranet names, IPv4, bracketed IPv6, and non-default ports. No TLD, hostname length, or public-internet rule is imposed. Unicode hosts and paths are accepted as typed and are not converted to Punycode. IPv4-looking hosts must have octets of 255 or less. `user:pass@host` is syntactically accepted; treat such values as sensitive.
+- `allowedSchemes` replaces the permitted schemes, for example `{'https'}`. Added schemes still need a valid authority.
+- `allowBareDomain: true` also accepts `example.com`, `example.com:8080/path`, IPv4, and bracketed IPv6 without a scheme. A bare host needs a dot (so `localhost` needs `http://`) and cannot contain `@`. The text is never prefixed with `https://`; your app must decide how to resolve it.
+- `urlErrorText` overrides the message. Validation order: required, URL syntax, configured length rules, custom validator.
+- `SmartValidators.url()` and `SmartUrlValidation.isValid()` provide the same check without the widget.
+
+If your backend later fetches submitted URLs, enforce a server-side URL policy and defend against SSRF, redirects, and DNS rebinding. Syntax validation does not prevent those attacks. URLs may contain tokens, so avoid logging full values.
+
 ## Search SmartField
 
 `SmartField.search()` is a native single-line search input. It uses the Material search keyboard action, provides a decorative search icon, and shows an accessible clear action only while editable text is present. It has no built-in search engine, network request, results list, history, or default text restriction.

@@ -6,5 +6,6 @@ export 'src/masking/smart_masking.dart';
 export 'src/models/smart_otp_style.dart';
 export 'src/models/smart_phone_value.dart';
 export 'src/validation/smart_phone_validation.dart';
+export 'src/validation/smart_url_validation.dart';
 export 'src/validation/smart_validators.dart';
 export 'src/widgets/smart_field.dart';
