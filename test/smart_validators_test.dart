@@ -90,6 +90,13 @@ void main() {
             'at least 1 chars alphanumeric',
             'lbl_provide',
           ),
+          (
+            'description',
+            r'^.{3,}$',
+            'any chars, at least 3',
+            'msg_money_transfer_services',
+          ),
+          ('formfield', r'^.{3,}$', 'any chars, at least 3', 'lbl_provide'),
         ],
       );
     });
@@ -152,6 +159,58 @@ void main() {
       expect(validator(''), isNull);
       expect(validator('   '), isNull);
       expect(validator('abc'), 'Use the legacy format');
+    });
+
+    test('preserve description and formfield legacy metadata exactly', () {
+      expect(SmartTextValidationPreset.description.key, 'description');
+      expect(SmartTextValidationPreset.description.expression, r'^.{3,}$');
+      expect(
+        SmartTextValidationPreset.description.comment,
+        'any chars, at least 3',
+      );
+      expect(
+        SmartTextValidationPreset.description.errorLabel,
+        'msg_money_transfer_services',
+      );
+      expect(SmartTextValidationPreset.formfield.key, 'formfield');
+      expect(SmartTextValidationPreset.formfield.expression, r'^.{3,}$');
+      expect(
+        SmartTextValidationPreset.formfield.comment,
+        'any chars, at least 3',
+      );
+      expect(SmartTextValidationPreset.formfield.errorLabel, 'lbl_provide');
+    });
+
+    test(
+      'description and formfield keep the exact single-line regex behavior',
+      () {
+        for (final preset in [
+          SmartTextValidationPreset.description,
+          SmartTextValidationPreset.formfield,
+        ]) {
+          final validator = SmartValidators.textPreset(preset);
+          expect(validator(null), isNull);
+          expect(validator(''), isNull);
+          expect(validator('a'), isNotNull);
+          expect(validator('ab'), isNotNull);
+          expect(validator('abc'), isNull);
+          expect(validator('abcd'), isNull);
+          expect(validator('   '), isNull);
+          expect(validator("a'!"), isNull);
+          expect(validator('é中a'), isNull);
+          expect(validator(' a '), isNull);
+          expect(validator('🙂'), isNotNull);
+          expect(validator('🙂🙂'), isNull);
+          expect(validator('a\nbc'), isNotNull);
+          expect(validator('first\nsecond paragraph'), isNotNull);
+        }
+      },
+    );
+
+    test('grapheme length rules count line breaks without changing text', () {
+      expect(SmartValidators.minLength(4)('a\nbc'), isNull);
+      expect(SmartValidators.maxLength(3)('a\nbc'), isNotNull);
+      expect(SmartValidators.minLength(2)('🙂\n'), isNull);
     });
   });
 

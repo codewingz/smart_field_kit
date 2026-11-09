@@ -51,6 +51,20 @@ enum SmartTextValidationPreset {
     comment: 'at least 1 chars alphanumeric',
     errorLabel: 'lbl_provide',
     defaultMessage: 'Enter ASCII letters or numbers.',
+  ),
+  description(
+    key: 'description',
+    expression: r'^.{3,}$',
+    comment: 'any chars, at least 3',
+    errorLabel: 'msg_money_transfer_services',
+    defaultMessage: 'Enter at least 3 characters on one line.',
+  ),
+  formfield(
+    key: 'formfield',
+    expression: r'^.{3,}$',
+    comment: 'any chars, at least 3',
+    errorLabel: 'lbl_provide',
+    defaultMessage: 'Enter at least 3 characters on one line.',
   );
 
   const SmartTextValidationPreset({

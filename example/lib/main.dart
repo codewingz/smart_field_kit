@@ -15,6 +15,21 @@ void main() {
                   const SizedBox(height: 16),
                   SmartField.username(label: 'Username', isRequired: true),
                   const SizedBox(height: 16),
+                  SmartField.description(
+                    label: 'Description',
+                    hintText: 'Enter details',
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.description(
+                    label: 'Notes capped at eight lines',
+                    maxLines: 8,
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.text(
+                    label: 'Legacy Form Field',
+                    validationPreset: SmartTextValidationPreset.formfield,
+                  ),
+                  const SizedBox(height: 16),
                   SmartField.username(
                     label: 'Legacy Username',
                     validationPreset: SmartTextValidationPreset.loginUsername,

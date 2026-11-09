@@ -33,6 +33,10 @@ SmartField(
 | `enableSuggestions` | Enables native keyboard suggestions for normal fields by default. |
 | `autofillHints` | Forwards native platform autofill hints. |
 | `textInputAction` | Forwards the requested keyboard action. |
+| `minLines` | Sets the native minimum visible line count. It does not validate text length. |
+| `maxLines` | Sets the native maximum visible line count. `null` allows growth up to parent constraints. |
+| `expands` | Fills a bounded parent's height and requires both line settings to be `null`. |
+| `inputFormatters` | Applies only developer-supplied native input formatters. |
 | `onChanged` | Receives native user-initiated text changes. |
 | `onSaved` | Runs when the surrounding `Form` is saved. |
 | `isRequired` | Rejects null, empty, and whitespace-only values when `true`. Defaults to `false`. |
@@ -75,6 +79,93 @@ Form(
 ```
 
 The field uses the inherited `ThemeData`, `InputDecorationTheme`, Material version, keyboard behavior, and `Form` lifecycle.
+
+`SmartField.text()` is the named equivalent for general text and adds optional `validationPreset` and `validationPresetErrorText` parameters. Plain `SmartField()` and `SmartField.text()` remain single-line by default. Either can use the native `minLines`, `maxLines`, and `expands` options when a different layout is required.
+
+## Description SmartField
+
+`SmartField.description()` is a free-form native multiline field for notes, explanations, support messages, product descriptions, comments, and similar text. It accepts empty input, Unicode scripts, spaces, punctuation, numbers, symbols, apostrophes, line breaks, and emoji by default. It does not trim, capitalize, filter, or impose a text-length rule.
+
+```dart
+SmartField.description(
+  label: 'Description',
+  hintText: 'Enter details',
+)
+```
+
+The description starts at three visible lines with `minLines: 3`, uses `maxLines: null`, and grows and shrinks through Flutter's native `TextFormField` layout as newlines, wrapping, and pasted paragraphs change. Enter inserts a newline by default. Existing constructors remain one line unless configured otherwise.
+
+Set a finite `maxLines` to stop outer growth and scroll internally without losing content:
+
+```dart
+SmartField.description(
+  label: 'Notes',
+  minLines: 3,
+  maxLines: 8,
+)
+```
+
+With `maxLines: null`, growth continues only while the parent layout permits it. A fixed-height or otherwise bounded parent can cap the field and cause internal scrolling. `expands: true` is different from automatic growth: it fills a bounded parent's available height and requires explicit `minLines: null` and `maxLines: null`.
+
+```dart
+SizedBox(
+  height: 240,
+  child: SmartField.description(
+    minLines: null,
+    maxLines: null,
+    expands: true,
+  ),
+)
+```
+
+Requiredness, grapheme-aware validation lengths, custom validation, and formatters remain opt-in. Line-break characters count as user-visible characters for `minLength` and `maxLength`; these rules report errors and do not truncate input.
+
+```dart
+SmartField.description(
+  label: 'Additional notes',
+  isRequired: true,
+  minLines: 3,
+  maxLines: 6,
+  minLength: 10,
+  validator: (value) {
+    if ((value ?? '').contains('FORBIDDEN_APP_SPECIFIC_VALUE')) {
+      return 'Please revise this note';
+    }
+    return null;
+  },
+)
+```
+
+The original `description` and `formfield` rules are available only as legacy presets. They preserve their exact expression and metadata:
+
+```dart
+SmartField.description(
+  label: 'Legacy description',
+  validationPreset: SmartTextValidationPreset.description,
+)
+
+SmartField.text(
+  label: 'Legacy form field',
+  validationPreset: SmartTextValidationPreset.formfield,
+)
+```
+
+```json
+"description": {
+  "expression": "^.{3,}$",
+  "comment": "any chars, at least 3",
+  "error_lbl": "msg_money_transfer_services"
+},
+"formfield": {
+  "expression": "^.{3,}$",
+  "comment": "any chars, at least 3",
+  "error_lbl": "lbl_provide"
+}
+```
+
+Under Dart's default regular-expression behavior, `.` does not match a newline. A multiline value can therefore fail either legacy preset even when it contains three or more visible characters. The expression is intentionally not rewritten with `dotAll`; use `minLength` or a custom validator for a multiline minimum. The legacy `errorLabel` values are identifiers rather than translated messages, and `validationPresetErrorText` supplies an application-owned visible message.
+
+Description validation follows required → selected legacy preset → configured length rules → custom validator. Input validation is not SQL-injection or XSS protection. Applications remain responsible for parameterized database queries, contextual output encoding, safe rendering, authorization, and trusted server-side validation.
 
 ## Standalone validators
 
