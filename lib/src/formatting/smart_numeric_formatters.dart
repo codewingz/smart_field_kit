@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:smart_field_kit/src/formatting/smart_composing.dart';
 
 enum SmartCurrencyPosition { prefix, suffix }
 
@@ -118,7 +119,7 @@ final class SmartNumberInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    if (!newValue.composing.isCollapsed) {
+    if (smartIsComposing(newValue)) {
       return newValue;
     }
     final expression = allowNegative ? _signedExpression : _unsignedExpression;
@@ -165,7 +166,7 @@ final class SmartAmountFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    if (!newValue.composing.isCollapsed) {
+    if (smartIsComposing(newValue)) {
       return newValue;
     }
     final raw = normalize(newValue.text, allowPartial: true);

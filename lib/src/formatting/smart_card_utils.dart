@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
+import 'package:smart_field_kit/src/formatting/smart_composing.dart';
 
 enum SmartCardBrand {
   visa('Visa', {16, 18, 19}, 3, 16, [4, 8, 12]),
@@ -575,7 +576,7 @@ final class SmartCardNumberFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    if (newValue.composing.isValid && !newValue.composing.isCollapsed) {
+    if (smartIsComposing(newValue)) {
       return newValue;
     }
     if (RegExp(r'[^0-9 \-]').hasMatch(newValue.text)) {

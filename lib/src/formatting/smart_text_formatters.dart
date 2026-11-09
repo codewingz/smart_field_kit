@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/formatting/smart_text_utils.dart';
+import 'package:smart_field_kit/src/formatting/smart_composing.dart';
 
 enum SmartUsernameCharacters { any, letters, lettersAndDigits, usernameSafe }
 
@@ -7,7 +8,7 @@ TextEditingValue _transform(
   TextEditingValue value,
   String Function(String text) convert,
 ) {
-  if (value.composing.isValid && !value.composing.isCollapsed) {
+  if (smartIsComposing(value)) {
     return value;
   }
   final text = convert(value.text);
@@ -110,9 +111,7 @@ final class SmartUsernameFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final composing =
-        newValue.composing.isValid && !newValue.composing.isCollapsed;
-    if (!composing && !allows(newValue.text)) {
+    if (!smartIsComposing(newValue) && !allows(newValue.text)) {
       return oldValue;
     }
     return _transform(
