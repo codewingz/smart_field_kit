@@ -200,4 +200,49 @@ void main() {
       expect(printed.where((line) => line.contains('4111')), isEmpty);
     });
   });
+
+  group('restoration after configuration changes', () {
+    Widget app(Widget child) => MaterialApp(
+      restorationScopeId: 'app',
+      home: Scaffold(body: SingleChildScrollView(child: child)),
+    );
+
+    testWidgets('a nonsensitive field is restored after a feature toggle', (
+      tester,
+    ) async {
+      Widget build(bool counter) => app(
+        SmartField.description(restorationId: 'about', showWordCount: counter),
+      );
+      await tester.pumpWidget(build(false));
+      await _type(tester, 'kept across restart');
+      await tester.pumpWidget(build(true));
+      await tester.pump();
+      await tester.restartAndRestore();
+      expect(_text(tester), 'kept across restart');
+    });
+
+    testWidgets('sensitive and package-owned fields are never restored', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        app(
+          Column(
+            children: [
+              SmartField.password(restorationId: 'pw'),
+              SmartField.phone(restorationId: 'phone'),
+              SmartField.amount(restorationId: 'amount'),
+              SmartField.otp(restorationId: 'otp'),
+            ],
+          ),
+        ),
+      );
+      for (var i = 0; i < 4; i++) {
+        await _type(tester, i == 3 ? '123456' : '12345', i);
+      }
+      await tester.restartAndRestore();
+      for (var i = 0; i < 4; i++) {
+        expect(_text(tester, i), isEmpty, reason: 'field $i');
+      }
+    });
+  });
 }
