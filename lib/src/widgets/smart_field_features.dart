@@ -174,7 +174,8 @@ final class _PasswordFeature extends _FieldFeature {
     if (!host.field.showVisibilityToggle) {
       return;
     }
-    final label = obscure ? 'Show password' : 'Hide password';
+    final core = host.field._core;
+    final label = obscure ? core.showPasswordLabel : core.hidePasswordLabel;
     final enabled = host.field.enabled ?? host.field.decoration.enabled;
     actions.add(
       Semantics(
@@ -488,7 +489,7 @@ final class _SearchFeature extends _FieldFeature {
     if (config.isLoading) {
       actions.add(
         Semantics(
-          label: 'Loading search',
+          label: config.loadingLabel,
           child: ExcludeSemantics(
             child: SizedBox(
               width: 24,
@@ -508,11 +509,11 @@ final class _SearchFeature extends _FieldFeature {
         (host.textController?.text.isNotEmpty ?? false)) {
       actions.add(
         Semantics(
-          label: 'Clear search',
+          label: config.clearLabel,
           button: true,
           child: ExcludeSemantics(
             child: IconButton(
-              tooltip: 'Clear search',
+              tooltip: config.clearLabel,
               onPressed: clear,
               icon: config.clearIcon!,
             ),
