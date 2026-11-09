@@ -30,7 +30,13 @@ abstract final class SmartPhoneValidation {
       return null;
     }
     if (country == null) {
-      return policy == SmartPhonePolicy.countryAware ? message : null;
+      if (policy == SmartPhonePolicy.countryAware) {
+        return message;
+      }
+      if (!value.startsWith('+')) {
+        return null;
+      }
+      return _parse(value, null)?.isValid() ?? false ? null : message;
     }
     final parsed = _parse(value, country);
     return parsed != null &&

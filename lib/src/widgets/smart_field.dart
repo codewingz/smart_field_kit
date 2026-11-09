@@ -15,6 +15,8 @@ import 'package:smart_field_kit/src/validation/smart_url_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_otp_field.dart';
 
+part 'smart_field_internals.dart';
+
 class SmartField extends StatefulWidget {
   const SmartField({
     super.key,
@@ -47,28 +49,17 @@ class SmartField extends StatefulWidget {
     this.asyncValidation,
     this.decoration = const InputDecoration(),
     this.inputFormatters,
-  }) : showVisibilityToggle = false,
+  }) : _core = const _SmartFieldCore(),
+       showVisibilityToggle = false,
        onRawChanged = null,
        onRawSaved = null,
-       _fieldValidator = null,
-       _valueNormalizer = null,
-       _minValueValidator = null,
-       _maxValueValidator = null,
-       _amountFormatter = null,
-       _maskConfig = null,
-       _phoneConfig = null,
-       _otpConfig = null,
-       _searchConfig = null,
-       _percentageSuffix = null,
-       _isPassword = false,
-       _isAmount = false,
-       assert(minLength == null || minLength >= 0),
-       assert(maxLength == null || maxLength >= 0),
-       assert(minLength == null || maxLength == null || minLength <= maxLength),
        assert(minLines == null || minLines > 0),
        assert(maxLines == null || maxLines > 0),
        assert(minLines == null || maxLines == null || maxLines >= minLines),
-       assert(!expands || (minLines == null && maxLines == null));
+       assert(!expands || (minLines == null && maxLines == null)),
+       assert(minLength == null || minLength >= 0),
+       assert(maxLength == null || maxLength >= 0),
+       assert(minLength == null || maxLength == null || minLength <= maxLength);
 
   factory SmartField.description({
     Key? key,
@@ -173,33 +164,22 @@ class SmartField extends StatefulWidget {
     this.inputFormatters,
     SmartTextValidationPreset? validationPreset,
     String? validationPresetErrorText,
-  }) : showVisibilityToggle = false,
+  }) : _core = _SmartFieldCore(
+         fieldValidator: validationPreset == null
+             ? null
+             : SmartValidators.textPreset(
+                 validationPreset,
+                 message: validationPresetErrorText,
+               ),
+       ),
+       showVisibilityToggle = false,
        onRawChanged = null,
        onRawSaved = null,
-       _fieldValidator = validationPreset == null
-           ? null
-           : SmartValidators.textPreset(
-               validationPreset,
-               message: validationPresetErrorText,
-             ),
-       _valueNormalizer = null,
-       _minValueValidator = null,
-       _maxValueValidator = null,
-       _amountFormatter = null,
-       _maskConfig = null,
-       _phoneConfig = null,
-       _otpConfig = null,
-       _searchConfig = null,
-       _percentageSuffix = null,
-       _isPassword = false,
-       _isAmount = false,
-       assert(minLength == null || minLength >= 0),
-       assert(maxLength == null || maxLength >= 0),
-       assert(minLength == null || maxLength == null || minLength <= maxLength),
        assert(minLines == null || minLines > 0),
        assert(maxLines == null || maxLines > 0),
        assert(minLines == null || maxLines == null || maxLines >= minLines),
-       assert(!expands || (minLines == null && maxLines == null));
+       assert(!expands || (minLines == null && maxLines == null)),
+       assert(_hasValidLengthRange(minLength, maxLength));
 
   SmartField.email({
     super.key,
@@ -225,7 +205,13 @@ class SmartField extends StatefulWidget {
     this.decoration = const InputDecoration(),
     SmartEmailPolicy policy = SmartEmailPolicy.standard,
     String emailErrorText = 'Enter a valid email address.',
-  }) : keyboardType = TextInputType.emailAddress,
+  }) : _core = _SmartFieldCore(
+         fieldValidator: SmartValidators.email(
+           policy: policy,
+           message: emailErrorText,
+         ),
+       ),
+       keyboardType = TextInputType.emailAddress,
        textCapitalization = TextCapitalization.none,
        autocorrect = false,
        enableSuggestions = false,
@@ -236,25 +222,8 @@ class SmartField extends StatefulWidget {
        showVisibilityToggle = false,
        onRawChanged = null,
        onRawSaved = null,
-       _fieldValidator = SmartValidators.email(
-         policy: policy,
-         message: emailErrorText,
-       ),
-       _valueNormalizer = null,
-       _minValueValidator = null,
-       _maxValueValidator = null,
        inputFormatters = null,
-       _amountFormatter = null,
-       _maskConfig = null,
-       _phoneConfig = null,
-       _otpConfig = null,
-       _searchConfig = null,
-       _percentageSuffix = null,
-       _isPassword = false,
-       _isAmount = false,
-       assert(minLength == null || minLength >= 0),
-       assert(maxLength == null || maxLength >= 0),
-       assert(minLength == null || maxLength == null || minLength <= maxLength);
+       assert(_hasValidLengthRange(minLength, maxLength));
 
   SmartField.url({
     super.key,
@@ -282,7 +251,14 @@ class SmartField extends StatefulWidget {
     Set<String> allowedSchemes = SmartUrlValidation.defaultSchemes,
     bool allowBareDomain = false,
     String urlErrorText = 'Enter a valid URL.',
-  }) : keyboardType = TextInputType.url,
+  }) : _core = _SmartFieldCore(
+         fieldValidator: SmartValidators.url(
+           allowedSchemes: allowedSchemes,
+           allowBareDomain: allowBareDomain,
+           message: urlErrorText,
+         ),
+       ),
+       keyboardType = TextInputType.url,
        textCapitalization = TextCapitalization.none,
        autocorrect = false,
        enableSuggestions = false,
@@ -293,25 +269,7 @@ class SmartField extends StatefulWidget {
        showVisibilityToggle = false,
        onRawChanged = null,
        onRawSaved = null,
-       _fieldValidator = SmartValidators.url(
-         allowedSchemes: allowedSchemes,
-         allowBareDomain: allowBareDomain,
-         message: urlErrorText,
-       ),
-       _valueNormalizer = null,
-       _minValueValidator = null,
-       _maxValueValidator = null,
-       _amountFormatter = null,
-       _maskConfig = null,
-       _phoneConfig = null,
-       _otpConfig = null,
-       _searchConfig = null,
-       _percentageSuffix = null,
-       _isPassword = false,
-       _isAmount = false,
-       assert(minLength == null || minLength >= 0),
-       assert(maxLength == null || maxLength >= 0),
-       assert(minLength == null || maxLength == null || minLength <= maxLength);
+       assert(_hasValidLengthRange(minLength, maxLength));
 
   SmartField.name({
     super.key,
@@ -339,7 +297,15 @@ class SmartField extends StatefulWidget {
     this.inputFormatters,
     SmartTextValidationPreset? validationPreset,
     String? validationPresetErrorText,
-  }) : keyboardType = TextInputType.name,
+  }) : _core = _SmartFieldCore(
+         fieldValidator: validationPreset == null
+             ? null
+             : SmartValidators.textPreset(
+                 validationPreset,
+                 message: validationPresetErrorText,
+               ),
+       ),
+       keyboardType = TextInputType.name,
        textCapitalization = TextCapitalization.words,
        autocorrect = true,
        enableSuggestions = true,
@@ -349,26 +315,7 @@ class SmartField extends StatefulWidget {
        showVisibilityToggle = false,
        onRawChanged = null,
        onRawSaved = null,
-       _fieldValidator = validationPreset == null
-           ? null
-           : SmartValidators.textPreset(
-               validationPreset,
-               message: validationPresetErrorText,
-             ),
-       _valueNormalizer = null,
-       _minValueValidator = null,
-       _maxValueValidator = null,
-       _amountFormatter = null,
-       _maskConfig = null,
-       _phoneConfig = null,
-       _otpConfig = null,
-       _searchConfig = null,
-       _percentageSuffix = null,
-       _isPassword = false,
-       _isAmount = false,
-       assert(minLength == null || minLength >= 0),
-       assert(maxLength == null || maxLength >= 0),
-       assert(minLength == null || maxLength == null || minLength <= maxLength);
+       assert(_hasValidLengthRange(minLength, maxLength));
 
   SmartField.username({
     super.key,
@@ -396,7 +343,15 @@ class SmartField extends StatefulWidget {
     this.inputFormatters,
     SmartTextValidationPreset? validationPreset,
     String? validationPresetErrorText,
-  }) : keyboardType = TextInputType.text,
+  }) : _core = _SmartFieldCore(
+         fieldValidator: validationPreset == null
+             ? null
+             : SmartValidators.textPreset(
+                 validationPreset,
+                 message: validationPresetErrorText,
+               ),
+       ),
+       keyboardType = TextInputType.text,
        textCapitalization = TextCapitalization.none,
        autocorrect = false,
        enableSuggestions = false,
@@ -406,26 +361,7 @@ class SmartField extends StatefulWidget {
        showVisibilityToggle = false,
        onRawChanged = null,
        onRawSaved = null,
-       _fieldValidator = validationPreset == null
-           ? null
-           : SmartValidators.textPreset(
-               validationPreset,
-               message: validationPresetErrorText,
-             ),
-       _valueNormalizer = null,
-       _minValueValidator = null,
-       _maxValueValidator = null,
-       _amountFormatter = null,
-       _maskConfig = null,
-       _phoneConfig = null,
-       _otpConfig = null,
-       _searchConfig = null,
-       _percentageSuffix = null,
-       _isPassword = false,
-       _isAmount = false,
-       assert(minLength == null || minLength >= 0),
-       assert(maxLength == null || maxLength >= 0),
-       assert(minLength == null || maxLength == null || minLength <= maxLength);
+       assert(_hasValidLengthRange(minLength, maxLength));
 
   factory SmartField.otp({
     Key? key,
@@ -536,7 +472,20 @@ class SmartField extends StatefulWidget {
     bool isLoading = false,
     Widget? searchIcon = const Icon(Icons.search),
     Widget? clearIcon = const Icon(Icons.clear),
-  }) : keyboardType = TextInputType.text,
+  }) : _core = _SmartFieldCore(
+         searchConfig: _createSearchConfig(
+           onTap: onTap,
+           onSubmitted: onSubmitted,
+           onSearch: onSearch,
+           debounceDuration: debounceDuration,
+           onCleared: onCleared,
+           showClearButton: showClearButton,
+           isLoading: isLoading,
+           searchIcon: searchIcon,
+           clearIcon: clearIcon,
+         ),
+       ),
+       keyboardType = TextInputType.text,
        textCapitalization = TextCapitalization.none,
        autocorrect = true,
        enableSuggestions = true,
@@ -548,31 +497,7 @@ class SmartField extends StatefulWidget {
        showVisibilityToggle = false,
        onRawChanged = null,
        onRawSaved = null,
-       _fieldValidator = null,
-       _valueNormalizer = null,
-       _minValueValidator = null,
-       _maxValueValidator = null,
-       _amountFormatter = null,
-       _maskConfig = null,
-       _phoneConfig = null,
-       _otpConfig = null,
-       _searchConfig = _createSearchConfig(
-         onTap: onTap,
-         onSubmitted: onSubmitted,
-         onSearch: onSearch,
-         debounceDuration: debounceDuration,
-         onCleared: onCleared,
-         showClearButton: showClearButton,
-         isLoading: isLoading,
-         searchIcon: searchIcon,
-         clearIcon: clearIcon,
-       ),
-       _percentageSuffix = null,
-       _isPassword = false,
-       _isAmount = false,
-       assert(minLength == null || minLength >= 0),
-       assert(maxLength == null || maxLength >= 0),
-       assert(minLength == null || maxLength == null || minLength <= maxLength);
+       assert(_hasValidLengthRange(minLength, maxLength));
 
   SmartField._otp({
     super.key,
@@ -606,7 +531,24 @@ class SmartField extends StatefulWidget {
     required String? errorText,
     required bool notifyOnProgrammaticChanges,
     required SmartOtpStyle style,
-  }) : keyboardType = TextInputType.number,
+  }) : _core = _SmartFieldCore(
+         fieldValidator: SmartValidators.otp(
+           length: length,
+           policy: policy,
+           digitMessage: digitErrorText,
+           lengthMessage: otpLengthErrorText,
+           legacyMessage: legacyErrorText,
+         ),
+         otpConfig: SmartOtpConfiguration(
+           length: length,
+           obscureText: obscureText,
+           onCompleted: onCompleted,
+           errorText: errorText,
+           notifyOnProgrammaticChanges: notifyOnProgrammaticChanges,
+           style: style,
+         ),
+       ),
+       keyboardType = TextInputType.number,
        textCapitalization = TextCapitalization.none,
        autocorrect = false,
        enableSuggestions = false,
@@ -617,35 +559,8 @@ class SmartField extends StatefulWidget {
        showVisibilityToggle = false,
        onRawChanged = null,
        onRawSaved = null,
-       _fieldValidator = SmartValidators.otp(
-         length: length,
-         policy: policy,
-         digitMessage: digitErrorText,
-         lengthMessage: otpLengthErrorText,
-         legacyMessage: legacyErrorText,
-       ),
-       _valueNormalizer = null,
-       _minValueValidator = null,
-       _maxValueValidator = null,
        inputFormatters = null,
-       _amountFormatter = null,
-       _maskConfig = null,
-       _phoneConfig = null,
-       _otpConfig = SmartOtpConfiguration(
-         length: length,
-         obscureText: obscureText,
-         onCompleted: onCompleted,
-         errorText: errorText,
-         notifyOnProgrammaticChanges: notifyOnProgrammaticChanges,
-         style: style,
-       ),
-       _searchConfig = null,
-       _percentageSuffix = null,
-       _isPassword = false,
-       _isAmount = false,
-       assert(minLength == null || minLength >= 0),
-       assert(maxLength == null || maxLength >= 0),
-       assert(minLength == null || maxLength == null || minLength <= maxLength);
+       assert(_hasValidLengthRange(minLength, maxLength));
 
   SmartField.phone({
     super.key,
@@ -689,7 +604,34 @@ class SmartField extends StatefulWidget {
     TextStyle? countryTextStyle,
     Widget? countryPlaceholder,
     EdgeInsetsGeometry? countryPadding,
-  }) : keyboardType = TextInputType.phone,
+  }) : _core = _SmartFieldCore(
+         maskConfig: _createMaskConfig(
+           enabled: mask,
+           kind: _SmartMaskKind.phone,
+           visibleSuffixDigits: maskVisibleSuffixDigits,
+           maskCharacter: maskCharacter,
+           revealOnFocus: revealMaskOnFocus,
+         ),
+         phoneConfig: _SmartPhoneConfig(
+           showCountryPicker: showCountryPicker,
+           initialCountryCode: initialCountryCode,
+           allowedCountryCodes: allowedCountryCodes,
+           favoriteCountryCodes: favoriteCountryCodes,
+           showFlag: showFlag,
+           showContactPicker: showContactPicker,
+           showClearButton: showClearButton,
+           policy: policy,
+           errorText: phoneErrorText,
+           onCountryChanged: onCountryChanged,
+           onPhoneChanged: onPhoneChanged,
+           onContactPickerError: onContactPickerError,
+           contactPicker: contactPicker,
+           countryTextStyle: countryTextStyle,
+           countryPlaceholder: countryPlaceholder,
+           countryPadding: countryPadding,
+         ),
+       ),
+       keyboardType = TextInputType.phone,
        textCapitalization = TextCapitalization.none,
        autocorrect = false,
        enableSuggestions = false,
@@ -700,45 +642,8 @@ class SmartField extends StatefulWidget {
        showVisibilityToggle = false,
        onRawChanged = null,
        onRawSaved = null,
-       _fieldValidator = null,
-       _valueNormalizer = null,
-       _minValueValidator = null,
-       _maxValueValidator = null,
        inputFormatters = null,
-       _amountFormatter = null,
-       _maskConfig = _createMaskConfig(
-         enabled: mask,
-         kind: _SmartMaskKind.phone,
-         visibleSuffixDigits: maskVisibleSuffixDigits,
-         maskCharacter: maskCharacter,
-         revealOnFocus: revealMaskOnFocus,
-       ),
-       _phoneConfig = _SmartPhoneConfig(
-         showCountryPicker: showCountryPicker,
-         initialCountryCode: initialCountryCode,
-         allowedCountryCodes: allowedCountryCodes,
-         favoriteCountryCodes: favoriteCountryCodes,
-         showFlag: showFlag,
-         showContactPicker: showContactPicker,
-         showClearButton: showClearButton,
-         policy: policy,
-         errorText: phoneErrorText,
-         onCountryChanged: onCountryChanged,
-         onPhoneChanged: onPhoneChanged,
-         onContactPickerError: onContactPickerError,
-         contactPicker: contactPicker,
-         countryTextStyle: countryTextStyle,
-         countryPlaceholder: countryPlaceholder,
-         countryPadding: countryPadding,
-       ),
-       _otpConfig = null,
-       _searchConfig = null,
-       _percentageSuffix = null,
-       _isPassword = false,
-       _isAmount = false,
-       assert(minLength == null || minLength >= 0),
-       assert(maxLength == null || maxLength >= 0),
-       assert(minLength == null || maxLength == null || minLength <= maxLength);
+       assert(_hasValidLengthRange(minLength, maxLength));
 
   SmartField.password({
     super.key,
@@ -765,7 +670,16 @@ class SmartField extends StatefulWidget {
     this.showVisibilityToggle = true,
     SmartPasswordPolicy? policy,
     String passwordErrorText = 'Password does not meet the selected policy.',
-  }) : keyboardType = TextInputType.visiblePassword,
+  }) : _core = _SmartFieldCore(
+         fieldValidator: policy == null
+             ? null
+             : SmartValidators.password(
+                 policy: policy,
+                 message: passwordErrorText,
+               ),
+         isPassword: true,
+       ),
+       keyboardType = TextInputType.visiblePassword,
        textCapitalization = TextCapitalization.none,
        autocorrect = false,
        enableSuggestions = false,
@@ -775,27 +689,8 @@ class SmartField extends StatefulWidget {
        expands = false,
        onRawChanged = null,
        onRawSaved = null,
-       _fieldValidator = policy == null
-           ? null
-           : SmartValidators.password(
-               policy: policy,
-               message: passwordErrorText,
-             ),
-       _valueNormalizer = null,
-       _minValueValidator = null,
-       _maxValueValidator = null,
        inputFormatters = null,
-       _amountFormatter = null,
-       _maskConfig = null,
-       _phoneConfig = null,
-       _otpConfig = null,
-       _searchConfig = null,
-       _percentageSuffix = null,
-       _isPassword = true,
-       _isAmount = false,
-       assert(minLength == null || minLength >= 0),
-       assert(maxLength == null || maxLength >= 0),
-       assert(minLength == null || maxLength == null || minLength <= maxLength);
+       assert(_hasValidLengthRange(minLength, maxLength));
 
   SmartField.number({
     super.key,
@@ -830,7 +725,27 @@ class SmartField extends StatefulWidget {
     bool allowNegative = false,
     SmartNumberPolicy policy = SmartNumberPolicy.standard,
     String numberErrorText = 'Enter a valid whole number.',
-  }) : keyboardType = TextInputType.numberWithOptions(signed: allowNegative),
+  }) : _core = _SmartFieldCore(
+         fieldValidator: SmartValidators.number(
+           policy: policy,
+           allowNegative: allowNegative,
+           message: numberErrorText,
+         ),
+         minValueValidator: minValue == null
+             ? null
+             : SmartValidators.minValue(minValue, message: minValueErrorText),
+         maxValueValidator: maxValue == null
+             ? null
+             : SmartValidators.maxValue(maxValue, message: maxValueErrorText),
+         maskConfig: _createMaskConfig(
+           enabled: mask,
+           kind: _SmartMaskKind.account,
+           visibleSuffixDigits: maskVisibleSuffixDigits,
+           maskCharacter: maskCharacter,
+           revealOnFocus: revealMaskOnFocus,
+         ),
+       ),
+       keyboardType = TextInputType.numberWithOptions(signed: allowNegative),
        textCapitalization = TextCapitalization.none,
        autocorrect = false,
        enableSuggestions = false,
@@ -841,38 +756,10 @@ class SmartField extends StatefulWidget {
        showVisibilityToggle = false,
        onRawChanged = null,
        onRawSaved = null,
-       _fieldValidator = SmartValidators.number(
-         policy: policy,
-         allowNegative: allowNegative,
-         message: numberErrorText,
-       ),
-       _valueNormalizer = null,
-       _minValueValidator = minValue == null
-           ? null
-           : SmartValidators.minValue(minValue, message: minValueErrorText),
-       _maxValueValidator = maxValue == null
-           ? null
-           : SmartValidators.maxValue(maxValue, message: maxValueErrorText),
        inputFormatters = [
          SmartNumberInputFormatter(allowNegative: allowNegative),
        ],
-       _amountFormatter = null,
-       _maskConfig = _createMaskConfig(
-         enabled: mask,
-         kind: _SmartMaskKind.account,
-         visibleSuffixDigits: maskVisibleSuffixDigits,
-         maskCharacter: maskCharacter,
-         revealOnFocus: revealMaskOnFocus,
-       ),
-       _phoneConfig = null,
-       _otpConfig = null,
-       _searchConfig = null,
-       _percentageSuffix = null,
-       _isPassword = false,
-       _isAmount = false,
-       assert(minLength == null || minLength >= 0),
-       assert(maxLength == null || maxLength >= 0),
-       assert(minLength == null || maxLength == null || minLength <= maxLength);
+       assert(_hasValidLengthRange(minLength, maxLength));
 
   SmartField.percentage({
     super.key,
@@ -904,7 +791,41 @@ class SmartField extends StatefulWidget {
     bool allowNegative = true,
     String? percentSymbol = '%',
     String percentageErrorText = 'Enter a valid percentage.',
-  }) : keyboardType = TextInputType.numberWithOptions(
+  }) : _core = _SmartFieldCore(
+         fieldValidator: SmartValidators.amount(
+           formatter: SmartAmountFormatter(
+             decimalPlaces: decimalPlaces,
+             allowNegative: allowNegative,
+           ),
+           message: percentageErrorText,
+         ),
+         valueNormalizer: SmartAmountFormatter(
+           decimalPlaces: decimalPlaces,
+           allowNegative: allowNegative,
+         ).normalize,
+         minValueValidator: minValue == null
+             ? null
+             : SmartValidators.minValue(
+                 minValue,
+                 normalizer: SmartAmountFormatter(
+                   decimalPlaces: decimalPlaces,
+                   allowNegative: allowNegative,
+                 ).normalize,
+                 message: minValueErrorText,
+               ),
+         maxValueValidator: maxValue == null
+             ? null
+             : SmartValidators.maxValue(
+                 maxValue,
+                 normalizer: SmartAmountFormatter(
+                   decimalPlaces: decimalPlaces,
+                   allowNegative: allowNegative,
+                 ).normalize,
+                 message: maxValueErrorText,
+               ),
+         percentageSuffix: percentSymbol,
+       ),
+       keyboardType = TextInputType.numberWithOptions(
          decimal: true,
          signed: allowNegative,
        ),
@@ -918,55 +839,14 @@ class SmartField extends StatefulWidget {
        showVisibilityToggle = false,
        onRawChanged = null,
        onRawSaved = null,
-       _fieldValidator = SmartValidators.amount(
-         formatter: SmartAmountFormatter(
-           decimalPlaces: decimalPlaces,
-           allowNegative: allowNegative,
-         ),
-         message: percentageErrorText,
-       ),
-       _valueNormalizer = SmartAmountFormatter(
-         decimalPlaces: decimalPlaces,
-         allowNegative: allowNegative,
-       ).normalize,
-       _minValueValidator = minValue == null
-           ? null
-           : SmartValidators.minValue(
-               minValue,
-               normalizer: SmartAmountFormatter(
-                 decimalPlaces: decimalPlaces,
-                 allowNegative: allowNegative,
-               ).normalize,
-               message: minValueErrorText,
-             ),
-       _maxValueValidator = maxValue == null
-           ? null
-           : SmartValidators.maxValue(
-               maxValue,
-               normalizer: SmartAmountFormatter(
-                 decimalPlaces: decimalPlaces,
-                 allowNegative: allowNegative,
-               ).normalize,
-               message: maxValueErrorText,
-             ),
        inputFormatters = [
          SmartAmountFormatter(
            decimalPlaces: decimalPlaces,
            allowNegative: allowNegative,
          ),
        ],
-       _amountFormatter = null,
-       _maskConfig = null,
-       _phoneConfig = null,
-       _otpConfig = null,
-       _searchConfig = null,
-       _percentageSuffix = percentSymbol,
-       _isPassword = false,
-       _isAmount = false,
        assert(decimalPlaces == null || decimalPlaces >= 0),
-       assert(minLength == null || minLength >= 0),
-       assert(maxLength == null || maxLength >= 0),
-       assert(minLength == null || maxLength == null || minLength <= maxLength);
+       assert(_hasValidLengthRange(minLength, maxLength));
 
   factory SmartField.amount({
     Key? key,
@@ -1096,7 +976,38 @@ class SmartField extends StatefulWidget {
     required int maskVisibleSuffixDigits,
     required String maskCharacter,
     required bool revealMaskOnFocus,
-  }) : keyboardType = TextInputType.numberWithOptions(
+  }) : _core = _SmartFieldCore(
+         fieldValidator: SmartValidators.amount(
+           formatter: formatter,
+           policy: policy,
+           message: amountErrorText,
+         ),
+         valueNormalizer: formatter.normalize,
+         minValueValidator: minValue == null
+             ? null
+             : SmartValidators.minValue(
+                 minValue,
+                 normalizer: formatter.normalize,
+                 message: minValueErrorText,
+               ),
+         maxValueValidator: maxValue == null
+             ? null
+             : SmartValidators.maxValue(
+                 maxValue,
+                 normalizer: formatter.normalize,
+                 message: maxValueErrorText,
+               ),
+         amountFormatter: formatter,
+         maskConfig: _createMaskConfig(
+           enabled: mask,
+           kind: _SmartMaskKind.amount,
+           visibleSuffixDigits: maskVisibleSuffixDigits,
+           maskCharacter: maskCharacter,
+           revealOnFocus: revealMaskOnFocus,
+         ),
+         isAmount: true,
+       ),
+       keyboardType = TextInputType.numberWithOptions(
          signed: allowNegative,
          decimal: decimalPlaces != 0,
        ),
@@ -1108,45 +1019,10 @@ class SmartField extends StatefulWidget {
        maxLines = 1,
        expands = false,
        showVisibilityToggle = false,
-       _fieldValidator = SmartValidators.amount(
-         formatter: formatter,
-         policy: policy,
-         message: amountErrorText,
-       ),
-       _valueNormalizer = formatter.normalize,
-       _minValueValidator = minValue == null
-           ? null
-           : SmartValidators.minValue(
-               minValue,
-               normalizer: formatter.normalize,
-               message: minValueErrorText,
-             ),
-       _maxValueValidator = maxValue == null
-           ? null
-           : SmartValidators.maxValue(
-               maxValue,
-               normalizer: formatter.normalize,
-               message: maxValueErrorText,
-             ),
        inputFormatters = [formatter],
-       _amountFormatter = formatter,
-       _maskConfig = _createMaskConfig(
-         enabled: mask,
-         kind: _SmartMaskKind.amount,
-         visibleSuffixDigits: maskVisibleSuffixDigits,
-         maskCharacter: maskCharacter,
-         revealOnFocus: revealMaskOnFocus,
-       ),
-       _phoneConfig = null,
-       _otpConfig = null,
-       _searchConfig = null,
-       _percentageSuffix = null,
-       _isPassword = false,
-       _isAmount = true,
-       assert(minLength == null || minLength >= 0),
-       assert(maxLength == null || maxLength >= 0),
-       assert(minLength == null || maxLength == null || minLength <= maxLength);
+       assert(_hasValidLengthRange(minLength, maxLength));
 
+  final _SmartFieldCore _core;
   final String? label;
   final String? hintText;
   final TextEditingController? controller;
@@ -1178,19 +1054,19 @@ class SmartField extends StatefulWidget {
   final SmartAsyncValidation? asyncValidation;
   final InputDecoration decoration;
   final bool showVisibilityToggle;
-  final SmartValidator? _fieldValidator;
-  final SmartValueNormalizer? _valueNormalizer;
-  final SmartValidator? _minValueValidator;
-  final SmartValidator? _maxValueValidator;
+  SmartValidator? get _fieldValidator => _core.fieldValidator;
+  SmartValueNormalizer? get _valueNormalizer => _core.valueNormalizer;
+  SmartValidator? get _minValueValidator => _core.minValueValidator;
+  SmartValidator? get _maxValueValidator => _core.maxValueValidator;
   final List<TextInputFormatter>? inputFormatters;
-  final SmartAmountFormatter? _amountFormatter;
-  final _SmartMaskConfig? _maskConfig;
-  final _SmartPhoneConfig? _phoneConfig;
-  final SmartOtpConfiguration? _otpConfig;
-  final _SmartSearchConfig? _searchConfig;
-  final String? _percentageSuffix;
-  final bool _isPassword;
-  final bool _isAmount;
+  SmartAmountFormatter? get _amountFormatter => _core.amountFormatter;
+  _SmartMaskConfig? get _maskConfig => _core.maskConfig;
+  _SmartPhoneConfig? get _phoneConfig => _core.phoneConfig;
+  SmartOtpConfiguration? get _otpConfig => _core.otpConfig;
+  _SmartSearchConfig? get _searchConfig => _core.searchConfig;
+  String? get _percentageSuffix => _core.percentageSuffix;
+  bool get _isPassword => _core.isPassword;
+  bool get _isAmount => _core.isAmount;
 
   bool get _isPhone => _phoneConfig != null;
   bool get _isSearch => _searchConfig != null;
@@ -1200,156 +1076,10 @@ class SmartField extends StatefulWidget {
   State<SmartField> createState() => _SmartFieldState();
 }
 
-enum _SmartMaskKind { phone, account, amount }
-
-final class _SmartMaskConfig {
-  const _SmartMaskConfig({
-    required this.enabled,
-    required this.kind,
-    required this.visibleSuffixDigits,
-    required this.maskCharacter,
-    required this.revealOnFocus,
-  });
-
-  final bool enabled;
-  final _SmartMaskKind kind;
-  final int visibleSuffixDigits;
-  final String maskCharacter;
-  final bool revealOnFocus;
-}
-
-_SmartMaskConfig _createMaskConfig({
-  required bool enabled,
-  required _SmartMaskKind kind,
-  required int visibleSuffixDigits,
-  required String maskCharacter,
-  required bool revealOnFocus,
-}) {
-  maskAccountNumber(
-    '',
-    visibleSuffixCharacters: visibleSuffixDigits,
-    maskCharacter: maskCharacter,
-  );
-  return _SmartMaskConfig(
-    enabled: enabled,
-    kind: kind,
-    visibleSuffixDigits: visibleSuffixDigits,
-    maskCharacter: maskCharacter,
-    revealOnFocus: revealOnFocus,
-  );
-}
-
-class _SmartPhoneConfig {
-  _SmartPhoneConfig({
-    required this.showCountryPicker,
-    required String? initialCountryCode,
-    required List<String>? allowedCountryCodes,
-    required List<String>? favoriteCountryCodes,
-    required this.showFlag,
-    required this.showContactPicker,
-    required this.showClearButton,
-    required this.policy,
-    required this.errorText,
-    required this.onCountryChanged,
-    required this.onPhoneChanged,
-    required this.onContactPickerError,
-    required this.contactPicker,
-    required this.countryTextStyle,
-    required this.countryPlaceholder,
-    required this.countryPadding,
-  }) : initialCountryCode = initialCountryCode?.toUpperCase(),
-       allowedCountryCodes = allowedCountryCodes
-           ?.map((code) => code.toUpperCase())
-           .toList(growable: false),
-       favoriteCountryCodes = favoriteCountryCodes
-           ?.map((code) => code.toUpperCase())
-           .toList(growable: false);
-
-  final bool showCountryPicker;
-  final String? initialCountryCode;
-  final List<String>? allowedCountryCodes;
-  final List<String>? favoriteCountryCodes;
-  final bool showFlag;
-  final bool showContactPicker;
-  final bool showClearButton;
-  final SmartPhonePolicy policy;
-  final String errorText;
-  final SmartPhoneCountryChanged? onCountryChanged;
-  final SmartPhoneChanged? onPhoneChanged;
-  final ValueChanged<SmartPhonePickerError>? onContactPickerError;
-  final SmartPhoneContactPicker? contactPicker;
-  final TextStyle? countryTextStyle;
-  final Widget? countryPlaceholder;
-  final EdgeInsetsGeometry? countryPadding;
-}
-
-final class _SmartSearchConfig {
-  const _SmartSearchConfig({
-    required this.onTap,
-    required this.onSubmitted,
-    required this.onSearch,
-    required this.debounceDuration,
-    required this.onCleared,
-    required this.showClearButton,
-    required this.isLoading,
-    required this.searchIcon,
-    required this.clearIcon,
-  });
-
-  final GestureTapCallback? onTap;
-  final ValueChanged<String>? onSubmitted;
-  final ValueChanged<String>? onSearch;
-  final Duration debounceDuration;
-  final VoidCallback? onCleared;
-  final bool showClearButton;
-  final bool isLoading;
-  final Widget? searchIcon;
-  final Widget? clearIcon;
-
-  bool hasSameDebounceBehavior(_SmartSearchConfig other) {
-    return onSearch == other.onSearch &&
-        debounceDuration == other.debounceDuration;
-  }
-}
-
-_SmartSearchConfig _createSearchConfig({
-  required GestureTapCallback? onTap,
-  required ValueChanged<String>? onSubmitted,
-  required ValueChanged<String>? onSearch,
-  required Duration? debounceDuration,
-  required VoidCallback? onCleared,
-  required bool showClearButton,
-  required bool isLoading,
-  required Widget? searchIcon,
-  required Widget? clearIcon,
-}) {
-  final duration = debounceDuration ?? const Duration(milliseconds: 300);
-  if (duration.isNegative) {
-    throw ArgumentError.value(debounceDuration, 'debounceDuration');
-  }
-  return _SmartSearchConfig(
-    onTap: onTap,
-    onSubmitted: onSubmitted,
-    onSearch: onSearch,
-    debounceDuration: duration,
-    onCleared: onCleared,
-    showClearButton: showClearButton,
-    isLoading: isLoading,
-    searchIcon: searchIcon,
-    clearIcon: clearIcon,
-  );
-}
-
 class _SmartFieldState extends State<SmartField> {
   late bool _obscureText = widget._isPassword;
-  TextEditingController? _ownedAmountController;
-  FocusNode? _ownedAmountFocusNode;
-  TextEditingController? _ownedPhoneController;
-  FocusNode? _ownedPhoneFocusNode;
-  TextEditingController? _ownedMaskController;
-  FocusNode? _ownedMaskFocusNode;
-  TextEditingController? _ownedSearchController;
-  FocusNode? _ownedSearchFocusNode;
+  TextEditingController? _ownedController;
+  FocusNode? _ownedFocusNode;
   GlobalKey<FormFieldState<String>> _phoneFieldKey = GlobalKey();
   GlobalKey<FormFieldState<String>> _maskFieldKey = GlobalKey();
   GlobalKey<FormFieldState<String>> _searchFieldKey = GlobalKey();
@@ -1365,36 +1095,21 @@ class _SmartFieldState extends State<SmartField> {
   TextEditingController? _ownedOtpController;
   final GlobalKey<FormFieldState<String>> _asyncFieldKey = GlobalKey();
 
+  static bool _usesOwnedState(SmartField source) {
+    return source._isAmount ||
+        source._isPhone ||
+        source._isSearch ||
+        source._supportsMasking;
+  }
+
   TextEditingController? _controllerFor(SmartField source) {
-    if (source._isAmount) {
-      return source.controller ?? _ownedAmountController;
-    }
-    if (source._isPhone) {
-      return source.controller ?? _ownedPhoneController;
-    }
-    if (source._isSearch) {
-      return source.controller ?? _ownedSearchController;
-    }
-    if (source._supportsMasking) {
-      return source.controller ?? _ownedMaskController;
-    }
-    return source.controller;
+    return source.controller ??
+        (_usesOwnedState(source) ? _ownedController : null);
   }
 
   FocusNode? _focusNodeFor(SmartField source) {
-    if (source._isAmount) {
-      return source.focusNode ?? _ownedAmountFocusNode;
-    }
-    if (source._isPhone) {
-      return source.focusNode ?? _ownedPhoneFocusNode;
-    }
-    if (source._isSearch) {
-      return source.focusNode ?? _ownedSearchFocusNode;
-    }
-    if (source._supportsMasking) {
-      return source.focusNode ?? _ownedMaskFocusNode;
-    }
-    return source.focusNode;
+    return source.focusNode ??
+        (_usesOwnedState(source) ? _ownedFocusNode : null);
   }
 
   TextEditingController? get _effectiveController => _controllerFor(widget);
@@ -1404,6 +1119,7 @@ class _SmartFieldState extends State<SmartField> {
   @override
   void initState() {
     super.initState();
+    _ensureOwnedState(null);
     _configureAmountState();
     _configurePhoneState();
     _configureMaskState();
@@ -1413,30 +1129,14 @@ class _SmartFieldState extends State<SmartField> {
 
   @override
   void didUpdateWidget(covariant SmartField oldWidget) {
-    final oldAmountController = oldWidget._isAmount
-        ? oldWidget.controller ?? _ownedAmountController
-        : null;
-    final oldAmountFocusNode = oldWidget._isAmount
-        ? oldWidget.focusNode ?? _ownedAmountFocusNode
-        : null;
-    final oldPhoneController = oldWidget._isPhone
-        ? oldWidget.controller ?? _ownedPhoneController
-        : null;
-    final oldMaskController = oldWidget._supportsMasking
-        ? _controllerFor(oldWidget)
-        : null;
-    final oldMaskFocusNode = oldWidget._supportsMasking
-        ? _focusNodeFor(oldWidget)
-        : null;
-    final oldSearchController = oldWidget._isSearch
-        ? oldWidget.controller ?? _ownedSearchController
-        : null;
-    oldAmountController?.removeListener(_handleAmountControllerChange);
-    oldAmountFocusNode?.removeListener(_handleAmountFocusChange);
-    oldPhoneController?.removeListener(_handlePhoneControllerChange);
-    oldMaskController?.removeListener(_handleMaskControllerChange);
-    oldMaskFocusNode?.removeListener(_handleMaskFocusChange);
-    oldSearchController?.removeListener(_handleSearchControllerChange);
+    final oldController = _controllerFor(oldWidget);
+    final oldFocusNode = _focusNodeFor(oldWidget);
+    oldController?.removeListener(_handleAmountControllerChange);
+    oldController?.removeListener(_handlePhoneControllerChange);
+    oldController?.removeListener(_handleMaskControllerChange);
+    oldController?.removeListener(_handleSearchControllerChange);
+    oldFocusNode?.removeListener(_handleAmountFocusChange);
+    oldFocusNode?.removeListener(_handleMaskFocusChange);
     super.didUpdateWidget(oldWidget);
 
     final oldSearch = oldWidget._searchConfig;
@@ -1465,98 +1165,19 @@ class _SmartFieldState extends State<SmartField> {
       _obscureText = widget._isPassword;
     }
 
-    if (oldWidget._isAmount &&
+    if (_usesOwnedState(oldWidget) &&
         oldWidget.controller == null &&
-        (!widget._isAmount || widget.controller != null)) {
-      _ownedAmountController?.dispose();
-      _ownedAmountController = null;
+        (!_usesOwnedState(widget) || widget.controller != null)) {
+      _ownedController?.dispose();
+      _ownedController = null;
     }
-    if (oldWidget._isAmount &&
+    if (_usesOwnedState(oldWidget) &&
         oldWidget.focusNode == null &&
-        (!widget._isAmount || widget.focusNode != null)) {
-      _ownedAmountFocusNode?.dispose();
-      _ownedAmountFocusNode = null;
+        (!_usesOwnedState(widget) || widget.focusNode != null)) {
+      _ownedFocusNode?.dispose();
+      _ownedFocusNode = null;
     }
-    if (widget._isAmount &&
-        widget.controller == null &&
-        _ownedAmountController == null) {
-      _ownedAmountController = TextEditingController.fromValue(
-        oldWidget.controller?.value,
-      );
-    }
-    if (oldWidget._isPhone &&
-        oldWidget.controller == null &&
-        (!widget._isPhone || widget.controller != null)) {
-      _ownedPhoneController?.dispose();
-      _ownedPhoneController = null;
-    }
-    if (oldWidget._isPhone &&
-        oldWidget.focusNode == null &&
-        (!widget._isPhone || widget.focusNode != null)) {
-      _ownedPhoneFocusNode?.dispose();
-      _ownedPhoneFocusNode = null;
-    }
-    if (widget._isPhone &&
-        widget.controller == null &&
-        _ownedPhoneController == null) {
-      _ownedPhoneController = TextEditingController.fromValue(
-        oldWidget.controller?.value,
-      );
-    }
-    final oldUsesOwnedMaskState =
-        oldWidget._supportsMasking &&
-        !oldWidget._isAmount &&
-        !oldWidget._isPhone;
-    final usesOwnedMaskState =
-        widget._supportsMasking && !widget._isAmount && !widget._isPhone;
-    if (oldUsesOwnedMaskState &&
-        oldWidget.controller == null &&
-        (!usesOwnedMaskState || widget.controller != null)) {
-      _ownedMaskController?.dispose();
-      _ownedMaskController = null;
-    }
-    if (oldUsesOwnedMaskState &&
-        oldWidget.focusNode == null &&
-        (!usesOwnedMaskState || widget.focusNode != null)) {
-      _ownedMaskFocusNode?.dispose();
-      _ownedMaskFocusNode = null;
-    }
-    if (usesOwnedMaskState &&
-        widget.controller == null &&
-        _ownedMaskController == null) {
-      _ownedMaskController = TextEditingController.fromValue(
-        oldMaskController?.value,
-      );
-    }
-    if (usesOwnedMaskState &&
-        widget.focusNode == null &&
-        _ownedMaskFocusNode == null) {
-      _ownedMaskFocusNode = FocusNode();
-    }
-    if (oldWidget._isSearch &&
-        oldWidget.controller == null &&
-        (!widget._isSearch || widget.controller != null)) {
-      _ownedSearchController?.dispose();
-      _ownedSearchController = null;
-    }
-    if (oldWidget._isSearch &&
-        oldWidget.focusNode == null &&
-        (!widget._isSearch || widget.focusNode != null)) {
-      _ownedSearchFocusNode?.dispose();
-      _ownedSearchFocusNode = null;
-    }
-    if (widget._isSearch &&
-        widget.controller == null &&
-        _ownedSearchController == null) {
-      _ownedSearchController = TextEditingController.fromValue(
-        oldSearchController?.value,
-      );
-    }
-    if (widget._isSearch &&
-        widget.focusNode == null &&
-        _ownedSearchFocusNode == null) {
-      _ownedSearchFocusNode = FocusNode();
-    }
+    _ensureOwnedState(oldController?.value);
     _configureAmountState();
     _configurePhoneState();
     _configureMaskState();
@@ -1564,6 +1185,18 @@ class _SmartFieldState extends State<SmartField> {
     _syncAsyncBinding();
     if (!(widget.enabled ?? widget.decoration.enabled)) {
       _asyncEngine?.reset();
+    }
+  }
+
+  void _ensureOwnedState(TextEditingValue? initialValue) {
+    if (!_usesOwnedState(widget)) {
+      return;
+    }
+    if (widget.controller == null) {
+      _ownedController ??= TextEditingController.fromValue(initialValue);
+    }
+    if (widget.focusNode == null) {
+      _ownedFocusNode ??= FocusNode();
     }
   }
 
@@ -1664,12 +1297,6 @@ class _SmartFieldState extends State<SmartField> {
     if (!widget._supportsMasking) {
       return;
     }
-    if (!widget._isAmount && !widget._isPhone) {
-      _ownedMaskController ??= widget.controller == null
-          ? TextEditingController()
-          : null;
-      _ownedMaskFocusNode ??= widget.focusNode == null ? FocusNode() : null;
-    }
     _effectiveController?.addListener(_handleMaskControllerChange);
     _effectiveFocusNode?.addListener(_handleMaskFocusChange);
   }
@@ -1678,10 +1305,6 @@ class _SmartFieldState extends State<SmartField> {
     if (!widget._isSearch) {
       return;
     }
-    _ownedSearchController ??= widget.controller == null
-        ? TextEditingController()
-        : null;
-    _ownedSearchFocusNode ??= widget.focusNode == null ? FocusNode() : null;
     _effectiveController?.addListener(_handleSearchControllerChange);
   }
 
@@ -1708,10 +1331,6 @@ class _SmartFieldState extends State<SmartField> {
     if (!widget._isPhone) {
       return;
     }
-    _ownedPhoneController ??= widget.controller == null
-        ? TextEditingController()
-        : null;
-    _ownedPhoneFocusNode ??= widget.focusNode == null ? FocusNode() : null;
     _selectedCountry =
         _resolveCountry(_selectedCountry?.isoCode) ??
         _resolveCountry(widget._phoneConfig!.initialCountryCode);
@@ -1759,10 +1378,6 @@ class _SmartFieldState extends State<SmartField> {
     if (!widget._isAmount) {
       return;
     }
-    _ownedAmountController ??= widget.controller == null
-        ? TextEditingController()
-        : null;
-    _ownedAmountFocusNode ??= widget.focusNode == null ? FocusNode() : null;
     _effectiveController?.addListener(_handleAmountControllerChange);
     _effectiveFocusNode?.addListener(_handleAmountFocusChange);
     if (!(_effectiveFocusNode?.hasFocus ?? false)) {
@@ -2466,14 +2081,8 @@ class _SmartFieldState extends State<SmartField> {
     if (widget._isSearch) {
       _effectiveController?.removeListener(_handleSearchControllerChange);
     }
-    _ownedAmountController?.dispose();
-    _ownedAmountFocusNode?.dispose();
-    _ownedPhoneController?.dispose();
-    _ownedPhoneFocusNode?.dispose();
-    _ownedMaskController?.dispose();
-    _ownedMaskFocusNode?.dispose();
-    _ownedSearchController?.dispose();
-    _ownedSearchFocusNode?.dispose();
+    _ownedController?.dispose();
+    _ownedFocusNode?.dispose();
     super.dispose();
   }
 
