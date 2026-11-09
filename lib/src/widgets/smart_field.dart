@@ -14,6 +14,7 @@ import 'package:smart_field_kit/src/masking/smart_masking.dart';
 import 'package:smart_field_kit/src/models/smart_otp_style.dart';
 import 'package:smart_field_kit/src/models/smart_phone_value.dart';
 import 'package:smart_field_kit/src/validation/smart_async_validation.dart';
+import 'package:smart_field_kit/src/validation/smart_password_strength.dart';
 import 'package:smart_field_kit/src/validation/smart_phone_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_validation_options.dart';
 import 'package:smart_field_kit/src/validation/smart_url_validation.dart';
@@ -1211,6 +1212,10 @@ class SmartField extends StatefulWidget {
     String passwordErrorText = 'Password does not meet the selected policy.',
     TextEditingController? matchController,
     String mismatchErrorText = 'Passwords do not match.',
+    bool showStrengthIndicator = false,
+    List<SmartPasswordCriterion>? strengthCriteria,
+    Map<SmartPasswordStrengthLevel, String>? strengthLabels,
+    bool showStrengthChecklist = false,
   }) : _core = _SmartFieldCore(
          fieldValidator: policy == null
              ? null
@@ -1221,6 +1226,13 @@ class SmartField extends StatefulWidget {
          isPassword: true,
          matchController: matchController,
          mismatchMessage: mismatchErrorText,
+         strength: showStrengthIndicator
+             ? _SmartStrengthConfig(
+                 criteria: strengthCriteria,
+                 labels: strengthLabels,
+                 showChecklist: showStrengthChecklist,
+               )
+             : null,
        ),
        textCapitalization = TextCapitalization.none,
        autocorrect = false,
@@ -1782,9 +1794,7 @@ class _SmartFieldState extends State<SmartField> {
       _boundMatchController = match;
       match?.addListener(_handleMatchChange);
     }
-    final wordController = widget._core.showWordCount
-        ? _effectiveController
-        : null;
+    final wordController = _tracksText ? _effectiveController : null;
     if (!identical(wordController, _boundWordController)) {
       _boundWordController?.removeListener(_handleWordCountChange);
       _boundWordController = wordController;
@@ -2622,7 +2632,7 @@ class _SmartFieldState extends State<SmartField> {
   void _handleChanged(String value) {
     widget.onChanged?.call(value);
     widget.serverError?.notifyFieldChanged();
-    if (widget._core.showWordCount && _boundWordController == null) {
+    if (_tracksText && _boundWordController == null) {
       setState(() {});
     }
     _asyncEngine?.observe(value);
@@ -2922,7 +2932,7 @@ class _SmartFieldState extends State<SmartField> {
           : _effectiveDecoration,
     );
     if (!showsMask) {
-      return _withAsyncFocus(field);
+      return _withStrength(_withAsyncFocus(field));
     }
     final enabled = widget.enabled ?? widget.decoration.enabled;
     final canReveal = _isInteractive && widget._maskConfig!.revealOnFocus;
@@ -2941,10 +2951,14 @@ class _SmartFieldState extends State<SmartField> {
     );
   }
 
+  bool get _tracksText {
+    return widget._core.showWordCount || widget._core.strength != null;
+  }
+
   bool get _needsFieldKey {
     return widget.asyncValidation != null ||
         widget._core.matchController != null ||
-        widget._core.showWordCount;
+        _tracksText;
   }
 
   String? get _restorationId {
@@ -2954,6 +2968,83 @@ class _SmartFieldState extends State<SmartField> {
       return null;
     }
     return widget.restorationId;
+  }
+
+  Widget _withStrength(Widget child) {
+    final config = widget._core.strength;
+    if (config == null) {
+      return child;
+    }
+    final result = SmartPasswordStrength.evaluate(
+      _asyncText(),
+      criteria: config.criteria,
+    );
+    final labels = {...SmartPasswordStrength.defaultLabels, ...?config.labels};
+    final scheme = Theme.of(context).colorScheme;
+    final color = switch (result.level) {
+      SmartPasswordStrengthLevel.empty => scheme.outline,
+      SmartPasswordStrengthLevel.weak => scheme.error,
+      SmartPasswordStrengthLevel.fair => scheme.tertiary,
+      SmartPasswordStrengthLevel.good => scheme.secondary,
+      SmartPasswordStrengthLevel.strong => scheme.primary,
+    };
+    final text = result.level == SmartPasswordStrengthLevel.empty
+        ? labels[result.level]!
+        : 'Password strength: ${labels[result.level]}';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        child,
+        const SizedBox(height: 8),
+        Semantics(
+          label: text,
+          liveRegion: true,
+          excludeSemantics: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: result.score,
+                  minHeight: 4,
+                  color: color,
+                  backgroundColor: scheme.surfaceContainerHighest,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                text,
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: color),
+              ),
+              if (config.showChecklist)
+                for (final rule in [...result.met, ...result.unmet])
+                  Row(
+                    children: [
+                      Icon(
+                        result.met.contains(rule)
+                            ? Icons.check_circle
+                            : Icons.radio_button_unchecked,
+                        size: 16,
+                        color: result.met.contains(rule)
+                            ? scheme.primary
+                            : scheme.outline,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          rule.label,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _withAsyncFocus(Widget child) {

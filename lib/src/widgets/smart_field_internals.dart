@@ -30,6 +30,7 @@ final class _SmartFieldCore {
     this.isAmount = false,
     this.matchController,
     this.mismatchMessage = 'Passwords do not match.',
+    this.strength,
     this.dateTimeConfig,
     this.cardConfig,
     this.inputMask,
@@ -55,6 +56,7 @@ final class _SmartFieldCore {
   final bool isAmount;
   final TextEditingController? matchController;
   final String mismatchMessage;
+  final _SmartStrengthConfig? strength;
   final SmartDateTimeConfig? dateTimeConfig;
   final SmartCreditCardConfig? cardConfig;
   final SmartInputMask? inputMask;
@@ -204,4 +206,16 @@ _SmartSearchConfig _createSearchConfig({
     searchIcon: searchIcon,
     clearIcon: clearIcon,
   );
+}
+
+final class _SmartStrengthConfig {
+  const _SmartStrengthConfig({
+    required this.criteria,
+    required this.labels,
+    required this.showChecklist,
+  });
+
+  final List<SmartPasswordCriterion>? criteria;
+  final Map<SmartPasswordStrengthLevel, String>? labels;
+  final bool showChecklist;
 }
