@@ -2377,7 +2377,21 @@ class _SmartFieldState extends State<SmartField> {
     setState(() {});
   }
 
+  bool _pickingContact = false;
+
   Future<void> _pickContact() async {
+    if (_pickingContact) {
+      return;
+    }
+    _pickingContact = true;
+    try {
+      await _runContactPicker();
+    } finally {
+      _pickingContact = false;
+    }
+  }
+
+  Future<void> _runContactPicker() async {
     final config = widget._phoneConfig!;
     if (!_supportsContactPicker) {
       _reportPhonePickerError(
@@ -2441,7 +2455,9 @@ class _SmartFieldState extends State<SmartField> {
         );
         return;
       }
-      if (inferred.country != null && inferred.country != _selectedCountry) {
+      if (config.showCountryPicker &&
+          inferred.country != null &&
+          inferred.country != _selectedCountry) {
         setState(() => _selectedCountry = inferred.country);
         config.onCountryChanged?.call(inferred.country);
       }
