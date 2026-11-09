@@ -10,7 +10,7 @@ Widget _app(Widget child) => MaterialApp(
 void main() {
   const secret = '+923001234567';
 
-  testWidgets('a picker failure shows only its generic message', (
+  testWidgets('a picker failure shows only its generic message', skip: kIsWeb, (
     tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
@@ -32,33 +32,35 @@ void main() {
     }
   });
 
-  testWidgets('the error callback keeps the original cause object', (
-    tester,
-  ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    try {
-      final errors = <SmartPhonePickerError>[];
-      final cause = StateError('failed for $secret');
-      await tester.pumpWidget(
-        _app(
-          SmartField.phone(
-            showContactPicker: true,
-            contactPicker: () async => throw cause,
-            onContactPickerError: errors.add,
+  testWidgets(
+    'the error callback keeps the original cause object',
+    skip: kIsWeb,
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        final errors = <SmartPhonePickerError>[];
+        final cause = StateError('failed for $secret');
+        await tester.pumpWidget(
+          _app(
+            SmartField.phone(
+              showContactPicker: true,
+              contactPicker: () async => throw cause,
+              onContactPickerError: errors.add,
+            ),
           ),
-        ),
-      );
-      await tester.tap(find.byTooltip('Select phone number from contacts'));
-      await tester.pumpAndSettle();
-      expect(errors.single.cause, same(cause));
-      expect(errors.single.code, SmartPhonePickerErrorCode.platformFailure);
-      expect(errors.single.message, 'Unable to open the contact picker.');
-      expect(errors.single.toString(), isNot(contains(secret)));
-      expect(find.byType(SnackBar), findsNothing);
-    } finally {
-      debugDefaultTargetPlatformOverride = null;
-    }
-  });
+        );
+        await tester.tap(find.byTooltip('Select phone number from contacts'));
+        await tester.pumpAndSettle();
+        expect(errors.single.cause, same(cause));
+        expect(errors.single.code, SmartPhonePickerErrorCode.platformFailure);
+        expect(errors.single.message, 'Unable to open the contact picker.');
+        expect(errors.single.toString(), isNot(contains(secret)));
+        expect(find.byType(SnackBar), findsNothing);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
 
   testWidgets('widget diagnostics never include field text', (tester) async {
     final controller = TextEditingController(text: secret);

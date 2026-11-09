@@ -158,7 +158,7 @@ void main() {
   });
 
   group('phone labels', () {
-    testWidgets('English defaults', (tester) async {
+    testWidgets('English defaults', skip: kIsWeb, (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {
         final handle = tester.ensureSemantics();
@@ -184,43 +184,69 @@ void main() {
       }
     });
 
-    testWidgets('developer strings replace every first-party label', (
+    testWidgets(
+      'developer strings replace every first-party label',
+      skip: kIsWeb,
+      (tester) async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        try {
+          final handle = tester.ensureSemantics();
+          await tester.pumpWidget(
+            _app(
+              SmartField.phone(
+                showCountryPicker: true,
+                initialCountryCode: 'PK',
+                showContactPicker: true,
+                showClearButton: true,
+                controller: TextEditingController(text: '03001234567'),
+                selectCountryLabel: 'Elegir país',
+                changeCountryLabelBuilder: (country) =>
+                    'Cambiar país, ${country.name}, ${country.dialCode}',
+                contactPickerLabel: 'Elegir de contactos',
+                clearLabel: 'Borrar teléfono',
+                countrySearchHint: 'Buscar país',
+              ),
+            ),
+          );
+          expect(find.byTooltip('Elegir de contactos'), findsOneWidget);
+          expect(find.byTooltip('Borrar teléfono'), findsOneWidget);
+          expect(
+            _semanticTexts(tester).any((t) => t.startsWith('Cambiar país, ')),
+            isTrue,
+          );
+          await tester.tap(find.text('+92'));
+          await tester.pumpAndSettle();
+          expect(find.text('Buscar país'), findsOneWidget);
+          expect(find.text('Search country'), findsNothing);
+          handle.dispose();
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      },
+    );
+
+    testWidgets('clear and country labels work on every platform', (
       tester,
     ) async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
-      try {
-        final handle = tester.ensureSemantics();
-        await tester.pumpWidget(
-          _app(
-            SmartField.phone(
-              showCountryPicker: true,
-              initialCountryCode: 'PK',
-              showContactPicker: true,
-              showClearButton: true,
-              controller: TextEditingController(text: '03001234567'),
-              selectCountryLabel: 'Elegir país',
-              changeCountryLabelBuilder: (country) =>
-                  'Cambiar país, ${country.name}, ${country.dialCode}',
-              contactPickerLabel: 'Elegir de contactos',
-              clearLabel: 'Borrar teléfono',
-              countrySearchHint: 'Buscar país',
-            ),
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        _app(
+          SmartField.phone(
+            showCountryPicker: true,
+            initialCountryCode: 'PK',
+            showClearButton: true,
+            controller: TextEditingController(text: '03001234567'),
+            clearLabel: 'Borrar teléfono',
+            changeCountryLabelBuilder: (country) => 'Cambiar ${country.name}',
           ),
-        );
-        expect(find.byTooltip('Elegir de contactos'), findsOneWidget);
-        expect(find.byTooltip('Borrar teléfono'), findsOneWidget);
-        expect(
-          _semanticTexts(tester).any((t) => t.startsWith('Cambiar país, ')),
-          isTrue,
-        );
-        await tester.tap(find.text('+92'));
-        await tester.pumpAndSettle();
-        expect(find.text('Buscar país'), findsOneWidget);
-        expect(find.text('Search country'), findsNothing);
-        handle.dispose();
-      } finally {
-        debugDefaultTargetPlatformOverride = null;
-      }
+        ),
+      );
+      expect(find.byTooltip('Borrar teléfono'), findsOneWidget);
+      expect(
+        _semanticTexts(tester).any((t) => t.startsWith('Cambiar ')),
+        isTrue,
+      );
+      handle.dispose();
     });
 
     testWidgets('masked phone labels never expose the digits', (tester) async {
