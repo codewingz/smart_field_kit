@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:country_picker/country_picker.dart' as country_picker;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
