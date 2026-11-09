@@ -307,28 +307,32 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              EditableText(
-                controller: _controller,
-                focusNode: _focusNode,
-                readOnly: widget.readOnly || !_enabled,
-                obscureText: widget.configuration.obscureText,
-                autocorrect: false,
-                enableSuggestions: false,
-                autofocus: widget.autofocus,
-                keyboardType: TextInputType.number,
-                textInputAction: widget.textInputAction ?? TextInputAction.done,
-                autofillHints: const [AutofillHints.oneTimeCode],
-                inputFormatters: [
-                  _SmartOtpInputFormatter(
-                    length: widget.configuration.length,
-                    onAccepted: _markUserEdit,
-                  ),
-                ],
-                style: textStyle.copyWith(color: Colors.transparent),
-                cursorColor: Colors.transparent,
-                backgroundCursorColor: Colors.transparent,
-                selectionColor: Colors.transparent,
-                showCursor: false,
+              ExcludeFocus(
+                excluding: !_enabled,
+                child: EditableText(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  readOnly: widget.readOnly || !_enabled,
+                  obscureText: widget.configuration.obscureText,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  autofocus: widget.autofocus,
+                  keyboardType: TextInputType.number,
+                  textInputAction:
+                      widget.textInputAction ?? TextInputAction.done,
+                  autofillHints: const [AutofillHints.oneTimeCode],
+                  inputFormatters: [
+                    _SmartOtpInputFormatter(
+                      length: widget.configuration.length,
+                      onAccepted: _markUserEdit,
+                    ),
+                  ],
+                  style: textStyle.copyWith(color: Colors.transparent),
+                  cursorColor: Colors.transparent,
+                  backgroundCursorColor: Colors.transparent,
+                  selectionColor: Colors.transparent,
+                  showCursor: false,
+                ),
               ),
               ExcludeSemantics(
                 child: Row(

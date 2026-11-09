@@ -129,6 +129,7 @@ class _ExampleAppState extends State<ExampleApp> {
                     label: 'Password',
                     isRequired: true,
                     controller: _passwordController,
+                    showStrengthIndicator: true,
                     validationMode: SmartValidationMode.selected,
                     builtInChecks: const {
                       SmartBuiltInCheck.passwordUppercase,
@@ -191,6 +192,43 @@ class _ExampleAppState extends State<ExampleApp> {
                     decimalPlaces: 2,
                     allowNegative: false,
                   ),
+                  const SizedBox(height: 16),
+                  SmartField.creditCard(),
+                  const SizedBox(height: 16),
+                  SmartField.date(
+                    label: 'Birth date',
+                    restriction: SmartDateRestriction.pastOnly,
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.date(
+                    label: 'Calendar date',
+                    mode: SmartDateMode.calendar,
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.date(
+                    label: 'Dropdown date',
+                    mode: SmartDateMode.dropdowns,
+                    firstYear: 1950,
+                    lastYear: 2035,
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.date(
+                    label: 'Wheel date',
+                    mode: SmartDateMode.wheel,
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.time(
+                    label: 'Time',
+                    mode: SmartTimeMode.picker,
+                    use24Hour: false,
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.dateTime(
+                    label: 'Appointment',
+                    mode: SmartTimeMode.picker,
+                  ),
+                  const SizedBox(height: 16),
+                  SmartField.text(label: 'Reference', inputMask: 'AAA-####'),
                   const SizedBox(height: 16),
                   SmartField.otp(
                     label: 'Verification code',

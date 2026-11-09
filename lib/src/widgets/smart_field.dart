@@ -2645,6 +2645,11 @@ class _SmartFieldState extends State<SmartField> {
     return SmartValidators.compose(validators)(value);
   }
 
+  void _handleOtpChanged(String value) {
+    widget.onChanged?.call(value);
+    widget.serverError?.notifyFieldChanged();
+  }
+
   void _handleChanged(String value) {
     widget.onChanged?.call(value);
     widget.serverError?.notifyFieldChanged();
@@ -2892,7 +2897,7 @@ class _SmartFieldState extends State<SmartField> {
           enabled: widget.enabled,
           readOnly: widget.readOnly,
           textInputAction: widget.textInputAction,
-          onChanged: widget.onChanged,
+          onChanged: _handleOtpChanged,
           onSaved: widget.onSaved,
           validator: _synchronousValidator,
           autovalidateMode: widget.autovalidateMode,
