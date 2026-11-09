@@ -289,14 +289,28 @@ final class _AmountFeature extends _FieldFeature {
 
 final class _MaskFeature extends _FieldFeature {
   _MaskFeature(super.host) {
-    _controllerBinding = SmartListenerBinding(host.rebuild);
-    _focusBinding = SmartListenerBinding(host.rebuild);
+    _controllerBinding = SmartListenerBinding(_controllerChanged);
+    _focusBinding = SmartListenerBinding(_focusChanged);
   }
 
   late final SmartListenerBinding _controllerBinding;
   late final SmartListenerBinding _focusBinding;
+  bool _lastShows = false;
 
   _SmartMaskConfig get config => host.field._maskConfig!;
+
+  void _controllerChanged() {
+    final now = shows;
+    if (now || now != _lastShows) {
+      _lastShows = now;
+      host.rebuild();
+    }
+  }
+
+  void _focusChanged() {
+    _lastShows = shows;
+    host.rebuild();
+  }
 
   bool get shows {
     final controller = host.textController;
@@ -318,6 +332,7 @@ final class _MaskFeature extends _FieldFeature {
   void bind() {
     _controllerBinding.bind(config.enabled ? host.textController : null);
     _focusBinding.bind(config.enabled ? host.focusNode : null);
+    _lastShows = shows;
   }
 
   @override
