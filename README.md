@@ -829,7 +829,7 @@ Pass `restorationId` (inside a `RestorationScope`, for example `MaterialApp.rest
 
 ## Credit card
 
-`SmartField.creditCard()` is a composite of card number, expiry, and security code built from the shared fields. It validates input syntax only. A Luhn checksum shows the digits are internally consistent, **not** that the card is real, active, or usable.
+`SmartField.creditCard()` is a composite of card number, expiry, and security code built from the shared fields. All checks run locally and instantly; the package makes no network request. A passing check means the entered text is internally consistent. It does **not** mean the card exists, is active, has funds, or will be approved, and no message claims otherwise.
 
 ```dart
 SmartField.creditCard(
@@ -838,18 +838,22 @@ SmartField.creditCard(
   expiryFormat: SmartExpiryFormat.mmYy,
   onChanged: (card) {
     final brand = card.brand;
+    final status = card.numberStatus;
     final last4 = card.last4;
   },
   onSaved: (card) {},
 )
 ```
 
-- Brands: Visa, Mastercard, American Express, Discover, Diners Club, JCB, UnionPay, Maestro. Lengths are brand specific (for example 15 for American Express, 13 to 19 for Visa); nothing assumes 16 digits. Grouping is issuer aware (`4111 1111 1111 1111`, `3782 822463 10005`); pasted spaces and dashes are accepted, letters are rejected. `validateLuhn: false` disables the checksum.
-- Expiry: `MM/YY` or `MM/YYYY` (`expiryFormat`). Invalid months are rejected. A card is valid through the last day of its expiry month (leap years included). Pass `now:` for deterministic tests. Two-digit years mean 2000 to 2099.
-- Security code: 3 digits, or 4 for American Express, or any lengths from `cvvLengths`. It is concealed by default (`concealCvv: true`).
-- `SmartCreditCardValue` exposes digits, brand, expiry, and code for tokenization. Its `toString()` never prints the number or code.
-- Server messages: `numberServerError`, `expiryServerError`, `cvvServerError`.
-- Security: the package never persists, restores (`restorationId` is not used), logs, or sends card data; the security code is never remembered. Platform autofill hints are set for card number, expiry, and code. **SmartField does not make an app PCI compliant.** For production payment collection prefer processor-hosted or tokenized inputs, and use only synthetic test cards (such as `4111 1111 1111 1111`) in tests and demos.
+- **Brands** (data from the maintained Braintree `credit-card-type` table, cross-checked with Wikipedia, checked 2026-11-09): Visa, Mastercard (51-55 and 2221-2720), American Express, Diners Club, Discover, JCB, UnionPay, Maestro, Troy, Elo, Mir, Hiper, Hipercard, Naranja, Verve. Each has its own prefix ranges, accepted lengths, display grouping, and security-code size (`SmartCardBrand.lengths`, `gaps`, `cvvLength`). Where sources differ on lengths (Visa 13/18, Discover 17-18, UnionPay 14-15) the wider verified list is used. **RuPay is not supported:** the only source found lists very broad prefixes (60, 65, 81, 82, 508) that overlap Discover, UnionPay, and Maestro with no verifiable narrower ranges, so those numbers are handled as the matching brand or as unknown.
+- **Detection never forces a brand early.** `SmartCardUtils.matchBrand()` returns the candidate brands. While a prefix can still become another network (for example `4` could be Visa, Elo, or Naranja) the brand is `unknown` and `likelyBrand` shows the best guess; the brand is set as soon as the prefix is unambiguous (`4111`, `401178`, `34`). The most specific verified range wins (Troy over Discover `65`, Verve and Elo over Maestro). Detection says nothing about credit versus debit. Unknown brands accept 12 to 19 digits and a 3- or 4-digit code.
+- **Instant status.** `SmartCardUtils.assessNumber()` and `SmartCreditCardValue.numberStatus` report `empty`, `incomplete`, `valid`, or `invalid` on every keystroke, paste, programmatic change, clear, and reset. Incomplete numbers show neutral guidance (`Visa · 8 more digits`), never an error. When a valid length is reached the Luhn checksum is checked and a failure is shown immediately. For brands with several valid lengths a failing number is flagged at the main length (16, 15, or 14) or the longest, and stays neutral at the other lengths while the user may still be typing. Strict `FormState.validate()` always requires a complete valid number. `numberStatusBuilder` customizes the guidance text, and `showNumberStatus: false` hides it.
+- **Luhn** applies to every brand by default; `validateLuhn: false` disables it and `luhnExemptBrands` exempts brands (for example UnionPay, which is commonly reported to include non-Luhn numbers; that could not be verified in the sources checked, so it is opt-in).
+- **Grouping** follows each brand: `4111 1111 1111 1111`, `3782 822463 10005`, Diners `3056 930902 5904`. Numbers beyond 16 digits continue in groups of four. Pasted spaces and dashes are accepted; letters are rejected; digits are never changed.
+- **Expiry:** `MM/YY` or `MM/YYYY`; months 01-12; valid through the last moment of the expiry month (leap years, December to January included); two-digit years mean 2000-2099. Pass `now:` for deterministic tests.
+- **Security code:** 4 digits for American Express, 3 for the other supported brands, or any lengths from `cvvLengths`. Changing the number to a brand with a different code length re-checks an already entered code immediately. It is concealed by default (`concealCvv: true`). Local checks cannot confirm the code with the bank.
+- Server messages: `numberServerError`, `expiryServerError`, `cvvServerError` take priority and clear on edit.
+- **Security:** card data is never persisted, restored (`restorationId` is not used), logged, or sent. `SmartCreditCardValue`, assessments, and package-owned controllers print redacted text. The Flutter framework can still print visible field text in debug dumps if you supply your own controllers. `onChanged`/`onSaved` hand the full values to your code: treat them as sensitive and never log them. Platform autofill hints are set. **SmartField does not make an app PCI compliant;** for real payments use processor-hosted or tokenized fields, never store security codes after authorization, and use only synthetic test cards (such as `4111 1111 1111 1111`) in tests and demos.
 
 ## Date, time, and date-time
 

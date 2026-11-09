@@ -321,9 +321,11 @@ abstract final class SmartCardUtils {
         if (typed.length >= pattern.length) {
           final prefix = int.parse(typed.substring(0, pattern.length));
           if (prefix >= pattern.low && prefix <= pattern.high) {
+            final score =
+                pattern.length * 1000000000 - (pattern.high - pattern.low);
             final current = strength[entry.key] ?? 0;
-            if (pattern.length > current) {
-              strength[entry.key] = pattern.length;
+            if (score > current) {
+              strength[entry.key] = score;
             }
           }
         } else {
