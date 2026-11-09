@@ -15,3 +15,6 @@
 * Add SmartField.percentage with a visual percent suffix, exact raw decimal strings, and opt-in sign, precision, and range rules.
 * Add SmartField.url with raw-value preservation, complete http/https syntax validation, and opt-in scheme and bare-domain policies.
 * Add optional asynchronous validation for every SmartField type with debounce, triggers, stale-result protection, loading and unavailable states, and an awaitable SmartFieldAsyncController.
+* Refactor SmartField internals into a shared core with one owned controller and focus node path and a shared design resolver.
+* Add shared fallback design (12px outline, 1px/2px borders, 16x12 padding) that yields to the field decoration and the app theme.
+* Make SmartPhonePolicy.auto validate international numbers with the parser-inferred country when no country is selected.

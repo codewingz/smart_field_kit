@@ -12,6 +12,7 @@ import 'package:smart_field_kit/src/models/smart_phone_value.dart';
 import 'package:smart_field_kit/src/validation/smart_async_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_phone_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_url_validation.dart';
+import 'package:smart_field_kit/src/widgets/smart_field_design.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_otp_field.dart';
 
@@ -1438,21 +1439,24 @@ class _SmartFieldState extends State<SmartField> {
 
   InputDecoration get _effectiveDecoration {
     final decoration = widget.decoration;
-    return decoration.copyWith(
-      labelText: decoration.label == null && decoration.labelText == null
-          ? widget.label
-          : null,
-      hintText: decoration.hint == null && decoration.hintText == null
-          ? widget.hintText
-          : null,
-      suffixText:
-          decoration.suffix == null &&
-              decoration.suffixText == null &&
-              decoration.suffixIcon != null
-          ? widget._percentageSuffix
-          : null,
-      prefixIcon: _searchPrefixIcon(_phonePrefixIcon(decoration.prefixIcon)),
-      suffixIcon: _suffixIcon(decoration.suffixIcon),
+    return SmartFieldDesign.resolve(
+      context,
+      decoration.copyWith(
+        labelText: decoration.label == null && decoration.labelText == null
+            ? widget.label
+            : null,
+        hintText: decoration.hint == null && decoration.hintText == null
+            ? widget.hintText
+            : null,
+        suffixText:
+            decoration.suffix == null &&
+                decoration.suffixText == null &&
+                decoration.suffixIcon != null
+            ? widget._percentageSuffix
+            : null,
+        prefixIcon: _searchPrefixIcon(_phonePrefixIcon(decoration.prefixIcon)),
+        suffixIcon: _suffixIcon(decoration.suffixIcon),
+      ),
     );
   }
 
