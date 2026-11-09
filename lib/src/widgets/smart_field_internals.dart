@@ -313,10 +313,6 @@ final class _SmartFieldCore {
     if (formatter != null) {
       return formatter.normalize(text, allowPartial: partial);
     }
-    final mask = inputMask;
-    if (mask != null) {
-      return mask.extractRaw(text);
-    }
     return valueNormalizer?.call(text);
   }
 }

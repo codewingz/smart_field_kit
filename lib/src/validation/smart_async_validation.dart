@@ -158,7 +158,11 @@ class SmartAsyncValidationEngine {
     if (config.trigger != SmartAsyncValidationTrigger.onChanged) {
       return;
     }
-    if (!isActive() || raw == null || raw.isEmpty || syncError(text) != null) {
+    if (!isActive() ||
+        raw == null ||
+        raw.isEmpty ||
+        text.isEmpty ||
+        syncError(text) != null) {
       return;
     }
     if (config.debounceDuration == Duration.zero) {
@@ -197,7 +201,7 @@ class SmartAsyncValidationEngine {
     if (raw == null || syncError(text) != null) {
       return false;
     }
-    if (raw.isEmpty) {
+    if (raw.isEmpty || text.isEmpty) {
       _invalidate();
       return true;
     }
