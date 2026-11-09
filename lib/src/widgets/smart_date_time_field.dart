@@ -4,6 +4,7 @@ import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_input_mask.dart';
 import 'package:smart_field_kit/src/validation/smart_async_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_validation_options.dart';
+import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_design.dart';
 
@@ -417,27 +418,13 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     }
   }
 
-  bool get _fieldFormatEnabled {
-    if (widget.validationMode == SmartValidationMode.custom) {
-      return false;
-    }
-    if (widget.validationMode == SmartValidationMode.selected) {
-      return widget.builtInChecks.contains(SmartBuiltInCheck.fieldFormat);
-    }
-    return true;
-  }
-
   String? _combine(String? value, String? Function() builtIn) {
-    String? error;
-    if (_fieldFormatEnabled) {
-      error = builtIn();
-    }
-    if (error == null &&
-        widget.validationMode != SmartValidationMode.builtIn &&
-        widget.validator != null) {
-      error = widget.validator!(value);
-    }
-    return error;
+    return SmartValidators.modeAware(
+      mode: widget.validationMode,
+      checks: widget.builtInChecks,
+      builtIn: (_) => builtIn(),
+      custom: widget.validator,
+    )(value);
   }
 
   String? _validateText(String? value) {
