@@ -60,13 +60,13 @@ final class _PhoneFeature extends _FieldFeature {
     actions.addAll([
       if (phone.showContactPicker && _supportsContactPicker)
         IconButton(
-          tooltip: 'Select phone number from contacts',
+          tooltip: phone.contactPickerLabel,
           onPressed: host.isInteractive ? pickContact : null,
           icon: const Icon(Icons.contact_phone),
         ),
       if (phone.showClearButton)
         IconButton(
-          tooltip: 'Clear phone number',
+          tooltip: phone.clearLabel,
           onPressed:
               host.isInteractive &&
                   (host.textController?.text.isNotEmpty ?? false)
@@ -141,8 +141,9 @@ final class _PhoneFeature extends _FieldFeature {
           );
     final picker = Semantics(
       label: selected == null
-          ? 'Select country'
-          : 'Change country, ${selected.name}, ${selected.dialCode}',
+          ? config.selectCountryLabel
+          : (config.changeCountryLabelBuilder?.call(selected) ??
+                'Change country, ${selected.name}, ${selected.dialCode}'),
       button: true,
       enabled: enabled,
       child: InkWell(
@@ -179,9 +180,9 @@ final class _PhoneFeature extends _FieldFeature {
         backgroundColor: theme.colorScheme.surface,
         textStyle: theme.textTheme.bodyLarge,
         searchTextStyle: theme.textTheme.bodyLarge,
-        inputDecoration: const InputDecoration(
-          hintText: 'Search country',
-          prefixIcon: Icon(Icons.search),
+        inputDecoration: InputDecoration(
+          hintText: config.countrySearchHint,
+          prefixIcon: const Icon(Icons.search),
         ),
       ),
       onSelect: (country) {

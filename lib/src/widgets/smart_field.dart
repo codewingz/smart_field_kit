@@ -524,6 +524,8 @@ class SmartField extends _SmartFieldBase {
     bool isLoading = false,
     Widget? searchIcon = const Icon(Icons.search),
     Widget? clearIcon = const Icon(Icons.clear),
+    String clearLabel = 'Clear search',
+    String loadingLabel = 'Loading search',
   }) : super(
          _SmartFieldCore(
            searchConfig: _createSearchConfig(
@@ -536,6 +538,8 @@ class SmartField extends _SmartFieldBase {
              isLoading: isLoading,
              searchIcon: searchIcon,
              clearIcon: clearIcon,
+             clearLabel: clearLabel,
+             loadingLabel: loadingLabel,
            ),
          ),
          keyboardType: TextInputType.text,
@@ -590,6 +594,11 @@ class SmartField extends _SmartFieldBase {
     TextStyle? countryTextStyle,
     Widget? countryPlaceholder,
     EdgeInsetsGeometry? countryPadding,
+    String selectCountryLabel = 'Select country',
+    String Function(SmartPhoneCountry country)? changeCountryLabelBuilder,
+    String contactPickerLabel = 'Select phone number from contacts',
+    String clearLabel = 'Clear phone number',
+    String countrySearchHint = 'Search country',
   }) : super(
          _SmartFieldCore(
            maskConfig: _createMaskConfig(
@@ -616,6 +625,11 @@ class SmartField extends _SmartFieldBase {
              countryTextStyle: countryTextStyle,
              countryPlaceholder: countryPlaceholder,
              countryPadding: countryPadding,
+             selectCountryLabel: selectCountryLabel,
+             changeCountryLabelBuilder: changeCountryLabelBuilder,
+             contactPickerLabel: contactPickerLabel,
+             clearLabel: clearLabel,
+             countrySearchHint: countrySearchHint,
            ),
          ),
          keyboardType: TextInputType.phone,
@@ -659,6 +673,8 @@ class SmartField extends _SmartFieldBase {
     List<SmartPasswordCriterion>? strengthCriteria,
     Map<SmartPasswordStrengthLevel, String>? strengthLabels,
     bool showStrengthChecklist = false,
+    String showPasswordLabel = 'Show password',
+    String hidePasswordLabel = 'Hide password',
   }) : super(
          _SmartFieldCore(
            fieldValidator: policy == null
@@ -670,6 +686,8 @@ class SmartField extends _SmartFieldBase {
            isPassword: true,
            matchController: matchController,
            mismatchMessage: mismatchErrorText,
+           showPasswordLabel: showPasswordLabel,
+           hidePasswordLabel: hidePasswordLabel,
            strength: showStrengthIndicator
                ? _SmartStrengthConfig(
                    criteria: strengthCriteria,
@@ -984,6 +1002,11 @@ class SmartField extends _SmartFieldBase {
     String pastErrorText = 'Choose a date in the past.',
     String futureErrorText = 'Choose a date in the future.',
     ValueChanged<DateTime?>? onDateChanged,
+    String clearLabel = 'Clear',
+    String? pickerLabel,
+    String dayLabel = 'Day',
+    String monthLabel = 'Month',
+    String yearLabel = 'Year',
   }) : assert((firstYear == null) == (lastYear == null)),
        super(
          _SmartFieldCore(
@@ -1010,6 +1033,11 @@ class SmartField extends _SmartFieldBase {
              onRawChanged: onRawChanged,
              onRawSaved: onRawSaved,
              yearRange: firstYear == null ? null : (firstYear, lastYear!),
+             clearLabel: clearLabel,
+             pickerTooltip: pickerLabel,
+             dayLabel: dayLabel,
+             monthLabel: monthLabel,
+             yearLabel: yearLabel,
            ),
          ),
          keyboardType: TextInputType.datetime,
@@ -1049,6 +1077,11 @@ class SmartField extends _SmartFieldBase {
     TimeOfDay? minTime,
     TimeOfDay? maxTime,
     ValueChanged<TimeOfDay?>? onTimeChanged,
+    String clearLabel = 'Clear',
+    String? pickerLabel,
+    String hourLabel = 'Hour',
+    String minuteLabel = 'Minute',
+    String periodLabel = 'AM or PM',
   }) : super(
          _SmartFieldCore(
            dateTimeConfig: SmartDateTimeConfig(
@@ -1066,6 +1099,11 @@ class SmartField extends _SmartFieldBase {
              onTimeChanged: onTimeChanged,
              onRawChanged: onRawChanged,
              onRawSaved: onRawSaved,
+             clearLabel: clearLabel,
+             pickerTooltip: pickerLabel,
+             hourLabel: hourLabel,
+             minuteLabel: minuteLabel,
+             periodLabel: periodLabel,
            ),
          ),
          keyboardType: TextInputType.datetime,
@@ -1109,6 +1147,8 @@ class SmartField extends _SmartFieldBase {
     String pastErrorText = 'Choose a date and time in the past.',
     String futureErrorText = 'Choose a date and time in the future.',
     ValueChanged<DateTime?>? onDateTimeChanged,
+    String clearLabel = 'Clear',
+    String? pickerLabel,
   }) : assert(mode != SmartTimeMode.wheel),
        super(
          _SmartFieldCore(
@@ -1132,6 +1172,8 @@ class SmartField extends _SmartFieldBase {
              pastErrorText: pastErrorText,
              futureErrorText: futureErrorText,
              onDateTimeChanged: onDateTimeChanged,
+             clearLabel: clearLabel,
+             pickerTooltip: pickerLabel,
              onRawChanged: onRawChanged,
              onRawSaved: onRawSaved,
            ),

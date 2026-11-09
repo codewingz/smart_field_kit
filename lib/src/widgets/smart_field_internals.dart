@@ -270,6 +270,8 @@ final class _SmartFieldCore {
     this.formatters = const [],
     this.matchController,
     this.mismatchMessage = 'Passwords do not match.',
+    this.showPasswordLabel = 'Show password',
+    this.hidePasswordLabel = 'Hide password',
     this.strength,
     this.dateTimeConfig,
     this.cardConfig,
@@ -297,6 +299,8 @@ final class _SmartFieldCore {
   final List<TextInputFormatter> formatters;
   final TextEditingController? matchController;
   final String mismatchMessage;
+  final String showPasswordLabel;
+  final String hidePasswordLabel;
   final _SmartStrengthConfig? strength;
   final SmartDateTimeConfig? dateTimeConfig;
   final SmartCreditCardConfig? cardConfig;
@@ -414,6 +418,11 @@ class _SmartPhoneConfig {
     required this.countryTextStyle,
     required this.countryPlaceholder,
     required this.countryPadding,
+    this.selectCountryLabel = 'Select country',
+    this.changeCountryLabelBuilder,
+    this.contactPickerLabel = 'Select phone number from contacts',
+    this.clearLabel = 'Clear phone number',
+    this.countrySearchHint = 'Search country',
   }) : initialCountryCode = initialCountryCode?.toUpperCase(),
        allowedCountryCodes = allowedCountryCodes
            ?.map((code) => code.toUpperCase())
@@ -438,6 +447,11 @@ class _SmartPhoneConfig {
   final TextStyle? countryTextStyle;
   final Widget? countryPlaceholder;
   final EdgeInsetsGeometry? countryPadding;
+  final String selectCountryLabel;
+  final String Function(SmartPhoneCountry country)? changeCountryLabelBuilder;
+  final String contactPickerLabel;
+  final String clearLabel;
+  final String countrySearchHint;
 }
 
 final class _SmartSearchConfig {
@@ -451,6 +465,8 @@ final class _SmartSearchConfig {
     required this.isLoading,
     required this.searchIcon,
     required this.clearIcon,
+    this.clearLabel = 'Clear search',
+    this.loadingLabel = 'Loading search',
   });
 
   final GestureTapCallback? onTap;
@@ -462,6 +478,8 @@ final class _SmartSearchConfig {
   final bool isLoading;
   final Widget? searchIcon;
   final Widget? clearIcon;
+  final String clearLabel;
+  final String loadingLabel;
 
   bool hasSameDebounceBehavior(_SmartSearchConfig other) {
     return onSearch == other.onSearch &&
@@ -479,6 +497,8 @@ _SmartSearchConfig _createSearchConfig({
   required bool isLoading,
   required Widget? searchIcon,
   required Widget? clearIcon,
+  String clearLabel = 'Clear search',
+  String loadingLabel = 'Loading search',
 }) {
   final duration = debounceDuration ?? const Duration(milliseconds: 300);
   if (duration.isNegative) {
@@ -494,6 +514,8 @@ _SmartSearchConfig _createSearchConfig({
     isLoading: isLoading,
     searchIcon: searchIcon,
     clearIcon: clearIcon,
+    clearLabel: clearLabel,
+    loadingLabel: loadingLabel,
   );
 }
 

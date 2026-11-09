@@ -66,6 +66,13 @@ final class SmartDateTimeConfig {
     this.onRawSaved,
     this.yearRange,
     this.pickerTooltip,
+    this.clearLabel = 'Clear',
+    this.dayLabel = 'Day',
+    this.monthLabel = 'Month',
+    this.yearLabel = 'Year',
+    this.hourLabel = 'Hour',
+    this.minuteLabel = 'Minute',
+    this.periodLabel = 'AM or PM',
   }) : dateFormat = dateFormat ?? SmartDateFormat(),
        assert(monthNames.length == 12),
        assert(
@@ -107,6 +114,13 @@ final class SmartDateTimeConfig {
   final FormFieldSetter<String>? onRawSaved;
   final (int, int)? yearRange;
   final String? pickerTooltip;
+  final String clearLabel;
+  final String dayLabel;
+  final String monthLabel;
+  final String yearLabel;
+  final String hourLabel;
+  final String minuteLabel;
+  final String periodLabel;
 
   bool get usesPicker {
     switch (kind) {
@@ -666,6 +680,9 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
         firstYear: _config.yearRange?.$1 ?? bounds.first.year,
         lastYear: _config.yearRange?.$2 ?? bounds.last.year,
         monthNames: _config.monthNames,
+        dayLabel: _config.dayLabel,
+        monthLabel: _config.monthLabel,
+        yearLabel: _config.yearLabel,
       ),
     );
   }
@@ -676,6 +693,9 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       builder: (context) => _TimeWheelSheet(
         initial: _currentTime(),
         use24Hour: _config.timeFormat.use24Hour,
+        hourLabel: _config.hourLabel,
+        minuteLabel: _config.minuteLabel,
+        periodLabel: _config.periodLabel,
       ),
     );
   }
@@ -692,7 +712,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
         !widget.source.readOnly) {
       children.add(
         IconButton(
-          tooltip: 'Clear',
+          tooltip: _config.clearLabel,
           onPressed: _clear,
           icon: const Icon(Icons.clear),
         ),
@@ -957,7 +977,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
             child: Row(
               children: [
                 dropdown<int>(
-                  hint: 'Day',
+                  hint: _config.dayLabel,
                   value: _day,
                   items: days,
                   labelOf: (value) => value.toString(),
@@ -965,7 +985,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
                 ),
                 const SizedBox(width: 8),
                 dropdown<int>(
-                  hint: 'Month',
+                  hint: _config.monthLabel,
                   value: _month,
                   items: [for (var m = 1; m <= 12; m++) m],
                   labelOf: (value) => _config.monthNames[value - 1],
@@ -973,7 +993,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
                 ),
                 const SizedBox(width: 8),
                 dropdown<int>(
-                  hint: 'Year',
+                  hint: _config.yearLabel,
                   value: _year,
                   items: years,
                   labelOf: (value) => value.toString(),
@@ -1076,12 +1096,18 @@ class _DateWheelSheet extends StatefulWidget {
     required this.firstYear,
     required this.lastYear,
     required this.monthNames,
+    required this.dayLabel,
+    required this.monthLabel,
+    required this.yearLabel,
   });
 
   final DateTime initial;
   final int firstYear;
   final int lastYear;
   final List<String> monthNames;
+  final String dayLabel;
+  final String monthLabel;
+  final String yearLabel;
 
   @override
   State<_DateWheelSheet> createState() => _DateWheelSheetState();
@@ -1122,13 +1148,13 @@ class _DateWheelSheetState extends State<_DateWheelSheet> {
       onDone: () => Navigator.of(context).pop(DateTime(_year, _month, _day)),
       children: [
         _WheelColumn(
-          label: 'Day',
+          label: widget.dayLabel,
           items: [for (var d = 1; d <= days; d++) d.toString()],
           controller: _dayController,
           onChanged: (index) => _day = index + 1,
         ),
         _WheelColumn(
-          label: 'Month',
+          label: widget.monthLabel,
           items: widget.monthNames,
           controller: _monthController,
           onChanged: (index) => setState(() {
@@ -1137,7 +1163,7 @@ class _DateWheelSheetState extends State<_DateWheelSheet> {
           }),
         ),
         _WheelColumn(
-          label: 'Year',
+          label: widget.yearLabel,
           items: [
             for (var y = widget.firstYear; y <= widget.lastYear; y++)
               y.toString(),
@@ -1154,10 +1180,19 @@ class _DateWheelSheetState extends State<_DateWheelSheet> {
 }
 
 class _TimeWheelSheet extends StatefulWidget {
-  const _TimeWheelSheet({required this.initial, required this.use24Hour});
+  const _TimeWheelSheet({
+    required this.initial,
+    required this.use24Hour,
+    required this.hourLabel,
+    required this.minuteLabel,
+    required this.periodLabel,
+  });
 
   final TimeOfDay initial;
   final bool use24Hour;
+  final String hourLabel;
+  final String minuteLabel;
+  final String periodLabel;
 
   @override
   State<_TimeWheelSheet> createState() => _TimeWheelSheetState();
@@ -1200,7 +1235,7 @@ class _TimeWheelSheetState extends State<_TimeWheelSheet> {
       onDone: () => Navigator.of(context).pop(_result),
       children: [
         _WheelColumn(
-          label: 'Hour',
+          label: widget.hourLabel,
           items: widget.use24Hour
               ? [for (var h = 0; h < 24; h++) h.toString().padLeft(2, '0')]
               : [for (var h = 1; h <= 12; h++) h.toString().padLeft(2, '0')],
@@ -1208,14 +1243,14 @@ class _TimeWheelSheetState extends State<_TimeWheelSheet> {
           onChanged: (index) => _hour = widget.use24Hour ? index : index + 1,
         ),
         _WheelColumn(
-          label: 'Minute',
+          label: widget.minuteLabel,
           items: [for (var m = 0; m < 60; m++) m.toString().padLeft(2, '0')],
           controller: _minuteController,
           onChanged: (index) => _minute = index,
         ),
         if (!widget.use24Hour)
           _WheelColumn(
-            label: 'AM or PM',
+            label: widget.periodLabel,
             items: const ['AM', 'PM'],
             controller: _periodController,
             onChanged: (index) => _pm = index == 1,
