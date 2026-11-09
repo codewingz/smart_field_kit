@@ -1487,6 +1487,8 @@ This project is licensed under the MIT License.
 
 Copyright (c) 2026 CodeWingz (SMC-PRIVATE) LIMITED.
 
+Prepared and maintained by Muhammad Afzaal, Founder & CEO of CodeWingz.
+
 See the [LICENSE](LICENSE) file for details.
 
 ---
