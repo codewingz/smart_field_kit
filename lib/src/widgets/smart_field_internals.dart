@@ -6,12 +6,206 @@ bool _hasValidLengthRange(int? minLength, int? maxLength) {
       (minLength == null || maxLength == null || minLength <= maxLength);
 }
 
-List<TextInputFormatter>? _composeFormatters(
-  List<TextInputFormatter> own,
-  List<TextInputFormatter>? developer,
-) {
-  final all = [...own, ...?developer];
-  return all.isEmpty ? null : all;
+_SmartFieldCore _textCore({
+  SmartTextCase textCase = SmartTextCase.none,
+  bool collapseWhitespace = false,
+  String? inputMask,
+  String inputMaskErrorText = 'Complete the value.',
+  SmartValueNormalizer? rawValueBuilder,
+  int? minWords,
+  int? maxWords,
+  bool showWordCount = false,
+  String? minWordsErrorText,
+  String? maxWordsErrorText,
+  SmartTextValidationPreset? validationPreset,
+  String? validationPresetErrorText,
+  List<TextInputFormatter> extraFormatters = const [],
+}) {
+  final mask = inputMask == null ? null : SmartInputMask(inputMask);
+  return _SmartFieldCore(
+    fieldValidator: validationPreset == null
+        ? null
+        : SmartValidators.textPreset(
+            validationPreset,
+            message: validationPresetErrorText,
+          ),
+    inputMask: mask,
+    inputMaskMessage: inputMaskErrorText,
+    valueNormalizer: rawValueBuilder ?? mask?.extractRaw,
+    minWords: minWords,
+    maxWords: maxWords,
+    showWordCount: showWordCount,
+    minWordsMessage: minWordsErrorText,
+    maxWordsMessage: maxWordsErrorText,
+    formatters: [
+      if (mask != null) SmartMaskFormatter(mask),
+      if (textCase != SmartTextCase.none) SmartTextCaseFormatter(textCase),
+      if (collapseWhitespace) const SmartWhitespaceFormatter(),
+      ...extraFormatters,
+    ],
+  );
+}
+
+_SmartFieldCore _percentageCore({
+  String? minValue,
+  String? minValueErrorText,
+  String? maxValue,
+  String? maxValueErrorText,
+  int? decimalPlaces,
+  required bool allowNegative,
+  String? percentSymbol,
+  required String errorText,
+}) {
+  final formatter = SmartAmountFormatter(
+    decimalPlaces: decimalPlaces,
+    allowNegative: allowNegative,
+  );
+  return _SmartFieldCore(
+    fieldValidator: SmartValidators.amount(
+      formatter: formatter,
+      message: errorText,
+    ),
+    valueNormalizer: formatter.normalize,
+    minValueValidator: minValue == null
+        ? null
+        : SmartValidators.minValue(
+            minValue,
+            normalizer: formatter.normalize,
+            message: minValueErrorText,
+          ),
+    maxValueValidator: maxValue == null
+        ? null
+        : SmartValidators.maxValue(
+            maxValue,
+            normalizer: formatter.normalize,
+            message: maxValueErrorText,
+          ),
+    percentageSuffix: percentSymbol,
+    formatters: [formatter],
+  );
+}
+
+int? _amountPlaces(Object? decimalLength, int? decimalPlaces) {
+  final length = decimalLength == null
+      ? null
+      : SmartDecimalLength.from(decimalLength);
+  if (length != null &&
+      decimalPlaces != null &&
+      decimalPlaces != length.places) {
+    throw ArgumentError(
+      'decimalPlaces ($decimalPlaces) conflicts with decimalLength '
+      '($decimalLength). Provide only one.',
+    );
+  }
+  return length?.places ?? decimalPlaces;
+}
+
+_SmartFieldCore _amountCore({
+  String? minValue,
+  String? minValueErrorText,
+  String? maxValue,
+  String? maxValueErrorText,
+  int? decimalPlaces,
+  Object? decimalLength,
+  required SmartRoundingMode rounding,
+  required SmartGroupingStyle groupingStyle,
+  required bool useGrouping,
+  required String groupingSeparator,
+  required String decimalSeparator,
+  String? currencySymbol,
+  required SmartCurrencyPosition currencyPosition,
+  required bool allowNegative,
+  required bool mask,
+  required int maskVisibleSuffixDigits,
+  required String maskCharacter,
+  required bool revealMaskOnFocus,
+  required SmartAmountPolicy policy,
+  required String errorText,
+}) {
+  final formatter = SmartAmountFormatter(
+    decimalPlaces: _amountPlaces(decimalLength, decimalPlaces),
+    useGrouping: useGrouping,
+    groupingSeparator: groupingSeparator,
+    decimalSeparator: decimalSeparator,
+    currencySymbol: currencySymbol,
+    currencyPosition: currencyPosition,
+    allowNegative: allowNegative,
+    groupingStyle: groupingStyle,
+    roundingMode: rounding,
+  );
+  return _SmartFieldCore(
+    fieldValidator: SmartValidators.amount(
+      formatter: formatter,
+      policy: policy,
+      message: errorText,
+    ),
+    valueNormalizer: formatter.normalize,
+    minValueValidator: minValue == null
+        ? null
+        : SmartValidators.minValue(
+            minValue,
+            normalizer: formatter.normalize,
+            message: minValueErrorText,
+          ),
+    maxValueValidator: maxValue == null
+        ? null
+        : SmartValidators.maxValue(
+            maxValue,
+            normalizer: formatter.normalize,
+            message: maxValueErrorText,
+          ),
+    amountFormatter: formatter,
+    maskConfig: _createMaskConfig(
+      enabled: mask,
+      kind: _SmartMaskKind.amount,
+      visibleSuffixDigits: maskVisibleSuffixDigits,
+      maskCharacter: maskCharacter,
+      revealOnFocus: revealMaskOnFocus,
+    ),
+    isAmount: true,
+    formatters: [formatter],
+  );
+}
+
+_SmartFieldCore _otpCore({
+  ValueChanged<String>? onCompleted,
+  required int length,
+  required bool obscureText,
+  required SmartOtpPolicy policy,
+  required String digitErrorText,
+  String? otpLengthErrorText,
+  required String legacyErrorText,
+  String? errorText,
+  required bool notifyOnProgrammaticChanges,
+  required SmartOtpStyle style,
+}) {
+  if (length <= 0) {
+    throw ArgumentError.value(length, 'length');
+  }
+  if (policy == SmartOtpPolicy.legacy && length != 6) {
+    throw ArgumentError.value(
+      length,
+      'length',
+      'The legacy OTP policy requires a length of 6.',
+    );
+  }
+  return _SmartFieldCore(
+    fieldValidator: SmartValidators.otp(
+      length: length,
+      policy: policy,
+      digitMessage: digitErrorText,
+      lengthMessage: otpLengthErrorText,
+      legacyMessage: legacyErrorText,
+    ),
+    otpConfig: SmartOtpConfiguration(
+      length: length,
+      obscureText: obscureText,
+      onCompleted: onCompleted,
+      errorText: errorText,
+      notifyOnProgrammaticChanges: notifyOnProgrammaticChanges,
+      style: style,
+    ),
+  );
 }
 
 final class _SmartFieldCore {
@@ -28,6 +222,7 @@ final class _SmartFieldCore {
     this.percentageSuffix,
     this.isPassword = false,
     this.isAmount = false,
+    this.formatters = const [],
     this.matchController,
     this.mismatchMessage = 'Passwords do not match.',
     this.strength,
@@ -54,6 +249,7 @@ final class _SmartFieldCore {
   final String? percentageSuffix;
   final bool isPassword;
   final bool isAmount;
+  final List<TextInputFormatter> formatters;
   final TextEditingController? matchController;
   final String mismatchMessage;
   final _SmartStrengthConfig? strength;
