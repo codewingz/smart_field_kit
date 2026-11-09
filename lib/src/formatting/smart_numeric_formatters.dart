@@ -2,6 +2,109 @@ import 'package:flutter/services.dart';
 
 enum SmartCurrencyPosition { prefix, suffix }
 
+enum SmartGroupingStyle { international, indian }
+
+enum SmartRoundingMode { none, down, up, halfUp, halfEven }
+
+final class SmartDecimalLength {
+  const SmartDecimalLength.none() : places = 0;
+
+  const SmartDecimalLength.fixed(this.places)
+    : assert(places >= 1 && places <= 3);
+
+  factory SmartDecimalLength.from(Object? value) {
+    if (value is SmartDecimalLength) {
+      return value;
+    }
+    if (value == false) {
+      return const SmartDecimalLength.none();
+    }
+    if (value is int && value >= 1 && value <= 3) {
+      return SmartDecimalLength.fixed(value);
+    }
+    throw ArgumentError.value(
+      value,
+      'decimalLength',
+      'Must be false, 1, 2, or 3.',
+    );
+  }
+
+  final int places;
+
+  bool get hasDecimals => places > 0;
+
+  @override
+  bool operator ==(Object other) {
+    return other is SmartDecimalLength && other.places == places;
+  }
+
+  @override
+  int get hashCode => places.hashCode;
+}
+
+abstract final class SmartDecimalUtils {
+  static final RegExp _numberExpression = RegExp(r'^-?\d*(\.\d*)?$');
+
+  static String round(
+    String value, {
+    required int decimalPlaces,
+    required SmartRoundingMode mode,
+  }) {
+    if (decimalPlaces < 0) {
+      throw ArgumentError.value(decimalPlaces, 'decimalPlaces');
+    }
+    if (!_numberExpression.hasMatch(value) || value == '-' || value == '.') {
+      throw FormatException('Not a plain decimal number', value);
+    }
+    final negative = value.startsWith('-');
+    final unsigned = negative ? value.substring(1) : value;
+    final parts = unsigned.split('.');
+    final integer = parts.first.isEmpty ? '0' : parts.first;
+    final fraction = parts.length == 2 ? parts.last : '';
+    if (mode == SmartRoundingMode.none || fraction.length <= decimalPlaces) {
+      return value;
+    }
+    final kept = fraction.substring(0, decimalPlaces);
+    final rest = fraction.substring(decimalPlaces);
+    final restIsZero = !rest.contains(RegExp(r'[1-9]'));
+    var increment = false;
+    if (!restIsZero) {
+      switch (mode) {
+        case SmartRoundingMode.none:
+        case SmartRoundingMode.down:
+          increment = false;
+        case SmartRoundingMode.up:
+          increment = true;
+        case SmartRoundingMode.halfUp:
+          increment = rest.codeUnitAt(0) >= 0x35;
+        case SmartRoundingMode.halfEven:
+          final first = rest.codeUnitAt(0);
+          final tail = rest.substring(1);
+          final tailZero = !tail.contains(RegExp(r'[1-9]'));
+          if (first > 0x35 || first == 0x35 && !tailZero) {
+            increment = true;
+          } else if (first == 0x35) {
+            final lastDigit = (kept.isEmpty ? integer : kept).codeUnitAt(
+              (kept.isEmpty ? integer.length : kept.length) - 1,
+            );
+            increment = (lastDigit - 0x30).isOdd;
+          }
+      }
+    }
+    var digits = BigInt.parse('$integer$kept');
+    if (increment) {
+      digits += BigInt.one;
+    }
+    var text = digits.toString().padLeft(decimalPlaces + 1, '0');
+    final integerLength = text.length - decimalPlaces;
+    final integerPart = text.substring(0, integerLength);
+    final fractionPart = text.substring(integerLength);
+    text = decimalPlaces == 0 ? integerPart : '$integerPart.$fractionPart';
+    final isZero = !text.contains(RegExp(r'[1-9]'));
+    return negative && !isZero ? '-$text' : text;
+  }
+}
+
 final class SmartNumberInputFormatter extends TextInputFormatter {
   const SmartNumberInputFormatter({this.allowNegative = false});
 
@@ -32,6 +135,8 @@ final class SmartAmountFormatter extends TextInputFormatter {
     this.currencySymbol,
     this.currencyPosition = SmartCurrencyPosition.prefix,
     this.allowNegative = false,
+    this.groupingStyle = SmartGroupingStyle.international,
+    this.roundingMode = SmartRoundingMode.none,
   }) : assert(decimalPlaces == null || decimalPlaces >= 0),
        assert(groupingSeparator.length == 1),
        assert(decimalSeparator.length == 1),
@@ -41,7 +146,6 @@ final class SmartAmountFormatter extends TextInputFormatter {
   static final RegExp _digitExpression = RegExp(r'\d');
   static final RegExp _digitsExpression = RegExp(r'^\d+$');
   static final RegExp _optionalDigitsExpression = RegExp(r'^\d*$');
-  static final RegExp _threeDigitsExpression = RegExp(r'^\d{3}$');
 
   final int? decimalPlaces;
   final bool useGrouping;
@@ -50,6 +154,11 @@ final class SmartAmountFormatter extends TextInputFormatter {
   final String? currencySymbol;
   final SmartCurrencyPosition currencyPosition;
   final bool allowNegative;
+  final SmartGroupingStyle groupingStyle;
+  final SmartRoundingMode roundingMode;
+
+  bool get _rounds =>
+      roundingMode != SmartRoundingMode.none && decimalPlaces != null;
 
   @override
   TextEditingValue formatEditUpdate(
@@ -104,7 +213,8 @@ final class SmartAmountFormatter extends TextInputFormatter {
     }
 
     final parts = text.split(decimalSeparator);
-    if (parts.length > 2 || decimalPlaces == 0 && parts.length == 2) {
+    if (parts.length > 2 ||
+        decimalPlaces == 0 && parts.length == 2 && !_rounds) {
       return null;
     }
 
@@ -117,6 +227,7 @@ final class SmartAmountFormatter extends TextInputFormatter {
       return null;
     }
     if (decimalPlaces != null &&
+        !_rounds &&
         fractionPart != null &&
         fractionPart.length > decimalPlaces!) {
       return null;
@@ -146,7 +257,15 @@ final class SmartAmountFormatter extends TextInputFormatter {
     if (hasDecimal) {
       raw = '$raw.$fractionPart';
     }
-    return negative ? '-$raw' : raw;
+    final result = negative ? '-$raw' : raw;
+    if (!allowPartial && _rounds) {
+      return SmartDecimalUtils.round(
+        result,
+        decimalPlaces: decimalPlaces!,
+        mode: roundingMode,
+      );
+    }
+    return result;
   }
 
   String? format(String value) {
@@ -210,13 +329,16 @@ final class SmartAmountFormatter extends TextInputFormatter {
       return null;
     }
     final groups = value.split(groupingSeparator);
+    final indian = groupingStyle == SmartGroupingStyle.indian;
     if (groups.first.isEmpty ||
-        groups.first.length > 3 ||
+        groups.first.length > (indian ? 2 : 3) ||
         !_digitsExpression.hasMatch(groups.first)) {
       return null;
     }
-    for (final group in groups.skip(1)) {
-      if (group.length != 3 || !_threeDigitsExpression.hasMatch(group)) {
+    for (var index = 1; index < groups.length; index++) {
+      final group = groups[index];
+      final expected = indian && index < groups.length - 1 ? 2 : 3;
+      if (group.length != expected || !_digitsExpression.hasMatch(group)) {
         return null;
       }
     }
@@ -230,6 +352,9 @@ final class SmartAmountFormatter extends TextInputFormatter {
   }
 
   String _group(String digits) {
+    if (groupingStyle == SmartGroupingStyle.indian) {
+      return _groupIndian(digits);
+    }
     final firstSize = digits.length % 3;
     final buffer = StringBuffer();
     var index = 0;
@@ -245,6 +370,23 @@ final class SmartAmountFormatter extends TextInputFormatter {
       index += 3;
     }
     return buffer.toString();
+  }
+
+  String _groupIndian(String digits) {
+    if (digits.length <= 3) {
+      return digits;
+    }
+    final last = digits.substring(digits.length - 3);
+    var rest = digits.substring(0, digits.length - 3);
+    final groups = <String>[];
+    while (rest.length > 2) {
+      groups.insert(0, rest.substring(rest.length - 2));
+      rest = rest.substring(0, rest.length - 2);
+    }
+    if (rest.isNotEmpty) {
+      groups.insert(0, rest);
+    }
+    return '${groups.join(groupingSeparator)}$groupingSeparator$last';
   }
 
   TextEditingValue _replaceText(TextEditingValue value, String text) {

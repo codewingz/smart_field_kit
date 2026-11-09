@@ -999,6 +999,9 @@ class SmartField extends StatefulWidget {
     String? restorationId,
     InputDecoration decoration = const InputDecoration(),
     int? decimalPlaces,
+    Object? decimalLength,
+    SmartRoundingMode rounding = SmartRoundingMode.none,
+    SmartGroupingStyle groupingStyle = SmartGroupingStyle.international,
     bool useGrouping = false,
     String groupingSeparator = ',',
     String decimalSeparator = '.',
@@ -1012,14 +1015,28 @@ class SmartField extends StatefulWidget {
     SmartAmountPolicy policy = SmartAmountPolicy.standard,
     String amountErrorText = 'Enter a valid amount.',
   }) {
+    final lengthSetting = decimalLength == null
+        ? null
+        : SmartDecimalLength.from(decimalLength);
+    if (lengthSetting != null &&
+        decimalPlaces != null &&
+        decimalPlaces != lengthSetting.places) {
+      throw ArgumentError(
+        'decimalPlaces ($decimalPlaces) conflicts with decimalLength '
+        '($decimalLength). Provide only one.',
+      );
+    }
+    final places = lengthSetting?.places ?? decimalPlaces;
     final formatter = SmartAmountFormatter(
-      decimalPlaces: decimalPlaces,
+      decimalPlaces: places,
       useGrouping: useGrouping,
       groupingSeparator: groupingSeparator,
       decimalSeparator: decimalSeparator,
       currencySymbol: currencySymbol,
       currencyPosition: currencyPosition,
       allowNegative: allowNegative,
+      groupingStyle: groupingStyle,
+      roundingMode: rounding,
     );
     return SmartField._amount(
       key: key,
@@ -1056,7 +1073,7 @@ class SmartField extends StatefulWidget {
       formatter: formatter,
       policy: policy,
       amountErrorText: amountErrorText,
-      decimalPlaces: decimalPlaces,
+      decimalPlaces: places,
       allowNegative: allowNegative,
       mask: mask,
       maskVisibleSuffixDigits: maskVisibleSuffixDigits,
