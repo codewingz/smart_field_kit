@@ -52,3 +52,4 @@ migrate_working_dir/
 /example/test/
 /example/pubspec.lock
 /TEST_MATRIX.md
+/audit_reports/
