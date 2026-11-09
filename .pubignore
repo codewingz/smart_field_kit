@@ -1,0 +1,54 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+# Libraries should not include pubspec.lock, per https://dart.dev/guides/libraries/private-files#pubspeclock.
+/pubspec.lock
+**/doc/api/
+.dart_tool/
+.flutter-plugins-dependencies
+/build/
+/coverage/
+
+/AGENTS.md
+
+/SMARTFIELD_ALL_TASKS_REFERENCE.txt
+/SMARTFIELD_16A_AUDIT.md
+/SMARTFIELD_16C_FINAL_AUDIT.md
+/SMARTFIELD_16D_REPORT.md
+/SMARTFIELD_16R_REPORT.md
+/SMARTFIELD_16S_ARCHITECTURE_REPORT.md
+/TEST_MATRIX.md
+
+# Not needed in the published archive
+/example/android/
+/example/ios/
+/example/linux/
+/example/macos/
+/example/windows/
+/example/web/
+/example/tool/
+/example/integration_test/
+/example/test/
+/example/pubspec.lock
+/TEST_MATRIX.md

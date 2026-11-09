@@ -1,6 +1,151 @@
 # smart_field_kit
 
-`smart_field_kit` provides reusable Flutter form fields built on Flutter's native Material text-field behavior.
+One `SmartField` widget for the inputs most apps need: plain text, names, email, passwords, phone numbers, amounts, percentages, OTP codes, search, URLs, credit cards, and dates. Every field is a normal Flutter `TextFormField` underneath, so `Form`, `TextEditingController`, `FocusNode`, themes, autofill, and accessibility keep working.
+
+Compared with combining several single-purpose input packages, `smart_field_kit` gives you:
+
+- **One API and one design system.** Every field honors your `InputDecorationTheme`, dark mode, RTL, and text scaling.
+- **Normal by default.** `SmartField()` accepts any text. Required, length, range, and policy rules are opt-in, and you can combine them with your own validator or replace the built-in rules.
+- **Displayed and raw values kept apart.** `50,000.00` is shown while your code receives `50000.00`. Masks never overwrite the real value.
+- **Exact decimals.** Amounts and limits use decimal-string arithmetic, never binary `double` rounding.
+- **Honest validation.** Phone numbers are checked against real numbering metadata with no universal length. Local checks are a convenience, never a replacement for server validation.
+
+![Amount formatting and percentage field](screenshots/amount_percentage_light.png)
+
+## Contents
+
+[Install](#install) · [Quick start](#quick-start) · [Fields at a glance](#fields-at-a-glance) · [Displayed versus raw values](#displayed-versus-raw-values) · [Platform notes](#platform-notes) · [Security notes](#security-notes) · [Example app](#example-app) · [Links](#links)
+
+## Install
+
+```yaml
+dependencies:
+  smart_field_kit: ^0.0.1
+```
+
+The package is not published to pub.dev yet; until it is, depend on it through Git:
+
+```yaml
+dependencies:
+  smart_field_kit:
+    git:
+      url: https://github.com/codewingz/smart_field_kit.git
+```
+
+Requires Dart ^3.13.7 and Flutter 3.44 or later. One import covers everything public:
+
+```dart
+import 'package:smart_field_kit/smart_field_kit.dart';
+```
+
+## Quick start
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:smart_field_kit/smart_field_kit.dart';
+
+class SignUpForm extends StatefulWidget {
+  const SignUpForm({super.key});
+
+  @override
+  State<SignUpForm> createState() => _SignUpFormState();
+}
+
+class _SignUpFormState extends State<SignUpForm> {
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          SmartField.name(label: 'Full name', isRequired: true),
+          SmartField.email(label: 'Email', isRequired: true),
+          SmartField.password(label: 'Password', isRequired: true),
+          SmartField.amount(label: 'Budget', decimalLength: 2, useGrouping: true),
+          FilledButton(
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                _formKey.currentState!.save();
+              }
+            },
+            child: const Text('Create account'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+
+Fields can also be created with `const SmartField(label: 'Notes')`.
+
+## Fields at a glance
+
+| Constructor | Purpose |
+|---|---|
+| `SmartField()` / `.text()` | Normal text, optional word limits, case and whitespace formatters, `inputMask` |
+| `.name()` / `.username()` | Unicode-friendly names; usernames with optional legacy presets |
+| `.email()` | Practical email syntax, optional legacy rule |
+| `.password()` | Visibility toggle, policy, strength indicator, confirm-password matching |
+| `.phone()` | Country picker, four policies, parsed E.164 value, contact picker, masking |
+| `.number()` / `.amount()` / `.percentage()` | Exact integer, grouped decimal, and percentage input with raw values |
+| `.otp()` | Single native input drawn as boxes with autofill and completion |
+| `.description()` | Multiline text that grows and shrinks, word counter |
+| `.search()` | Debounced search with clear, loading, and cancellation |
+| `.url()` | URL syntax and scheme policy |
+| `.creditCard()` | Brand detection, grouping, local number, expiry, and security-code checks |
+| `.date()` / `.time()` / `.dateTime()` | Manual, calendar, dropdown, wheel, and picker input |
+
+Cross-cutting options work on every constructor: four validation modes, selectable built-in checks, `asyncValidation`, `serverError`, `restorationId`, and `decoration`. Each is documented in the sections below.
+
+## Displayed versus raw values
+
+The text in the field is for people; the raw value is for your code.
+
+| Field | User sees | Your code receives |
+|---|---|---|
+| `.amount(decimalLength: 2, useGrouping: true)` | `50,000.00` | `50000.00` through `onRawChanged` / `onRawSaved` |
+| `.percentage()` | `12.5%` | `12.5` (percentage points, never `0.125`) |
+| `.text(inputMask: '####-####')` | `1234-5678` | formatted text in the controller, `12345678` through `onRawChanged` |
+| `.phone(mask: true)` | `*******4567` when unfocused | the real digits in the controller and callbacks |
+
+Pattern masks change the formatted text. Privacy masks (`mask: true`) are visual only and never overwrite the underlying value.
+
+## Platform notes
+
+- Developed and verified with Flutter 3.47.8. Platform behavior beyond the checks listed in the release notes is not claimed.
+- The phone contact picker is shown only on Android and iOS, uses the system picker, and needs no contacts permission.
+- OTP autofill depends on the platform keyboard and the app's configuration; the package never reads SMS or WhatsApp. Behavior differs by device and may not work everywhere.
+- Country names are English unless you add `CountryLocalizations.delegate`.
+
+## Security notes
+
+- Local validation improves the user experience; it does not secure a backend. Prevent SQL injection and similar attacks on the server with parameterized queries, output encoding, and server-side validation.
+- URL validation checks syntax only. It does not tell you whether a site is reachable or safe.
+- Masking is a presentation aid, not encryption.
+- Passwords, OTP codes, and card data are never logged, stored, or restored by the package. `SmartField` does not make an app PCI compliant.
+
+## Example app
+
+The [`example/`](example) app is an interactive showcase of every implemented field, validation mode, formatter, mask, async and server-error flow, and styling option. Run it from the repository root:
+
+```sh
+cd example
+flutter run
+```
+
+## Links
+
+- Repository: https://github.com/codewingz/smart_field_kit
+- Issues: https://github.com/codewingz/smart_field_kit/issues
+- [Changelog](CHANGELOG.md) · [License](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md) · [Contributing](#contributing)
+- API reference: generated by pub.dev after publication. Until then, run `dart doc` locally.
+
+## Contributing
+
+Run `dart format --output=none --set-exit-if-changed .`, `flutter analyze`, and `flutter test` before opening a pull request. Each change should keep the public API stable, include tests, and update this README.
 
 ## Normal SmartField
 
