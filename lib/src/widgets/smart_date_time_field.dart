@@ -798,6 +798,16 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
         initial: initial,
         firstYear: _config.yearRange?.$1 ?? bounds.first.year,
         lastYear: _config.yearRange?.$2 ?? bounds.last.year,
+        minDate:
+            _config.minDate != null ||
+                _config.restriction == SmartDateRestriction.futureOnly
+            ? bounds.first
+            : null,
+        maxDate:
+            _config.maxDate != null ||
+                _config.restriction == SmartDateRestriction.pastOnly
+            ? bounds.last
+            : null,
         monthNames: _config.monthNames,
         dayLabel: _config.dayLabel,
         monthLabel: _config.monthLabel,
@@ -1136,53 +1146,57 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
             decoration: decoration,
             isEmpty: false,
             isFocused: _dropdownFocused,
-            child: Row(
-              children: [
-                dropdown(
-                  flex: 3,
-                  hint: _config.dayLabel,
-                  value: _day,
-                  items: _cachedItems(
-                    'd:${days.join(',')}',
-                    days,
-                    (value) => value.toString(),
+            child: SmartScaleToFit(
+              minChildWidth:
+                  16 + 4 * (24 + MediaQuery.textScalerOf(context).scale(16)),
+              child: Row(
+                children: [
+                  dropdown(
+                    flex: 3,
+                    hint: _config.dayLabel,
+                    value: _day,
+                    items: _cachedItems(
+                      'd:${days.join(',')}',
+                      days,
+                      (value) => value.toString(),
+                    ),
+                    onChanged: (value) => _setPart(state, day: value),
                   ),
-                  onChanged: (value) => _setPart(state, day: value),
-                ),
-                const SizedBox(width: 8),
-                dropdown(
-                  flex: 5,
-                  hint: _config.monthLabel,
-                  value: _month,
-                  items: _cachedItems('m:${monthNames.join('|')}', const [
-                    1,
-                    2,
-                    3,
-                    4,
-                    5,
-                    6,
-                    7,
-                    8,
-                    9,
-                    10,
-                    11,
-                    12,
-                  ], (value) => monthNames[value - 1]),
-                  onChanged: (value) => _setPart(state, month: value),
-                ),
-                const SizedBox(width: 8),
-                dropdown(
-                  flex: 4,
-                  hint: _config.yearLabel,
-                  value: _year,
-                  items: _cachedItems(
-                    'y:${years.first}-${years.last}-${years.length}',
-                    years,
-                    (value) => value.toString(),
+                  const SizedBox(width: 8),
+                  dropdown(
+                    flex: 5,
+                    hint: _config.monthLabel,
+                    value: _month,
+                    items: _cachedItems('m:${monthNames.join('|')}', const [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7,
+                      8,
+                      9,
+                      10,
+                      11,
+                      12,
+                    ], (value) => monthNames[value - 1]),
+                    onChanged: (value) => _setPart(state, month: value),
                   ),
-                  onChanged: (value) => _setPart(state, year: value),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  dropdown(
+                    flex: 4,
+                    hint: _config.yearLabel,
+                    value: _year,
+                    items: _cachedItems(
+                      'y:${years.first}-${years.last}-${years.length}',
+                      years,
+                      (value) => value.toString(),
+                    ),
+                    onChanged: (value) => _setPart(state, year: value),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -1234,11 +1248,13 @@ class _SheetFrame extends StatelessWidget {
     required this.children,
     required this.onCancel,
     required this.onDone,
+    this.onScrollEnd,
   });
 
   final List<Widget> children;
   final VoidCallback onCancel;
-  final VoidCallback onDone;
+  final VoidCallback? onDone;
+  final NotificationListenerCallback<ScrollEndNotification>? onScrollEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -1264,7 +1280,10 @@ class _SheetFrame extends StatelessWidget {
             height: 180,
             child: Directionality(
               textDirection: TextDirection.ltr,
-              child: Row(children: children),
+              child: NotificationListener<ScrollEndNotification>(
+                onNotification: onScrollEnd,
+                child: Row(children: children),
+              ),
             ),
           ),
         ],
@@ -1278,6 +1297,8 @@ class _DateWheelSheet extends StatefulWidget {
     required this.initial,
     required this.firstYear,
     required this.lastYear,
+    required this.minDate,
+    required this.maxDate,
     required this.monthNames,
     required this.dayLabel,
     required this.monthLabel,
@@ -1287,6 +1308,8 @@ class _DateWheelSheet extends StatefulWidget {
   final DateTime initial;
   final int firstYear;
   final int lastYear;
+  final DateTime? minDate;
+  final DateTime? maxDate;
   final List<String> monthNames;
   final String dayLabel;
   final String monthLabel;
@@ -1323,18 +1346,77 @@ class _DateWheelSheetState extends State<_DateWheelSheet> {
     }
   }
 
+  DateTime? get _nearestAllowed {
+    final selected = DateTime(_year, _month, _day);
+    final min = widget.minDate;
+    final max = widget.maxDate;
+    DateTime? target;
+    if (min != null && selected.isBefore(min)) {
+      target = min;
+    } else if (max != null && selected.isAfter(max)) {
+      target = max;
+    }
+    if (target == null ||
+        target.year < widget.firstYear ||
+        target.year > widget.lastYear) {
+      return null;
+    }
+    return target;
+  }
+
+  bool get _outOfRange {
+    final selected = DateTime(_year, _month, _day);
+    final min = widget.minDate;
+    final max = widget.maxDate;
+    return (min != null && selected.isBefore(min)) ||
+        (max != null && selected.isAfter(max));
+  }
+
+  bool _settled(ScrollEndNotification notification) {
+    final target = _nearestAllowed;
+    if (target == null) {
+      return false;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      const duration = Duration(milliseconds: 200);
+      const curve = Curves.easeOut;
+      _yearController.animateToItem(
+        target.year - widget.firstYear,
+        duration: duration,
+        curve: curve,
+      );
+      _monthController.animateToItem(
+        target.month - 1,
+        duration: duration,
+        curve: curve,
+      );
+      _dayController.animateToItem(
+        target.day - 1,
+        duration: duration,
+        curve: curve,
+      );
+    });
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final days = SmartDateUtils.daysInMonth(_year, _month);
     return _SheetFrame(
       onCancel: () => Navigator.of(context).pop(),
-      onDone: () => Navigator.of(context).pop(DateTime(_year, _month, _day)),
+      onDone: _outOfRange
+          ? null
+          : () => Navigator.of(context).pop(DateTime(_year, _month, _day)),
+      onScrollEnd: _settled,
       children: [
         _WheelColumn(
           label: widget.dayLabel,
           items: [for (var d = 1; d <= days; d++) d.toString()],
           controller: _dayController,
-          onChanged: (index) => _day = index + 1,
+          onChanged: (index) => setState(() => _day = index + 1),
         ),
         _WheelColumn(
           label: widget.monthLabel,

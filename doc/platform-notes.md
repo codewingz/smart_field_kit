@@ -15,6 +15,10 @@ Most field controls use Flutter's Material widgets. Some features depend on mobi
 | macOS | The example builds and the integration tests pass on macOS desktop. The contact button is not shown on desktop |
 | Windows and Linux | Not tested locally. CI is configured to run the package tests on Windows; no hosted run has been verified yet |
 | Keyboards that compose text (IME) | Text is not changed while the keyboard is still composing. When the composed text is committed and the field's input rule rejects it, the field returns to the text it held before that composition, with the caret where the composition began. This is covered by simulated composition tests; hardware and third-party keyboards were not tested |
+| Digits | Number, amount, percentage, OTP, card, date, and time fields accept ASCII digits `0`-`9` only. Arabic-Indic (`١٢٣`), Persian (`۱۲۳`), and fullwidth digits are not entered and no message is shown; a phone field keeps them and reports the number as invalid. They are not converted to ASCII |
+| Decimal separator | With `decimalSeparator: ','` the comma is the only decimal key; a typed `.` is not treated as the decimal. On a device whose numeric keypad offers only `.`, the user cannot type the decimal part |
+| 12-hour time | The `AM` and `PM` markers are fixed English text |
+| Narrow layouts and large text | When a phone field's flag and dial code would take more than half of the space available to them, they are drawn smaller instead of overflowing. Date dropdowns are drawn smaller together when the field is too narrow for the three controls (about 210 px at normal text size with a clear button). Nothing is clipped or hidden; in those cases the dropdown touch areas are smaller than 48 px |
 | Contact picker | Depends on the native system picker and requires available platform behavior |
 | OTP autofill | Keyboard/platform hints may assist autofill; this package does not itself read SMS or WhatsApp |
 | Date-time | Local/timezone-naive date-time at minute precision; the consuming app owns timezone conversion and DST policy |
