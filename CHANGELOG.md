@@ -52,6 +52,7 @@
 
 ### Fixed
 
+* Remove a displayed asynchronous validation error when its result is dropped because the text controller was replaced or the field was disabled; the field then shows the validation state of its current value.
 * Expose each password-strength checklist rule to screen readers with a checked or not-checked state.
 * Fix layout overflow in the phone field's country prefix at large text sizes and in date dropdowns on very narrow widths.
 * Wheel date picker: roll back to the nearest allowed date and disable confirmation when the wheels stop outside `minDate`, `maxDate`, or `restriction`.

@@ -146,7 +146,7 @@ Status values: `idle`, `pending`, `valid`, `invalid`, `unavailable`.
 
 - The checker receives the raw value: the typed text, the normalized number for `.amount()` and `.percentage()` (no grouping, currency symbol, or `%`), and the unmasked text for masked fields. Phone fields pass the entered text.
 
-- Any edit, clear, reset, controller replacement, or disabling discards the previous result and ignores late completions. A parent rebuild never discards a result or restarts a check, whether the `validator` is written inline or kept in a variable: a pending check finishes with the function it started with, and a completed result is kept until the value changes or you call `validateAsync(force: true)`. `validateAsync()` returns `false` if the value changed while it ran.
+- Any edit, clear, reset, controller replacement, or disabling discards the previous result and ignores late completions. When a controller replacement or disabling discards a result whose error is on screen, that error is removed and the field is validated again for its current value, without a new asynchronous request. A parent rebuild never discards a result or restarts a check, whether the `validator` is written inline or kept in a variable: a pending check finishes with the function it started with, and a completed result is kept until the value changes or you call `validateAsync(force: true)`. `validateAsync()` returns `false` if the value changed while it ran.
 
 - A thrown error or timeout gives `unavailable` and the unavailable message; it never counts as valid. Calling `validateAsync()` again retries. An accepted or rejected value is cached until it changes; use `force: true` to ask again.
 

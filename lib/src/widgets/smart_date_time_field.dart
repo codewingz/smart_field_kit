@@ -454,9 +454,19 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
             ))) {
       _loadPartsFromController();
       _resetBaseline = _composeDate();
+      final status = _engine?.status;
+      final hadError =
+          status == SmartAsyncValidationStatus.invalid ||
+          status == SmartAsyncValidationStatus.unavailable;
+      if (wasDropdown) {
+        _engine?.reset();
+      }
       scheduleMicrotask(() {
         if (mounted) {
           _dropdownKey.currentState?.didChange(_composeDate());
+          if (hadError && wasDropdown) {
+            _dropdownKey.currentState?.validate();
+          }
         }
       });
     }
