@@ -7,6 +7,7 @@ abstract interface class _FieldHost {
   TextEditingController? get textController;
   FocusNode? get focusNode;
   GlobalKey<FormFieldState<String>> get fieldKey;
+  bool get isEnabled;
   bool get isInteractive;
   String get currentText;
   String? validateSync(String? value);
@@ -181,7 +182,7 @@ final class _PasswordFeature extends _FieldFeature {
     }
     final core = host.field._core;
     final label = obscure ? core.showPasswordLabel : core.hidePasswordLabel;
-    final enabled = host.field.enabled ?? host.field.decoration.enabled;
+    final enabled = host.isEnabled;
     void toggle() {
       obscure = !obscure;
       host.rebuild();
@@ -230,7 +231,7 @@ final class _PercentageFeature extends _FieldFeature {
       return;
     }
     final theme = Theme.of(host.context);
-    final enabled = host.field.enabled ?? original.enabled;
+    final enabled = host.isEnabled;
     final color = enabled
         ? theme.colorScheme.onSurfaceVariant
         : theme.disabledColor;
@@ -400,7 +401,7 @@ final class _MaskFeature extends _FieldFeature {
     }
     final field = host.field;
     final decoration = field.decoration;
-    final enabled = field.enabled ?? decoration.enabled;
+    final enabled = host.isEnabled;
     final canReveal = host.isInteractive && config.revealOnFocus;
     final label =
         decoration.labelText ?? _textOf(decoration.label) ?? field.label;
@@ -646,7 +647,7 @@ final class _AsyncFeature extends _FieldFeature {
       engine.reset();
     }
     _lastController = controller;
-    if (!(host.field.enabled ?? host.field.decoration.enabled)) {
+    if (!host.isEnabled) {
       engine.reset();
     } else if (observeExisting && !_observedExisting) {
       _observedExisting = true;
@@ -729,9 +730,7 @@ final class _AsyncFeature extends _FieldFeature {
 
   @override
   Widget wrap(Widget child) {
-    return Focus(
-      canRequestFocus: false,
-      skipTraversal: true,
+    return smartPassiveFocus(
       onFocusChange: (focused) {
         if (!focused) {
           engine.focusLost();

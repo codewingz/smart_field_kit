@@ -359,7 +359,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   TextEditingController get _controller => _input.controller;
 
   bool get _enabled =>
-      widget.source.enabled ?? widget.source.decoration.enabled;
+      smartResolveEnabled(widget.source.enabled, widget.source.decoration);
 
   bool get _isDropdown =>
       _config.kind == SmartDateTimeKind.date &&
@@ -482,7 +482,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       readText: _dropdownText,
       toRaw: _config.serialize,
       syncError: (_) => _syncPartsError(),
-      isActive: () => mounted && _enabled && !widget.source.readOnly,
+      isActive: () => mounted && _interactive,
       onUpdate: _asyncUpdated,
       onResultDropped: () {
         if (mounted) {
@@ -835,11 +835,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
         _enabled &&
         !widget.source.readOnly) {
       children.add(
-        IconButton(
-          tooltip: _config.clearLabel,
-          onPressed: _clear,
-          icon: const Icon(Icons.clear),
-        ),
+        smartClearButton(tooltip: _config.clearLabel, onPressed: _clear),
       );
     }
     if (_config.usesPicker) {
@@ -848,7 +844,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
         IconButton(
           tooltip:
               _config.pickerTooltip ?? (isTime ? 'Choose time' : 'Choose date'),
-          onPressed: _enabled && !widget.source.readOnly ? _openPicker : null,
+          onPressed: _interactive ? _openPicker : null,
           icon: Icon(isTime ? Icons.access_time : Icons.calendar_today),
         ),
       );
@@ -876,7 +872,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     if (!_config.usesPicker) {
       return field;
     }
-    final canOpen = _enabled && !widget.source.readOnly;
+    final canOpen = _interactive;
     return SmartPickerScope(
       interactive: canOpen,
       child: _buildPicker(canOpen, field),
@@ -924,9 +920,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   Widget _buildPicker(bool canOpen, Widget field) {
     return Semantics(
       onTap: canOpen ? _openPicker : null,
-      child: Focus(
-        canRequestFocus: false,
-        skipTraversal: true,
+      child: smartPassiveFocus(
         onKeyEvent: (node, event) {
           if (event is! KeyDownEvent || !canOpen) {
             return KeyEventResult.ignored;
@@ -1056,15 +1050,13 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     final maxDay = _month == null
         ? 31
         : SmartDateUtils.daysInMonth(_year ?? 2000, _month!);
-    final interactive = _enabled && !widget.source.readOnly;
+    final interactive = _interactive;
     final days = [for (var d = 1; d <= maxDay; d++) d];
     final selectedDay = _day;
     if (selectedDay != null && !days.contains(selectedDay)) {
       days.add(selectedDay);
     }
-    return Focus(
-      canRequestFocus: false,
-      skipTraversal: true,
+    return smartPassiveFocus(
       onFocusChange: (focused) {
         if (mounted && focused != _dropdownFocused) {
           setState(() => _dropdownFocused = focused);
@@ -1127,10 +1119,9 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
           final suffix = composeSuffixActions([
             ?source.suffixIcon,
             if (_config.showClearButton && anySet && interactive)
-              IconButton(
+              smartClearButton(
                 tooltip: _config.clearLabel,
                 onPressed: () => _clearParts(state),
-                icon: const Icon(Icons.clear),
               ),
           ]);
           final decoration = SmartFieldDesign.resolve(

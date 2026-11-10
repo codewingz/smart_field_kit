@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
-import 'package:smart_field_kit/src/formatting/smart_text_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_composing.dart';
+import 'package:smart_field_kit/src/formatting/smart_text_utils.dart';
 
 enum SmartUsernameCharacters { any, letters, lettersAndDigits, usernameSafe }
 

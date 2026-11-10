@@ -1,4 +1,5 @@
 import 'package:characters/characters.dart';
+import 'package:smart_field_kit/src/validation/smart_character_classes.dart';
 
 enum SmartPasswordStrengthLevel { empty, weak, fair, good, strong }
 
@@ -14,22 +15,22 @@ final class SmartPasswordCriterion {
 
   static final SmartPasswordCriterion uppercase = SmartPasswordCriterion(
     'An uppercase letter',
-    (value) => RegExp(r'\p{Lu}', unicode: true).hasMatch(value),
+    smartUppercaseExpression.hasMatch,
   );
 
   static final SmartPasswordCriterion lowercase = SmartPasswordCriterion(
     'A lowercase letter',
-    (value) => RegExp(r'\p{Ll}', unicode: true).hasMatch(value),
+    smartLowercaseExpression.hasMatch,
   );
 
   static final SmartPasswordCriterion digit = SmartPasswordCriterion(
     'A number',
-    (value) => RegExp(r'\p{Nd}', unicode: true).hasMatch(value),
+    smartDigitExpression.hasMatch,
   );
 
   static final SmartPasswordCriterion specialCharacter = SmartPasswordCriterion(
     'A special character',
-    (value) => RegExp(r'[^\p{L}\p{N}\p{M}\s]', unicode: true).hasMatch(value),
+    smartSpecialExpression.hasMatch,
   );
 
   final String label;

@@ -115,3 +115,32 @@ class SmartLtrContentScope extends InheritedWidget {
 String smartIsolateLtr(String text) {
   return text.isEmpty ? text : '\u2066$text\u2069';
 }
+
+bool smartResolveEnabled(bool? enabled, InputDecoration decoration) {
+  return enabled ?? decoration.enabled;
+}
+
+Widget smartClearButton({
+  required String tooltip,
+  required VoidCallback? onPressed,
+}) {
+  return IconButton(
+    tooltip: tooltip,
+    onPressed: onPressed,
+    icon: const Icon(Icons.clear),
+  );
+}
+
+Widget smartPassiveFocus({
+  required Widget child,
+  ValueChanged<bool>? onFocusChange,
+  FocusOnKeyEventCallback? onKeyEvent,
+}) {
+  return Focus(
+    canRequestFocus: false,
+    skipTraversal: true,
+    onFocusChange: onFocusChange,
+    onKeyEvent: onKeyEvent,
+    child: child,
+  );
+}
