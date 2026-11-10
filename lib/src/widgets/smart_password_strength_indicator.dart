@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_field_kit/src/smart_default_texts.dart';
 import 'package:smart_field_kit/src/validation/smart_password_strength.dart';
 
 class SmartPasswordStrengthIndicator extends StatelessWidget {
@@ -8,7 +9,7 @@ class SmartPasswordStrengthIndicator extends StatelessWidget {
     this.criteria,
     this.labels,
     this.showChecklist = false,
-    this.title = 'Password strength',
+    this.title = smartStrengthTitleText,
   });
 
   final String password;

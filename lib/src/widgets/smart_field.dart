@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
+import 'package:smart_field_kit/src/formatting/smart_card_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_composing.dart';
 import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_input_mask.dart';
@@ -14,22 +15,23 @@ import 'package:smart_field_kit/src/formatting/smart_text_utils.dart';
 import 'package:smart_field_kit/src/masking/smart_masking.dart';
 import 'package:smart_field_kit/src/models/smart_otp_style.dart';
 import 'package:smart_field_kit/src/models/smart_phone_value.dart';
+import 'package:smart_field_kit/src/smart_default_texts.dart';
 import 'package:smart_field_kit/src/validation/smart_async_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_password_strength.dart';
+import 'package:smart_field_kit/src/validation/smart_phone_separators.dart';
 import 'package:smart_field_kit/src/validation/smart_phone_validation.dart';
-import 'package:smart_field_kit/src/validation/smart_validation_options.dart';
 import 'package:smart_field_kit/src/validation/smart_url_validation.dart';
-import 'package:smart_field_kit/src/formatting/smart_card_utils.dart';
+import 'package:smart_field_kit/src/validation/smart_validation_options.dart';
+import 'package:smart_field_kit/src/validation/smart_validators.dart';
+import 'package:smart_field_kit/src/widgets/smart_amount_display.dart';
 import 'package:smart_field_kit/src/widgets/smart_credit_card_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_date_time_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_design.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_support.dart';
-import 'package:smart_field_kit/src/widgets/smart_amount_display.dart';
 import 'package:smart_field_kit/src/widgets/smart_listener_binding.dart';
+import 'package:smart_field_kit/src/widgets/smart_otp_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_password_strength_indicator.dart';
 import 'package:smart_field_kit/src/widgets/smart_search_debouncer.dart';
-import 'package:smart_field_kit/src/validation/smart_validators.dart';
-import 'package:smart_field_kit/src/widgets/smart_otp_field.dart';
 
 part 'smart_field_features.dart';
 part 'smart_field_internals.dart';
@@ -60,7 +62,7 @@ abstract class _SmartFieldBase extends StatefulWidget {
     this.onRawChanged,
     this.onRawSaved,
     this.isRequired = false,
-    this.requiredErrorText = 'This field is required.',
+    this.requiredErrorText = smartRequiredText,
     this.minLength,
     this.minLengthErrorText,
     this.maxLength,
@@ -334,7 +336,7 @@ class SmartField extends _SmartFieldBase {
     bool collapseWhitespace = false,
     String? inputMask,
     SmartValueNormalizer? rawValueBuilder,
-    String inputMaskErrorText = 'Complete the value.',
+    String inputMaskErrorText = smartInputMaskErrorText,
     int? minWords,
     int? maxWords,
     bool showWordCount = false,
@@ -397,7 +399,7 @@ class SmartField extends _SmartFieldBase {
     super.onFieldSubmitted,
     super.onTap,
     SmartEmailPolicy policy = SmartEmailPolicy.standard,
-    String emailErrorText = 'Enter a valid email address.',
+    String emailErrorText = smartEmailErrorText,
   }) : super(
          _SmartFieldCore(
            fieldValidator: SmartValidators.email(
@@ -552,7 +554,7 @@ class SmartField extends _SmartFieldBase {
     super.inputFormatters,
     SmartTextCase usernameCase = SmartTextCase.none,
     SmartUsernameCharacters allowedCharacters = SmartUsernameCharacters.any,
-    String allowedCharactersErrorText = 'Use only the allowed characters.',
+    String allowedCharactersErrorText = smartAllowedCharactersText,
     SmartTextValidationPreset? validationPreset,
     String? validationPresetErrorText,
   }) : super(
@@ -614,8 +616,8 @@ class SmartField extends _SmartFieldBase {
     bool isLoading = false,
     Widget? searchIcon = const Icon(Icons.search),
     Widget? clearIcon = const Icon(Icons.clear),
-    String clearLabel = 'Clear search',
-    String loadingLabel = 'Loading search',
+    String clearLabel = smartClearSearchText,
+    String loadingLabel = smartLoadingSearchText,
   }) : super(
          _SmartFieldCore(
            searchConfig: _createSearchConfig(
@@ -684,7 +686,7 @@ class SmartField extends _SmartFieldBase {
     bool showContactPicker = false,
     bool showClearButton = false,
     SmartPhonePolicy policy = SmartPhonePolicy.auto,
-    String phoneErrorText = 'Enter a valid phone number.',
+    String phoneErrorText = smartPhoneErrorText,
     SmartPhoneCountryChanged? onCountryChanged,
     SmartPhoneChanged? onPhoneChanged,
     ValueChanged<SmartPhonePickerError>? onContactPickerError,
@@ -694,11 +696,11 @@ class SmartField extends _SmartFieldBase {
     TextStyle? countryTextStyle,
     Widget? countryPlaceholder,
     EdgeInsetsGeometry? countryPadding,
-    String selectCountryLabel = 'Select country',
+    String selectCountryLabel = smartSelectCountryText,
     String Function(SmartPhoneCountry country)? changeCountryLabelBuilder,
-    String contactPickerLabel = 'Select phone number from contacts',
-    String clearLabel = 'Clear phone number',
-    String countrySearchHint = 'Search country',
+    String contactPickerLabel = smartContactPickerText,
+    String clearLabel = smartClearPhoneText,
+    String countrySearchHint = smartCountrySearchText,
   }) : super(
          _SmartFieldCore(
            maskConfig: _createMaskConfig(
@@ -779,19 +781,19 @@ class SmartField extends _SmartFieldBase {
     SmartPasswordPolicy? policy,
     String passwordErrorText = 'Password does not meet the selected policy.',
     TextEditingController? matchController,
-    String mismatchErrorText = 'Passwords do not match.',
+    String mismatchErrorText = smartMismatchText,
     bool showStrengthIndicator = false,
     List<SmartPasswordCriterion>? strengthCriteria,
     Map<SmartPasswordStrengthLevel, String>? strengthLabels,
     bool showStrengthChecklist = false,
-    String strengthTitle = 'Password strength',
-    String showPasswordLabel = 'Show password',
-    String hidePasswordLabel = 'Hide password',
-    String uppercaseErrorText = 'Include an uppercase letter.',
-    String lowercaseErrorText = 'Include a lowercase letter.',
-    String digitErrorText = 'Include a digit.',
-    String specialCharacterErrorText = 'Include a special character.',
-    String noWhitespaceErrorText = 'Do not use spaces.',
+    String strengthTitle = smartStrengthTitleText,
+    String showPasswordLabel = smartShowPasswordText,
+    String hidePasswordLabel = smartHidePasswordText,
+    String uppercaseErrorText = smartUppercaseRuleText,
+    String lowercaseErrorText = smartLowercaseRuleText,
+    String digitErrorText = smartDigitRuleText,
+    String specialCharacterErrorText = smartSpecialRuleText,
+    String noWhitespaceErrorText = smartWhitespaceRuleText,
   }) : super(
          _SmartFieldCore(
            fieldValidator: policy == null
@@ -1372,8 +1374,8 @@ class SmartField extends _SmartFieldBase {
     String expiryErrorText = 'Enter a valid expiry date.',
     String expiredErrorText = 'This card has expired.',
     String? cvvErrorText,
-    String showCvvLabel = 'Show security code',
-    String hideCvvLabel = 'Hide security code',
+    String showCvvLabel = smartShowSecurityCodeText,
+    String hideCvvLabel = smartHideSecurityCodeText,
     SmartServerError? numberServerError,
     SmartServerError? expiryServerError,
     SmartServerError? cvvServerError,
@@ -1514,9 +1516,10 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
   GlobalKey<FormFieldState<String>> get fieldKey => _fieldKey;
 
   @override
-  bool get isInteractive {
-    return (widget.enabled ?? widget.decoration.enabled) && !widget.readOnly;
-  }
+  bool get isEnabled => smartResolveEnabled(widget.enabled, widget.decoration);
+
+  @override
+  bool get isInteractive => isEnabled && !widget.readOnly;
 
   @override
   String get currentText =>
@@ -1874,11 +1877,7 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
             ? widget.decoration
             : widget.decoration.copyWith(errorText: asyncError),
       );
-      return _wrapFeatures(
-        async == null
-            ? Focus(canRequestFocus: false, skipTraversal: true, child: otp)
-            : otp,
-      );
+      return _wrapFeatures(async == null ? smartPassiveFocus(child: otp) : otp);
     }
     final mask = _feature<_MaskFeature>();
     final ltrContent =
@@ -1953,13 +1952,13 @@ SmartField smartConcealedSecurityCodeField({
   TextInputAction? textInputAction,
   ValueChanged<String>? onChanged,
   bool isRequired = false,
-  String requiredErrorText = 'This field is required.',
+  String requiredErrorText = smartRequiredText,
   FormFieldValidator<String>? validator,
   AutovalidateMode? autovalidateMode,
   SmartServerError? serverError,
   InputDecoration decoration = const InputDecoration(),
-  String showLabel = 'Show security code',
-  String hideLabel = 'Hide security code',
+  String showLabel = smartShowSecurityCodeText,
+  String hideLabel = smartHideSecurityCodeText,
 }) {
   return SmartField._securityCode(
     showLabel: showLabel,

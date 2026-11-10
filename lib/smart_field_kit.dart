@@ -3,8 +3,6 @@ library;
 export 'src/formatting/smart_card_utils.dart';
 export 'src/formatting/smart_date_utils.dart';
 export 'src/formatting/smart_input_mask.dart';
-export 'src/formatting/smart_text_formatters.dart';
-export 'src/formatting/smart_text_utils.dart';
 export 'src/formatting/smart_numeric_formatters.dart'
     show
         SmartAmountFormatter,
@@ -14,6 +12,8 @@ export 'src/formatting/smart_numeric_formatters.dart'
         SmartGroupingStyle,
         SmartNumberInputFormatter,
         SmartRoundingMode;
+export 'src/formatting/smart_text_formatters.dart';
+export 'src/formatting/smart_text_utils.dart';
 export 'src/masking/smart_masking.dart';
 export 'src/models/smart_otp_style.dart';
 export 'src/models/smart_phone_value.dart';

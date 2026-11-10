@@ -2,12 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:smart_field_kit/src/formatting/smart_composing.dart';
 import 'package:smart_field_kit/src/models/smart_otp_style.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_support.dart';
 import 'package:smart_field_kit/src/widgets/smart_listener_binding.dart';
-import 'package:smart_field_kit/src/formatting/smart_composing.dart';
 
 class SmartOtpConfiguration {
   const SmartOtpConfiguration({
@@ -72,7 +72,8 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
 
   FocusNode get _focusNode => _input.focusNode;
 
-  bool get _enabled => widget.source.enabled ?? widget.decoration.enabled;
+  bool get _enabled =>
+      smartResolveEnabled(widget.source.enabled, widget.decoration);
 
   @override
   void initState() {

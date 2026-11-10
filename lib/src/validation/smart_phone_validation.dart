@@ -1,5 +1,7 @@
 import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 import 'package:smart_field_kit/src/models/smart_phone_value.dart';
+import 'package:smart_field_kit/src/validation/smart_phone_separators.dart';
+import 'package:smart_field_kit/src/smart_default_texts.dart';
 
 enum SmartPhonePolicy { auto, syntaxOnly, countryAware, legacy }
 
@@ -9,25 +11,14 @@ abstract final class SmartPhoneValidation {
   static const legacyErrorLabel = 'lbl_phone_8';
 
   static final RegExp _legacyExpression = RegExp(legacyExpression);
+  static final RegExp _digit = RegExp(r'\d');
   static final RegExp _syntaxExpression = RegExp(r'^\+?[0-9 ()-]+$');
-
-  static final RegExp _directionMarks = RegExp(
-    '[\u200e\u200f\u202a-\u202e\u2066-\u2069]',
-  );
-  static final RegExp _spaceLike = RegExp('[\u00a0\u2007\u202f.]');
-
-  static String _normalizeSeparators(String value) {
-    return value
-        .replaceAll(_directionMarks, '')
-        .replaceAll(_spaceLike, ' ')
-        .trim();
-  }
 
   static String? validate(
     String? input, {
     required SmartPhonePolicy policy,
     SmartPhoneCountry? country,
-    String message = 'Enter a valid phone number.',
+    String message = smartPhoneErrorText,
   }) {
     if (input == null || input.isEmpty) {
       return null;
@@ -35,7 +26,7 @@ abstract final class SmartPhoneValidation {
     if (policy == SmartPhonePolicy.legacy) {
       return _legacyExpression.hasMatch(input) ? null : message;
     }
-    final value = _normalizeSeparators(input);
+    final value = smartNormalizePhoneSeparators(input);
     if (!_hasValidSyntax(value)) {
       return message;
     }
@@ -63,7 +54,7 @@ abstract final class SmartPhoneValidation {
     String input, {
     SmartPhoneCountry? country,
   }) {
-    final value = _normalizeSeparators(input);
+    final value = smartNormalizePhoneSeparators(input);
     if (value.isEmpty || !_hasValidSyntax(value)) {
       return SmartPhoneValue(
         text: input,
@@ -88,7 +79,7 @@ abstract final class SmartPhoneValidation {
   }
 
   static String? parsedIsoCode(String input) {
-    final value = _normalizeSeparators(input);
+    final value = smartNormalizePhoneSeparators(input);
     if (!_hasValidSyntax(value) || !value.startsWith('+')) {
       return null;
     }
@@ -116,7 +107,7 @@ abstract final class SmartPhoneValidation {
   }
 
   static bool _hasValidSyntax(String value) {
-    if (!_syntaxExpression.hasMatch(value) || !RegExp(r'\d').hasMatch(value)) {
+    if (!_syntaxExpression.hasMatch(value) || !_digit.hasMatch(value)) {
       return false;
     }
     var depth = 0;
@@ -133,7 +124,7 @@ abstract final class SmartPhoneValidation {
           return false;
         }
         depth = 0;
-      } else if (depth == 1 && RegExp(r'\d').hasMatch(character)) {
+      } else if (depth == 1 && _digit.hasMatch(character)) {
         digitsInParentheses++;
       }
     }

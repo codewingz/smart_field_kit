@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/formatting/smart_card_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_input_mask.dart';
+import 'package:smart_field_kit/src/smart_default_texts.dart';
 import 'package:smart_field_kit/src/validation/smart_validation_options.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_field.dart';
@@ -72,8 +73,8 @@ final class SmartCreditCardConfig {
     this.expiryErrorText = 'Enter a valid expiry date.',
     this.expiredErrorText = 'This card has expired.',
     this.cvvErrorText,
-    this.showCvvLabel = 'Show security code',
-    this.hideCvvLabel = 'Hide security code',
+    this.showCvvLabel = smartShowSecurityCodeText,
+    this.hideCvvLabel = smartHideSecurityCodeText,
     this.numberServerError,
     this.expiryServerError,
     this.cvvServerError,
@@ -368,7 +369,10 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
 
   @override
   Widget build(BuildContext context) {
-    final enabled = widget.source.enabled ?? widget.source.decoration.enabled;
+    final enabled = smartResolveEnabled(
+      widget.source.enabled,
+      widget.source.decoration,
+    );
     final brand = _brand;
     final assessment = _assess();
     final numberDecoration = widget.source.decoration.copyWith(

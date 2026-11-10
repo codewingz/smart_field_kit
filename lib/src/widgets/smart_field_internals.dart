@@ -91,7 +91,7 @@ _SmartFieldCore _textCore({
   SmartTextCase textCase = SmartTextCase.none,
   bool collapseWhitespace = false,
   String? inputMask,
-  String inputMaskErrorText = 'Complete the value.',
+  String inputMaskErrorText = smartInputMaskErrorText,
   SmartValueNormalizer? rawValueBuilder,
   int? minWords,
   int? maxWords,
@@ -103,7 +103,7 @@ _SmartFieldCore _textCore({
   String? validationPresetErrorText,
   List<TextInputFormatter> extraFormatters = const [],
   SmartUsernameCharacters allowedCharacters = SmartUsernameCharacters.any,
-  String allowedCharactersErrorText = 'Use only the allowed characters.',
+  String allowedCharactersErrorText = smartAllowedCharactersText,
 }) {
   final mask = inputMask == null ? null : SmartInputMask(inputMask);
   final preset = validationPreset == null
@@ -300,14 +300,14 @@ final class _SmartFieldCore {
     this.isAmount = false,
     this.formatters = const [],
     this.matchController,
-    this.mismatchMessage = 'Passwords do not match.',
-    this.showPasswordLabel = 'Show password',
-    this.hidePasswordLabel = 'Hide password',
+    this.mismatchMessage = smartMismatchText,
+    this.showPasswordLabel = smartShowPasswordText,
+    this.hidePasswordLabel = smartHidePasswordText,
     this.strength,
     this.dateTimeConfig,
     this.cardConfig,
     this.inputMask,
-    this.inputMaskMessage = 'Complete the value.',
+    this.inputMaskMessage = smartInputMaskErrorText,
     this.minWords,
     this.maxWords,
     this.showWordCount = false,
@@ -317,11 +317,11 @@ final class _SmartFieldCore {
     this.trimOnSave = false,
     this.wordCountBuilder,
     this.passwordRuleMessages = const (
-      uppercase: 'Include an uppercase letter.',
-      lowercase: 'Include a lowercase letter.',
-      digit: 'Include a digit.',
-      special: 'Include a special character.',
-      whitespace: 'Do not use spaces.',
+      uppercase: smartUppercaseRuleText,
+      lowercase: smartLowercaseRuleText,
+      digit: smartDigitRuleText,
+      special: smartSpecialRuleText,
+      whitespace: smartWhitespaceRuleText,
     ),
   });
 
@@ -471,11 +471,11 @@ class _SmartPhoneConfig {
     required this.countryTextStyle,
     required this.countryPlaceholder,
     required this.countryPadding,
-    this.selectCountryLabel = 'Select country',
+    this.selectCountryLabel = smartSelectCountryText,
     this.changeCountryLabelBuilder,
-    this.contactPickerLabel = 'Select phone number from contacts',
-    this.clearLabel = 'Clear phone number',
-    this.countrySearchHint = 'Search country',
+    this.contactPickerLabel = smartContactPickerText,
+    this.clearLabel = smartClearPhoneText,
+    this.countrySearchHint = smartCountrySearchText,
   }) : initialCountryCode = initialCountryCode?.toUpperCase(),
        allowedCountryCodes = allowedCountryCodes
            ?.map((code) => code.toUpperCase())
@@ -520,8 +520,8 @@ final class _SmartSearchConfig {
     required this.isLoading,
     required this.searchIcon,
     required this.clearIcon,
-    this.clearLabel = 'Clear search',
-    this.loadingLabel = 'Loading search',
+    this.clearLabel = smartClearSearchText,
+    this.loadingLabel = smartLoadingSearchText,
   });
 
   final GestureTapCallback? onTap;
@@ -552,8 +552,8 @@ _SmartSearchConfig _createSearchConfig({
   required bool isLoading,
   required Widget? searchIcon,
   required Widget? clearIcon,
-  String clearLabel = 'Clear search',
-  String loadingLabel = 'Loading search',
+  String clearLabel = smartClearSearchText,
+  String loadingLabel = smartLoadingSearchText,
 }) {
   final duration = debounceDuration ?? const Duration(milliseconds: 300);
   if (duration.isNegative) {
@@ -579,7 +579,7 @@ final class _SmartStrengthConfig {
     required this.criteria,
     required this.labels,
     required this.showChecklist,
-    this.title = 'Password strength',
+    this.title = smartStrengthTitleText,
   });
 
   final String title;

@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
-import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_composing.dart';
+import 'package:smart_field_kit/src/formatting/smart_separator_deletion.dart';
+import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
 
 enum SmartCardBrand {
   visa('Visa', {16, 18, 19}, 3, 16, [4, 8, 12]),
@@ -608,21 +609,20 @@ final class SmartCardNumberFormatter extends TextInputFormatter {
     var baseDigits = digitsBefore(newValue.selection.baseOffset);
     var extentDigits = digitsBefore(newValue.selection.extentOffset);
     var finalDigits = digits;
-    final deletedSpace =
-        newValue.text.length < oldValue.text.length &&
-        digits == oldDigits &&
-        newValue.selection.isCollapsed;
-    final forward =
-        oldValue.selection.isCollapsed &&
-        oldValue.selection.baseOffset == newValue.selection.baseOffset;
-    if (deletedSpace && forward && baseDigits < digits.length) {
+    final deletion = digits == oldDigits
+        ? smartSeparatorDeletion(
+            oldValue: oldValue,
+            newValue: newValue,
+            rawCaret: baseDigits,
+            rawLength: digits.length,
+          )
+        : null;
+    final deletedSpace = deletion != null;
+    if (deletion != null) {
       finalDigits =
-          digits.substring(0, baseDigits) + digits.substring(baseDigits + 1);
-      extentDigits = baseDigits;
-    } else if (deletedSpace && baseDigits > 0) {
-      finalDigits =
-          digits.substring(0, baseDigits - 1) + digits.substring(baseDigits);
-      baseDigits--;
+          digits.substring(0, deletion.removeAt) +
+          digits.substring(deletion.removeAt + 1);
+      baseDigits = deletion.caret;
       extentDigits = baseDigits;
     }
     final finalDisplay = SmartCardUtils.format(finalDigits);

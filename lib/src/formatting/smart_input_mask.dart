@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/formatting/smart_composing.dart';
+import 'package:smart_field_kit/src/formatting/smart_separator_deletion.dart';
 
 final class _MaskToken {
   const _MaskToken.literal(this.character) : slot = null;
@@ -202,25 +203,20 @@ final class SmartMaskFormatter extends TextInputFormatter {
     var baseRaw = rawAt(newValue.selection.baseOffset);
     var extentRaw = rawAt(newValue.selection.extentOffset);
     final oldRaw = mask.extractRaw(oldValue.text);
-    final deletedOnlyLiteral =
-        oldRaw != null &&
-        newValue.text.length < oldValue.text.length &&
-        raw == oldRaw &&
-        newValue.selection.isCollapsed &&
-        (baseRaw > 0 ||
-            oldValue.selection.baseOffset == newValue.selection.baseOffset);
-    if (deletedOnlyLiteral) {
-      final characters = raw.runes.map(String.fromCharCode).toList();
-      final forward =
-          oldValue.selection.isCollapsed &&
-          oldValue.selection.baseOffset == newValue.selection.baseOffset;
-      if (forward && baseRaw < characters.length) {
-        characters.removeAt(baseRaw);
-      } else {
-        characters.removeAt(baseRaw - 1);
-        baseRaw--;
-      }
+    final characters = raw.runes.map(String.fromCharCode).toList();
+    final deletion = oldRaw != null && raw == oldRaw
+        ? smartSeparatorDeletion(
+            oldValue: oldValue,
+            newValue: newValue,
+            rawCaret: baseRaw,
+            rawLength: characters.length,
+          )
+        : null;
+    final deletedOnlyLiteral = deletion != null;
+    if (deletion != null) {
+      characters.removeAt(deletion.removeAt);
       raw = characters.join();
+      baseRaw = deletion.caret;
       extentRaw = baseRaw;
     }
     final applied = mask.apply(raw);

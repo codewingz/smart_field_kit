@@ -65,14 +65,13 @@ final class _PhoneFeature extends _FieldFeature {
           icon: const Icon(Icons.contact_phone),
         ),
       if (phone.showClearButton)
-        IconButton(
+        smartClearButton(
           tooltip: phone.clearLabel,
           onPressed:
               host.isInteractive &&
                   (host.textController?.text.isNotEmpty ?? false)
               ? clear
               : null,
-          icon: const Icon(Icons.clear),
         ),
     ]);
   }
@@ -366,12 +365,7 @@ final class _PhoneFeature extends _FieldFeature {
     if (parsedIsoCode != null && !_isCountryAllowed(parsedIsoCode)) {
       return (country: null, disallowed: true);
     }
-    final compact = value.replaceAll(
-      RegExp(
-        '[ ().\\-\u00a0\u2007\u202f\u200e\u200f\u202a-\u202e\u2066-\u2069]',
-      ),
-      '',
-    );
+    final compact = smartCompactPhone(value);
     final all = _countryService.getAll();
     final matching = all
         .where((country) => compact.startsWith('+${country.phoneCode}'))

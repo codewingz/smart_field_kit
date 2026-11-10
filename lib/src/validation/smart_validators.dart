@@ -3,6 +3,8 @@ import 'package:smart_field_kit/src/formatting/smart_card_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_numeric_formatters.dart';
 import 'package:smart_field_kit/src/formatting/smart_text_utils.dart';
 import 'package:smart_field_kit/src/models/smart_phone_value.dart';
+import 'package:smart_field_kit/src/smart_default_texts.dart';
+import 'package:smart_field_kit/src/validation/smart_character_classes.dart';
 import 'package:smart_field_kit/src/validation/smart_phone_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_url_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_validation_options.dart';
@@ -126,26 +128,11 @@ abstract final class SmartValidators {
   );
   static final RegExp _legacyNumberExpression = RegExp(legacyNumberExpression);
   static final RegExp _legacyAmountExpression = RegExp(legacyAmountExpression);
-  static final RegExp _hasUppercaseExpression = RegExp(
-    r'\p{Lu}',
-    unicode: true,
-  );
-  static final RegExp _hasLowercaseExpression = RegExp(
-    r'\p{Ll}',
-    unicode: true,
-  );
-  static final RegExp _hasDigitExpression = RegExp(r'\p{Nd}', unicode: true);
-  static final RegExp _hasSpecialExpression = RegExp(
-    r'[^\p{L}\p{N}\p{M}\s]',
-    unicode: true,
-  );
   static final RegExp _whitespaceExpression = RegExp(r'\s');
   static final RegExp _asciiDigitsExpression = RegExp(r'^[0-9]+$');
   static final RegExp _legacyOtpExpression = RegExp(legacyOtpExpression);
 
-  static SmartValidator requiredField({
-    String message = 'This field is required.',
-  }) {
+  static SmartValidator requiredField({String message = smartRequiredText}) {
     return (value) {
       if (value == null || value.trim().isEmpty) {
         return message;
@@ -303,7 +290,7 @@ abstract final class SmartValidators {
 
   static SmartValidator email({
     SmartEmailPolicy policy = SmartEmailPolicy.standard,
-    String message = 'Enter a valid email address.',
+    String message = smartEmailErrorText,
   }) {
     return (value) {
       if (value == null || value.isEmpty) {
@@ -340,30 +327,30 @@ abstract final class SmartValidators {
 
   static SmartValidator passwordRules(
     Set<SmartBuiltInCheck> checks, {
-    String uppercaseMessage = 'Include an uppercase letter.',
-    String lowercaseMessage = 'Include a lowercase letter.',
-    String digitMessage = 'Include a digit.',
-    String specialCharacterMessage = 'Include a special character.',
-    String noWhitespaceMessage = 'Do not use spaces.',
+    String uppercaseMessage = smartUppercaseRuleText,
+    String lowercaseMessage = smartLowercaseRuleText,
+    String digitMessage = smartDigitRuleText,
+    String specialCharacterMessage = smartSpecialRuleText,
+    String noWhitespaceMessage = smartWhitespaceRuleText,
   }) {
     return (value) {
       if (value == null || value.isEmpty) {
         return null;
       }
       if (checks.contains(SmartBuiltInCheck.passwordUppercase) &&
-          !_hasUppercaseExpression.hasMatch(value)) {
+          !smartUppercaseExpression.hasMatch(value)) {
         return uppercaseMessage;
       }
       if (checks.contains(SmartBuiltInCheck.passwordLowercase) &&
-          !_hasLowercaseExpression.hasMatch(value)) {
+          !smartLowercaseExpression.hasMatch(value)) {
         return lowercaseMessage;
       }
       if (checks.contains(SmartBuiltInCheck.passwordDigit) &&
-          !_hasDigitExpression.hasMatch(value)) {
+          !smartDigitExpression.hasMatch(value)) {
         return digitMessage;
       }
       if (checks.contains(SmartBuiltInCheck.passwordSpecialCharacter) &&
-          !_hasSpecialExpression.hasMatch(value)) {
+          !smartSpecialExpression.hasMatch(value)) {
         return specialCharacterMessage;
       }
       if (checks.contains(SmartBuiltInCheck.passwordNoWhitespace) &&
@@ -488,7 +475,7 @@ abstract final class SmartValidators {
   static SmartValidator phone({
     SmartPhonePolicy policy = SmartPhonePolicy.auto,
     SmartPhoneCountry? country,
-    String message = 'Enter a valid phone number.',
+    String message = smartPhoneErrorText,
   }) {
     return (value) => SmartPhoneValidation.validate(
       value,
