@@ -258,6 +258,7 @@ void main() {
 
   testWidgets(
     'native contact selection updates once and infers unique country',
+    skip: kIsWeb,
     (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       final controller = TextEditingController(text: 'old');
@@ -289,68 +290,74 @@ void main() {
     },
   );
 
-  testWidgets('contact cancel and invalid values preserve existing text', (
-    tester,
-  ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-    final controller = TextEditingController(text: '03001234567');
-    addTearDown(controller.dispose);
-    final errors = <SmartPhonePickerError>[];
-    var resultIndex = 0;
-    final results = <String?>[null, '', 'bad number', '001234567'];
+  testWidgets(
+    'contact cancel and invalid values preserve existing text',
+    skip: kIsWeb,
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      final controller = TextEditingController(text: '03001234567');
+      addTearDown(controller.dispose);
+      final errors = <SmartPhonePickerError>[];
+      var resultIndex = 0;
+      final results = <String?>[null, '', 'bad number', '001234567'];
 
-    await tester.pumpWidget(
-      _app(
-        SmartField.phone(
-          controller: controller,
-          showContactPicker: true,
-          contactPicker: () async => results[resultIndex++],
-          onContactPickerError: errors.add,
+      await tester.pumpWidget(
+        _app(
+          SmartField.phone(
+            controller: controller,
+            showContactPicker: true,
+            contactPicker: () async => results[resultIndex++],
+            onContactPickerError: errors.add,
+          ),
         ),
-      ),
-    );
+      );
 
-    for (var index = 0; index < results.length; index++) {
+      for (var index = 0; index < results.length; index++) {
+        await tester.tap(find.byTooltip('Select phone number from contacts'));
+        await tester.pumpAndSettle();
+        expect(controller.text, '03001234567');
+      }
+      debugDefaultTargetPlatformOverride = null;
+      expect(errors.map((error) => error.code), [
+        SmartPhonePickerErrorCode.unavailableNumber,
+        SmartPhonePickerErrorCode.invalidNumber,
+        SmartPhonePickerErrorCode.invalidNumber,
+      ]);
+    },
+  );
+
+  testWidgets(
+    'contact selection rejects a uniquely disallowed country',
+    skip: kIsWeb,
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final controller = TextEditingController(text: 'unchanged');
+      addTearDown(controller.dispose);
+      SmartPhonePickerError? error;
+
+      await tester.pumpWidget(
+        _app(
+          SmartField.phone(
+            controller: controller,
+            showContactPicker: true,
+            allowedCountryCodes: const ['PK'],
+            contactPicker: () async => '+442079460018',
+            onContactPickerError: (value) => error = value,
+          ),
+        ),
+      );
+
       await tester.tap(find.byTooltip('Select phone number from contacts'));
       await tester.pumpAndSettle();
-      expect(controller.text, '03001234567');
-    }
-    debugDefaultTargetPlatformOverride = null;
-    expect(errors.map((error) => error.code), [
-      SmartPhonePickerErrorCode.unavailableNumber,
-      SmartPhonePickerErrorCode.invalidNumber,
-      SmartPhonePickerErrorCode.invalidNumber,
-    ]);
-  });
+      debugDefaultTargetPlatformOverride = null;
+      expect(controller.text, 'unchanged');
+      expect(error?.code, SmartPhonePickerErrorCode.disallowedCountry);
+    },
+  );
 
-  testWidgets('contact selection rejects a uniquely disallowed country', (
+  testWidgets('shared dialing code does not guess a country', skip: kIsWeb, (
     tester,
   ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    final controller = TextEditingController(text: 'unchanged');
-    addTearDown(controller.dispose);
-    SmartPhonePickerError? error;
-
-    await tester.pumpWidget(
-      _app(
-        SmartField.phone(
-          controller: controller,
-          showContactPicker: true,
-          allowedCountryCodes: const ['PK'],
-          contactPicker: () async => '+442079460018',
-          onContactPickerError: (value) => error = value,
-        ),
-      ),
-    );
-
-    await tester.tap(find.byTooltip('Select phone number from contacts'));
-    await tester.pumpAndSettle();
-    debugDefaultTargetPlatformOverride = null;
-    expect(controller.text, 'unchanged');
-    expect(error?.code, SmartPhonePickerErrorCode.disallowedCountry);
-  });
-
-  testWidgets('shared dialing code does not guess a country', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     final controller = TextEditingController();
     addTearDown(controller.dispose);
@@ -390,33 +397,37 @@ void main() {
     expect(find.byIcon(Icons.contact_phone), findsNothing);
   });
 
-  testWidgets('contact platform errors are reported without text exposure', (
+  testWidgets(
+    'contact platform errors are reported without text exposure',
+    skip: kIsWeb,
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final controller = TextEditingController(text: 'unchanged');
+      addTearDown(controller.dispose);
+      SmartPhonePickerError? error;
+
+      await tester.pumpWidget(
+        _app(
+          SmartField.phone(
+            controller: controller,
+            showContactPicker: true,
+            contactPicker: () => Future<String?>.error(StateError('failure')),
+            onContactPickerError: (value) => error = value,
+          ),
+        ),
+      );
+      await tester.tap(find.byTooltip('Select phone number from contacts'));
+      await tester.pumpAndSettle();
+      debugDefaultTargetPlatformOverride = null;
+      expect(controller.text, 'unchanged');
+      expect(error?.code, SmartPhonePickerErrorCode.platformFailure);
+      expect(error?.message, 'Unable to open the contact picker.');
+    },
+  );
+
+  testWidgets('async contact result is ignored after disposal', skip: kIsWeb, (
     tester,
   ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    final controller = TextEditingController(text: 'unchanged');
-    addTearDown(controller.dispose);
-    SmartPhonePickerError? error;
-
-    await tester.pumpWidget(
-      _app(
-        SmartField.phone(
-          controller: controller,
-          showContactPicker: true,
-          contactPicker: () => Future<String?>.error(StateError('failure')),
-          onContactPickerError: (value) => error = value,
-        ),
-      ),
-    );
-    await tester.tap(find.byTooltip('Select phone number from contacts'));
-    await tester.pumpAndSettle();
-    debugDefaultTargetPlatformOverride = null;
-    expect(controller.text, 'unchanged');
-    expect(error?.code, SmartPhonePickerErrorCode.platformFailure);
-    expect(error?.message, 'Unable to open the contact picker.');
-  });
-
-  testWidgets('async contact result is ignored after disposal', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     final completer = Completer<String?>();
 

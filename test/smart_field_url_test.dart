@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -329,7 +330,7 @@ void main() {
       expect(controller.value.composing, const TextRange(start: 8, end: 9));
     });
 
-    testWidgets('undo and redo restore raw text', (tester) async {
+    testWidgets('undo and redo restore raw text', skip: kIsWeb, (tester) async {
       final controller = TextEditingController();
       addTearDown(controller.dispose);
       await tester.pumpWidget(_app(SmartField.url(controller: controller)));

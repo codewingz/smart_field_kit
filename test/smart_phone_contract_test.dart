@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
@@ -98,12 +99,19 @@ void main() {
   });
 
   group('contact picker permissions', () {
-    test('the example apps declare no contacts permission', () {
-      final manifest = File('example/android/app/src/main/AndroidManifest.xml')
-          .readAsStringSync();
-      expect(manifest, isNot(contains('READ_CONTACTS')));
-      final plist = File('example/ios/Runner/Info.plist').readAsStringSync();
-      expect(plist, isNot(contains('NSContactsUsageDescription')));
-    });
+    test(
+      'the example apps declare no contacts permission',
+      skip: kIsWeb
+          ? 'Reads project files through dart:io, which is unavailable in a browser.'
+          : null,
+      () {
+        final manifest = File(
+          'example/android/app/src/main/AndroidManifest.xml',
+        ).readAsStringSync();
+        expect(manifest, isNot(contains('READ_CONTACTS')));
+        final plist = File('example/ios/Runner/Info.plist').readAsStringSync();
+        expect(plist, isNot(contains('NSContactsUsageDescription')));
+      },
+    );
   });
 }

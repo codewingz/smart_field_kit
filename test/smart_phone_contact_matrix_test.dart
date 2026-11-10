@@ -24,7 +24,7 @@ void main() {
     Future<void> Function(WidgetTester tester) body, {
     TargetPlatform platform = TargetPlatform.android,
   }) {
-    testWidgets(name, (tester) async {
+    testWidgets(name, skip: kIsWeb, (tester) async {
       debugDefaultTargetPlatformOverride = platform;
       try {
         await body(tester);
@@ -432,27 +432,39 @@ void main() {
     expect(find.byType(SnackBar), findsOneWidget);
   });
 
-  test('C17 no contact or SMS permissions are declared by the example app', () {
-    final manifest = File('example/android/app/src/main/AndroidManifest.xml')
-        .readAsStringSync();
-    expect(manifest, isNot(contains('READ_CONTACTS')));
-    expect(manifest, isNot(contains('READ_SMS')));
-    expect(manifest, isNot(contains('RECEIVE_SMS')));
-    final plist = File('example/ios/Runner/Info.plist').readAsStringSync();
-    expect(plist, isNot(contains('NSContactsUsageDescription')));
-  });
+  test(
+    'C17 no contact or SMS permissions are declared by the example app',
+    skip: kIsWeb
+        ? 'Reads project files through dart:io, which is unavailable in a browser.'
+        : null,
+    () {
+      final manifest = File('example/android/app/src/main/AndroidManifest.xml')
+          .readAsStringSync();
+      expect(manifest, isNot(contains('READ_CONTACTS')));
+      expect(manifest, isNot(contains('READ_SMS')));
+      expect(manifest, isNot(contains('RECEIVE_SMS')));
+      final plist = File('example/ios/Runner/Info.plist').readAsStringSync();
+      expect(plist, isNot(contains('NSContactsUsageDescription')));
+    },
+  );
 
-  test('C18 library code never requests permissions or reads SMS', () {
-    final sources = Directory('lib')
-        .listSync(recursive: true)
-        .whereType<File>();
-    for (final file in sources) {
-      final text = file.readAsStringSync();
-      expect(text, isNot(contains('permission_handler')), reason: file.path);
-      expect(text, isNot(contains('READ_SMS')), reason: file.path);
-      expect(text, isNot(contains('RECEIVE_SMS')), reason: file.path);
-      expect(text, isNot(contains('requestPermission')), reason: file.path);
-      expect(text, isNot(contains('sms_autofill')), reason: file.path);
-    }
-  });
+  test(
+    'C18 library code never requests permissions or reads SMS',
+    skip: kIsWeb
+        ? 'Reads project files through dart:io, which is unavailable in a browser.'
+        : null,
+    () {
+      final sources = Directory('lib')
+          .listSync(recursive: true)
+          .whereType<File>();
+      for (final file in sources) {
+        final text = file.readAsStringSync();
+        expect(text, isNot(contains('permission_handler')), reason: file.path);
+        expect(text, isNot(contains('READ_SMS')), reason: file.path);
+        expect(text, isNot(contains('RECEIVE_SMS')), reason: file.path);
+        expect(text, isNot(contains('requestPermission')), reason: file.path);
+        expect(text, isNot(contains('sms_autofill')), reason: file.path);
+      }
+    },
+  );
 }
