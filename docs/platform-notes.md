@@ -1,0 +1,47 @@
+# Platform notes
+
+Part of the [smart_field_kit documentation](../README.md).
+
+## Platform behavior and limitations
+
+Most field controls use Flutter's Material widgets. Some features depend on mobile platform APIs, keyboard behavior or accessibility services.
+
+| Area | Current behavior or limitation |
+|---|---|
+| Flutter and Dart versions | Requires Flutter 3.44.0 or later and Dart 3.12.0 or later. Analysis, all package tests, the example tests, and the example web build pass on Flutter 3.44.0 (Dart 3.12.0) and on Flutter 3.47.8 (Dart 3.13.7). Flutter 3.44 is the oldest version the bundled contact-picker plugin accepts |
+| Flutter web | The package test suite runs on Chrome (797 tests pass; 44 are skipped there because they need the native contact picker, read project files, or assert native focus and undo behaviour). The example web build passes. On web, Flutter selects all text when a field gains focus programmatically, and the browser owns the undo shortcut |
+| iOS | The example integration tests (card entry, amount formatting, RTL digit order, calendar and country pickers, dropdown dates, password toggle, masking) pass on an iPhone 17 simulator. The native contact picker, the system keyboard, SMS code autofill, and VoiceOver were not exercised |
+| Android | The same integration tests pass on an Android API 36 emulator. The merged example manifest declares no contacts permission. The native contact picker, third-party keyboards, SMS code autofill, and TalkBack were not exercised |
+| macOS | The example builds and the integration tests pass on macOS desktop. The contact button is not shown on desktop |
+| Windows and Linux | Not tested locally. CI is configured to run the package tests on Windows; no hosted run has been verified yet |
+| Contact picker | Depends on the native system picker and requires available platform behavior |
+| OTP autofill | Keyboard/platform hints may assist autofill; this package does not itself read SMS or WhatsApp |
+| Date-time | Local/timezone-naive date-time at minute precision; the consuming app owns timezone conversion and DST policy |
+| State restoration | Password and OTP are intentionally excluded; fields with owned or app-supplied controllers have documented limits |
+| RuPay | No specific RuPay card-brand mapping has been claimed; uncertain prefixes remain unknown or match other supported brands |
+| Luhn exceptions | UnionPay exempt by default; developer can override |
+| Date-time picker modes | `dateTime()` supports manual and picker, not a date-time wheel mode |
+| Accessibility | RTL and text scaling are designed into the UI, but full TalkBack/VoiceOver platform checks are still required |
+
+**Do not interpret this table as a certification that every platform has been tested.** Check the latest release notes and platform test matrix before depending on a device-specific behavior.
+
+## Troubleshooting
+
+| Symptom | What to check |
+|---|---|
+| `flutter pub add smart_field_kit` cannot find the package | The package is pre-publication; use the local `path:` dependency until it is released |
+| Validation doesn't reject an empty value | Empty is optional by default; add `isRequired: true` |
+| An email or URL is valid locally but cannot be used | Syntax validation cannot verify inbox/site existence or safety |
+| `FormState.validate()` finishes before async validation | Await each `SmartFieldAsyncController.validateAsync()` in your submit workflow |
+| Currency or percentage symbols appear in callback text | Understand the displayed `onChanged` versus `onRawChanged` contract for that field |
+| Money has too many fractional digits | Check `decimalLength`, `decimalPlaces`, `rounding` and the edit/focus state |
+| An amount is not grouped | Enable `useGrouping` and check whether the field is currently focused |
+| A phone number fails country validation | Check `SmartPhonePolicy`, selected country and whether the number starts with `+` |
+| An OTP isn't auto-read from messages | This package does not implement SMS/WhatsApp reading |
+| A masked input reveals its raw text | Editable masked fields can reveal on focus; check `revealMaskOnFocus` |
+| A card passes Luhn but payment fails | Luhn does not prove card existence, balance or issuer approval |
+| UnionPay should be strict | Pass `luhnExemptBrands: const {}` to enable Luhn for UnionPay |
+| Date-time shifts after converting to UTC | Date/time values are local and timezone-naive; apply app-specific timezone logic |
+| Contact picker doesn't open | Test device support, native integration and platform setup |
+| A controller is unexpectedly disposed | Confirm who created the controller; application-created controllers remain application-owned |
+| Custom border or padding isn't visible | An explicit `InputDecoration` or app `InputDecorationTheme` takes priority over package fallback |

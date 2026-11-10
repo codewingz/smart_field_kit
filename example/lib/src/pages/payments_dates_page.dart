@@ -64,9 +64,10 @@ class _PaymentsDatesPageState extends State<PaymentsDatesPage> {
               'Tap a sample to fill the number. Everything is checked locally '
               'and instantly: brand, grouping, length, Luhn, expiry, and '
               'brand-specific security-code length. A pass does not mean the '
-              'card exists or will be approved. Number and security code are '
-              'never displayed, stored, or logged by this app; do not enter '
-              'real card data in a demo.',
+              'card exists or will be approved. The number is visible in its '
+              'field and the security code can be revealed with its toggle; '
+              'neither is stored, logged, or echoed elsewhere by this app. Do '
+              'not enter real card data in a demo.',
           snippet:
               "SmartField.creditCard(\n  acceptedBrands: {SmartCardBrand.visa, SmartCardBrand.mastercard},\n  onChanged: (card) => card.brand,\n)",
           child: Column(
