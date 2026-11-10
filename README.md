@@ -1343,11 +1343,12 @@ Most field controls use Flutter's Material widgets. Some features depend on mobi
 
 | Area | Current behavior or limitation |
 |---|---|
-| Flutter web | The example web build and manual Chrome behavior were reported passing during implementation |
-| iOS | Credit-card integration ran on an iPhone simulator; system keyboard and VoiceOver still need direct verification |
-| Android | Real-device and emulator coverage was not completed in the provided implementation reports |
-| macOS | A prior build failed with a missing Podfile/toolchain issue; package compatibility should not be assumed from that failure alone |
-| Windows and Linux | Not verified in the supplied final implementation report |
+| Flutter and Dart versions | Requires Flutter 3.44.0 or later and Dart 3.12.0 or later. Analysis, all package tests, the example tests, and the example web build pass on Flutter 3.44.0 (Dart 3.12.0) and on Flutter 3.47.8 (Dart 3.13.7). Flutter 3.44 is the oldest version the bundled contact-picker plugin accepts |
+| Flutter web | The package test suite runs on Chrome (797 tests pass; 44 are skipped there because they need the native contact picker, read project files, or assert native focus and undo behaviour). The example web build passes. On web, Flutter selects all text when a field gains focus programmatically, and the browser owns the undo shortcut |
+| iOS | The example integration tests (card entry, amount formatting, RTL digit order, calendar and country pickers, dropdown dates, password toggle, masking) pass on an iPhone 17 simulator. The native contact picker, the system keyboard, SMS code autofill, and VoiceOver were not exercised |
+| Android | The same integration tests pass on an Android API 36 emulator. The merged example manifest declares no contacts permission. The native contact picker, third-party keyboards, SMS code autofill, and TalkBack were not exercised |
+| macOS | The example builds and the integration tests pass on macOS desktop. The contact button is not shown on desktop |
+| Windows and Linux | Not tested locally. CI is configured to run the package tests on Windows; no hosted run has been verified yet |
 | Contact picker | Depends on the native system picker and requires available platform behavior |
 | OTP autofill | Keyboard/platform hints may assist autofill; this package does not itself read SMS or WhatsApp |
 | Date-time | Local/timezone-naive date-time at minute precision; the consuming app owns timezone conversion and DST policy |

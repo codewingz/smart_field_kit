@@ -438,8 +438,9 @@ void main() {
         ? 'Reads project files through dart:io, which is unavailable in a browser.'
         : null,
     () {
-      final manifest = File('example/android/app/src/main/AndroidManifest.xml')
-          .readAsStringSync();
+      final manifest = File(
+        'example/android/app/src/main/AndroidManifest.xml',
+      ).readAsStringSync();
       expect(manifest, isNot(contains('READ_CONTACTS')));
       expect(manifest, isNot(contains('READ_SMS')));
       expect(manifest, isNot(contains('RECEIVE_SMS')));
@@ -454,9 +455,9 @@ void main() {
         ? 'Reads project files through dart:io, which is unavailable in a browser.'
         : null,
     () {
-      final sources = Directory('lib')
-          .listSync(recursive: true)
-          .whereType<File>();
+      final sources = Directory(
+        'lib',
+      ).listSync(recursive: true).whereType<File>();
       for (final file in sources) {
         final text = file.readAsStringSync();
         expect(text, isNot(contains('permission_handler')), reason: file.path);

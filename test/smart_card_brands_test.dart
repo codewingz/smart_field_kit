@@ -690,8 +690,9 @@ void main() {
       expect(february.isExpired(DateTime(2024, 2, 29, 23, 59)), isFalse);
       expect(february.isExpired(DateTime(2024, 3, 1)), isTrue);
       expect(
-        SmartCardUtils.tryParseExpiry('02/23')!
-            .isExpired(DateTime(2023, 2, 28, 23, 59)),
+        SmartCardUtils.tryParseExpiry(
+          '02/23',
+        )!.isExpired(DateTime(2023, 2, 28, 23, 59)),
         isFalse,
       );
     });

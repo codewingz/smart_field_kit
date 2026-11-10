@@ -124,7 +124,8 @@ class _ValidationPageState extends State<ValidationPage> {
               'custom: only your validator. selected: only the listed '
               'checks plus your validator. This password field also has a '
               'custom rule that rejects the word "password".',
-          snippet: "SmartField.password(\n  validationMode: SmartValidationMode.selected,\n  builtInChecks: {SmartBuiltInCheck.passwordDigit},\n  validator: (value) => ...,\n)",
+          snippet:
+              "SmartField.password(\n  validationMode: SmartValidationMode.selected,\n  builtInChecks: {SmartBuiltInCheck.passwordDigit},\n  validator: (value) => ...,\n)",
           child: Form(
             key: _modeForm,
             autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -180,7 +181,8 @@ class _ValidationPageState extends State<ValidationPage> {
               'and "slow-1" then quickly "slow-2": the older response is '
               'ignored. Flutter\'s FormState.validate() is synchronous, so submit '
               'awaits validateAsync() as well.',
-          snippet: "SmartAsyncValidation(\n  controller: controller,\n  debounceDuration: const Duration(milliseconds: 400),\n  validator: (value) async {\n    await Future.delayed(const Duration(milliseconds: 500));\n    return value == 'taken' ? 'Username is already taken.' : null;\n  },\n)\n\nif (await controller.validateAsync()) formKey.currentState!.save();",
+          snippet:
+              "SmartAsyncValidation(\n  controller: controller,\n  debounceDuration: const Duration(milliseconds: 400),\n  validator: (value) async {\n    await Future.delayed(const Duration(milliseconds: 500));\n    return value == 'taken' ? 'Username is already taken.' : null;\n  },\n)\n\nif (await controller.validateAsync()) formKey.currentState!.save();",
           child: Form(
             key: _asyncForm,
             child: Column(
@@ -227,7 +229,8 @@ class _ValidationPageState extends State<ValidationPage> {
               'A message from your backend shown through the normal error UI. '
               'It clears on the next edit, and a stale response never overwrites '
               'a newer one.',
-          snippet: "final serverError = SmartServerError();\nserverError.set('Email already registered');\nawait serverError.track(api.check(email));",
+          snippet:
+              "final serverError = SmartServerError();\nserverError.set('Email already registered');\nawait serverError.track(api.check(email));",
           child: Form(
             key: _serverForm,
             child: Column(

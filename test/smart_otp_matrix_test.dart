@@ -313,8 +313,9 @@ void main() {
         ? 'Reads project files through dart:io, which is unavailable in a browser.'
         : null,
     () {
-      final manifest = File('example/android/app/src/main/AndroidManifest.xml')
-          .readAsStringSync();
+      final manifest = File(
+        'example/android/app/src/main/AndroidManifest.xml',
+      ).readAsStringSync();
       expect(manifest, isNot(contains('READ_SMS')));
       expect(manifest, isNot(contains('RECEIVE_SMS')));
       final pubspec = File('pubspec.yaml').readAsStringSync();

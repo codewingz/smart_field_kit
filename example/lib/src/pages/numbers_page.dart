@@ -44,7 +44,8 @@ class _NumbersPageState extends State<NumbersPage> {
           description:
               'Digits only by default. Negative numbers and value limits are '
               'opt-in; limits are compared exactly, without binary doubles.',
-          snippet: "SmartField.number(\n  allowNegative: true,\n  minValue: '-10',\n  maxValue: '100',\n)",
+          snippet:
+              "SmartField.number(\n  allowNegative: true,\n  minValue: '-10',\n  maxValue: '100',\n)",
           child: Column(
             children: [
               SwitchListTile(
@@ -79,7 +80,8 @@ class _NumbersPageState extends State<NumbersPage> {
               '50,000.00 while the developer receives the raw 50000.00. '
               'While focused, grouping and currency are hidden so editing is '
               'predictable.',
-          snippet: "SmartField.amount(\n  decimalLength: 2,\n  useGrouping: true,\n  groupingStyle: SmartGroupingStyle.indian,\n  rounding: SmartRoundingMode.halfUp,\n  onRawChanged: (raw) {},\n  onRawSaved: (raw) {},\n)",
+          snippet:
+              "SmartField.amount(\n  decimalLength: 2,\n  useGrouping: true,\n  groupingStyle: SmartGroupingStyle.indian,\n  rounding: SmartRoundingMode.halfUp,\n  onRawChanged: (raw) {},\n  onRawSaved: (raw) {},\n)",
           child: Form(
             key: _amountForm,
             child: Column(
@@ -172,7 +174,8 @@ class _NumbersPageState extends State<NumbersPage> {
           description:
               'The % is a visual suffix. The raw value is percentage points '
               '(12.5), never a fraction such as 0.125.',
-          snippet: "SmartField.percentage(\n  decimalPlaces: 2,\n  minValue: '0',\n  maxValue: '100',\n)",
+          snippet:
+              "SmartField.percentage(\n  decimalPlaces: 2,\n  minValue: '0',\n  maxValue: '100',\n)",
           child: Column(
             children: [
               SmartField.percentage(
