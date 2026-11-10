@@ -1,3 +1,4 @@
+/// A country that can be selected for a phone field.
 class SmartPhoneCountry {
   const SmartPhoneCountry({
     required this.isoCode,
@@ -20,6 +21,7 @@ class SmartPhoneCountry {
   int get hashCode => isoCode.hashCode;
 }
 
+/// The parsed state of a phone field. [e164] is set only when [isValid].
 class SmartPhoneValue {
   const SmartPhoneValue({
     required this.text,
@@ -36,6 +38,7 @@ class SmartPhoneValue {
   final bool isValid;
 }
 
+/// Why the contact picker did not return a number.
 enum SmartPhonePickerErrorCode {
   unsupportedPlatform,
   unavailableNumber,
@@ -44,6 +47,7 @@ enum SmartPhonePickerErrorCode {
   platformFailure,
 }
 
+/// A contact-picker failure with a user-safe message.
 class SmartPhonePickerError {
   const SmartPhonePickerError(this.code, this.message, [this.cause]);
 
@@ -52,6 +56,11 @@ class SmartPhonePickerError {
   final Object? cause;
 }
 
+/// Called with the parsed phone value after an edit or a country change.
 typedef SmartPhoneChanged = void Function(SmartPhoneValue value);
+
+/// Called when the selected country changes.
 typedef SmartPhoneCountryChanged = void Function(SmartPhoneCountry? country);
+
+/// Returns a phone number chosen by the user, or `null` when cancelled.
 typedef SmartPhoneContactPicker = Future<String?> Function();

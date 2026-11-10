@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/formatting/smart_composing.dart';
+import 'package:smart_field_kit/src/formatting/smart_text_formatters.dart';
 import 'package:smart_field_kit/src/models/smart_otp_style.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_field.dart';
@@ -377,6 +378,8 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
                   autofillHints: const [AutofillHints.oneTimeCode],
                   textDirection: TextDirection.ltr,
                   inputFormatters: [
+                    if (widget.source.normalizeDigits)
+                      const SmartDigitNormalizationFormatter(),
                     _SmartOtpInputFormatter(
                       length: widget.configuration.length,
                       onAccepted: _markUserEdit,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/formatting/smart_card_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_input_mask.dart';
+import 'package:smart_field_kit/src/formatting/smart_text_formatters.dart';
 import 'package:smart_field_kit/src/smart_default_texts.dart';
 import 'package:smart_field_kit/src/validation/smart_validation_options.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
@@ -10,6 +11,8 @@ import 'package:smart_field_kit/src/widgets/smart_field.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_support.dart';
 import 'package:smart_field_kit/src/widgets/smart_listener_binding.dart';
 
+/// The current card entry. The package never stores, logs or sends it;
+/// `toString` shows only the brand and the last four digits.
 final class SmartCreditCardValue {
   const SmartCreditCardValue({
     required this.number,
@@ -369,6 +372,10 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
 
   @override
   Widget build(BuildContext context) {
+    final digitFormatters = <TextInputFormatter>[
+      if (widget.source.normalizeDigits)
+        const SmartDigitNormalizationFormatter(),
+    ];
     final enabled = smartResolveEnabled(
       widget.source.enabled,
       widget.source.decoration,
@@ -399,7 +406,7 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       autovalidateMode: widget.source.autovalidateMode,
       serverError: _numberDisplay,
       decoration: numberDecoration,
-      inputFormatters: const [SmartCardNumberFormatter()],
+      inputFormatters: [...digitFormatters, const SmartCardNumberFormatter()],
       validator: SmartValidators.cardNumber(
         acceptedBrands: _config.acceptedBrands,
         validateLuhn: _config.validateLuhn,
@@ -460,7 +467,10 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       autovalidateMode: widget.source.autovalidateMode,
       serverError: _config.expiryServerError,
       decoration: secondary,
-      inputFormatters: [SmartMaskFormatter(SmartInputMask(expiryMask))],
+      inputFormatters: [
+        ...digitFormatters,
+        SmartMaskFormatter(SmartInputMask(expiryMask)),
+      ],
       validator: SmartValidators.cardExpiry(
         format: _config.expiryFormat,
         now: _config.now,
@@ -474,6 +484,7 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       message: _config.cvvErrorText,
     );
     final cvvFormatters = <TextInputFormatter>[
+      ...digitFormatters,
       FilteringTextInputFormatter.digitsOnly,
       LengthLimitingTextInputFormatter(4),
     ];

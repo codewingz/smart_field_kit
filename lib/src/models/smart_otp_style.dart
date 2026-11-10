@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// Sizes, borders and colors of the OTP boxes.
 @immutable
 class SmartOtpStyle {
   const SmartOtpStyle({

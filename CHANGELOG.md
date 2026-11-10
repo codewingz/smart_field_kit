@@ -2,6 +2,11 @@
 
 ### Added
 
+* Add `SmartAsyncValidation.revalidationKey` to drop results and re-check when the validation rule changes.
+* Add opt-in `normalizeDigits` on number, amount, percentage, phone, OTP, card, date, time, and date-time fields, with `SmartDigitNormalizationFormatter` and `SmartTextUtils.normalizeDigits`, for Arabic-Indic, Persian, and fullwidth digits.
+* Add opt-in `acceptDotAsDecimal` on `SmartField.amount` and `SmartAmountFormatter`.
+* Add `amLabel` and `pmLabel` on `SmartField.time`, `SmartField.dateTime`, and `SmartTimeFormat`.
+* Add API documentation comments to the exported classes, constructors, and functions.
 * Add the normal SmartField widget with native TextFormField behavior.
 * Add opt-in required and grapheme-aware length validation with reusable validators.
 * Add SmartField.email with practical default and opt-in legacy validation policies.
@@ -33,6 +38,8 @@
 
 ### Changed
 
+* Email: with the standard policy, asynchronous validation now receives the address without surrounding spaces, the same value `onSaved` receives.
+* Declare Android, iOS, macOS, and web as supported platforms in `pubspec.yaml`.
 * Refactor SmartField internals into a shared core with one owned controller and focus node path and a shared design resolver.
 * Make SmartPhonePolicy.auto validate international numbers with the parser-inferred country when no country is selected.
 * Refactor SmartField internals: one shared private base class with default values, constructors that build their configuration directly, shared listener, input-handle, validation-mode, raw-value, and suffix helpers, and smaller field state (phone, amount display, search debounce, and password strength moved to focused helpers). No public API changes.
@@ -52,6 +59,7 @@
 
 ### Fixed
 
+* Remove a dropped asynchronous error within the same frame instead of one frame later.
 * Remove a displayed asynchronous validation error when its result is dropped because the text controller was replaced or the field was disabled; the field then shows the validation state of its current value.
 * Expose each password-strength checklist rule to screen readers with a checked or not-checked state.
 * Fix layout overflow in the phone field's country prefix at large text sizes and in date dropdowns on very narrow widths.

@@ -16,6 +16,12 @@ screenshots:
   - description: "Phone field with country picker and parsed E.164 value, dark theme."
     path: screenshots/phone_parsing_dark.png
 
+platforms:
+  android:
+  ios:
+  macos:
+  web:
+
 environment:
   sdk: ^3.12.0
   flutter: ">=3.44.0"

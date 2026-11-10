@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' show TimeOfDay;
 
+/// Date and time helpers. Values are local and carry no timezone.
 abstract final class SmartDateUtils {
   static bool isLeapYear(int year) {
     return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
@@ -26,10 +27,12 @@ abstract final class SmartDateUtils {
     return DateTime(value.year, value.month, value.day);
   }
 
+  /// Formats a date as `yyyy-MM-dd`.
   static String toIsoDate(DateTime value) {
     return '${_pad(value.year, 4)}-${_pad(value.month, 2)}-${_pad(value.day, 2)}';
   }
 
+  /// Parses `yyyy-MM-dd`, or returns `null`.
   static DateTime? tryParseIsoDate(String value) {
     final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(value);
     if (match == null) {
@@ -41,10 +44,12 @@ abstract final class SmartDateUtils {
     return isValidDate(year, month, day) ? DateTime(year, month, day) : null;
   }
 
+  /// Formats a time as `HH:mm`.
   static String toIsoTime(TimeOfDay value) {
     return '${_pad(value.hour, 2)}:${_pad(value.minute, 2)}';
   }
 
+  /// Parses `HH:mm`, or returns `null`.
   static TimeOfDay? tryParseIsoTime(String value) {
     final match = RegExp(r'^(\d{2}):(\d{2})$').firstMatch(value);
     if (match == null) {
@@ -57,10 +62,12 @@ abstract final class SmartDateUtils {
         : null;
   }
 
+  /// Formats a date-time as `yyyy-MM-ddTHH:mm`, without an offset.
   static String toIsoDateTime(DateTime value) {
     return '${toIsoDate(value)}T${_pad(value.hour, 2)}:${_pad(value.minute, 2)}';
   }
 
+  /// Parses `yyyy-MM-ddTHH:mm`, or returns `null`.
   static DateTime? tryParseIsoDateTime(String value) {
     final parts = value.split('T');
     if (parts.length != 2) {
@@ -82,6 +89,7 @@ abstract final class SmartDateUtils {
       value.toString().padLeft(width, '0');
 }
 
+/// A display pattern for dates that uses `dd`, `MM` and `yyyy` once each.
 final class SmartDateFormat {
   factory SmartDateFormat([String pattern = 'dd/MM/yyyy']) {
     final match = RegExp(
@@ -180,25 +188,55 @@ final class SmartDateFormat {
   }
 }
 
+/// Display format for times: 24-hour `HH:mm`, or 12-hour with a period
+/// marker.
 final class SmartTimeFormat {
-  const SmartTimeFormat({this.use24Hour = true});
+  /// Creates a time format.
+  const SmartTimeFormat({
+    this.use24Hour = true,
+    this.amLabel = 'AM',
+    this.pmLabel = 'PM',
+  });
 
+  static final RegExp _maskLetters = RegExp(r'^[\p{L}\p{M}]+$', unicode: true);
+
+  /// Whether times use the 24-hour clock.
   final bool use24Hour;
+
+  /// The 12-hour marker for times before noon. Defaults to `AM`.
+  final String amLabel;
+
+  /// The 12-hour marker for noon and later. Defaults to `PM`.
+  final String pmLabel;
 
   String get pattern => use24Hour ? 'HH:mm' : 'hh:mm a';
 
-  String get inputMaskPattern => use24Hour ? '##:##' : '##:## AA';
+  /// Whether the labels can be typed in manual mode: both made of letters
+  /// only, the same length, and different from each other.
+  bool get labelsFitInputMask {
+    return _maskLetters.hasMatch(amLabel) &&
+        _maskLetters.hasMatch(pmLabel) &&
+        amLabel.runes.length == pmLabel.runes.length &&
+        amLabel.toLowerCase() != pmLabel.toLowerCase();
+  }
 
+  String get inputMaskPattern {
+    return use24Hour ? '##:##' : '##:## ${'A' * amLabel.runes.length}';
+  }
+
+  /// The display text of [value].
   String format(TimeOfDay value) {
     final minute = value.minute.toString().padLeft(2, '0');
     if (use24Hour) {
       return '${value.hour.toString().padLeft(2, '0')}:$minute';
     }
     final hour = value.hour % 12 == 0 ? 12 : value.hour % 12;
-    final period = value.hour < 12 ? 'AM' : 'PM';
+    final period = value.hour < 12 ? amLabel : pmLabel;
     return '${hour.toString().padLeft(2, '0')}:$minute $period';
   }
 
+  /// Parses display text. The period marker is matched without regard to
+  /// letter case. Returns `null` for anything else.
   TimeOfDay? tryParse(String text) {
     if (use24Hour) {
       final match = RegExp(r'^(\d{2}):(\d{2})$').firstMatch(text);
@@ -211,8 +249,13 @@ final class SmartTimeFormat {
           ? TimeOfDay(hour: hour, minute: minute)
           : null;
     }
-    final match = RegExp(r'^(\d{2}):(\d{2}) ([AaPp][Mm])$').firstMatch(text);
+    final match = RegExp(r'^(\d{2}):(\d{2}) (.+)$').firstMatch(text);
     if (match == null) {
+      return null;
+    }
+    final period = match.group(3)!.toLowerCase();
+    final isPm = period == pmLabel.toLowerCase();
+    if (!isPm && period != amLabel.toLowerCase()) {
       return null;
     }
     final hour = int.parse(match.group(1)!);
@@ -220,7 +263,6 @@ final class SmartTimeFormat {
     if (hour < 1 || hour > 12 || minute > 59) {
       return null;
     }
-    final isPm = match.group(3)!.toLowerCase() == 'pm';
     return TimeOfDay(hour: hour % 12 + (isPm ? 12 : 0), minute: minute);
   }
 }

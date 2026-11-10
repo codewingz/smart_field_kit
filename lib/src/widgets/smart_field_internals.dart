@@ -202,6 +202,7 @@ _SmartFieldCore _amountCore({
   required bool useGrouping,
   required String groupingSeparator,
   required String decimalSeparator,
+  required bool acceptDotAsDecimal,
   String? currencySymbol,
   required SmartCurrencyPosition currencyPosition,
   required bool allowNegative,
@@ -222,6 +223,7 @@ _SmartFieldCore _amountCore({
     allowNegative: allowNegative,
     groupingStyle: groupingStyle,
     roundingMode: rounding,
+    acceptDotAsDecimal: acceptDotAsDecimal,
   );
   final limits = _valueLimits(
     minValue: minValue,

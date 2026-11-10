@@ -13,6 +13,8 @@ final class _MaskToken {
   bool get isSlot => slot != null;
 }
 
+/// A fixed input pattern. `#` is a digit slot, `A` a letter slot and `*`
+/// a letter-or-digit slot; other characters are literals.
 final class SmartInputMask {
   SmartInputMask(this.pattern) : _tokens = _parse(pattern) {
     if (!_tokens.any((token) => token.isSlot)) {
@@ -68,6 +70,7 @@ final class SmartInputMask {
     }
   }
 
+  /// Whether [raw] fills every slot with accepted characters.
   bool isComplete(String raw) {
     return raw.runes.length == capacity && acceptsRaw(raw);
   }
@@ -175,6 +178,7 @@ final class SmartInputMask {
   String? extractRaw(String text) => scan(text)?.raw;
 }
 
+/// Formats typed text to a [SmartInputMask] and inserts its literals.
 final class SmartMaskFormatter extends TextInputFormatter {
   SmartMaskFormatter(this.mask);
 

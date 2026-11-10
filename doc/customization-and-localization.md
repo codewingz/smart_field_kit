@@ -40,7 +40,7 @@ The package ships English defaults and has no translation system. Pass your own 
 | Credit card | `numberLabel`, `expiryLabel`, `cvvLabel`, `showCvvLabel`, `hideCvvLabel`, the hint and error texts, and `numberStatusBuilder` |
 | Async validation | `unavailableErrorText`, `loadingSemanticsLabel` |
 
-The strings in this table have overrides, and the English defaults are unchanged. One piece of text cannot be changed: the `AM` and `PM` markers in 12-hour time text and in the time wheel are fixed.
+The strings in this table have overrides, and the English defaults are unchanged. The `AM` and `PM` markers of 12-hour time text and of the time wheel are set with `amLabel` and `pmLabel` on `SmartField.time` and `SmartField.dateTime`. In manual (typed) mode both labels must consist of letters only and have the same length, because the typing mask has a fixed number of slots; the picker and wheel modes accept any text.
 
 - The OTP Paste menu and the wheel-picker buttons use Flutter's `MaterialLocalizations`, so they follow your app's locale.
 

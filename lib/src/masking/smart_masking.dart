@@ -1,6 +1,9 @@
 import 'package:characters/characters.dart';
 import 'package:smart_field_kit/src/formatting/smart_numeric_formatters.dart';
 
+/// Masks the digits of a phone number except the last
+/// [visibleSuffixDigits]. `+`, spaces, hyphens and parentheses are kept.
+/// This is a visual aid, not encryption.
 String maskMobile(
   String value, {
   int visibleSuffixDigits = 4,
@@ -36,6 +39,8 @@ String maskMobile(
   return output.toString();
 }
 
+/// Masks an account number except its last [visibleSuffixCharacters].
+/// The listed separators are kept. This is a visual aid, not encryption.
 String maskAccountNumber(
   String value, {
   int visibleSuffixCharacters = 4,
@@ -73,6 +78,8 @@ String maskAccountNumber(
   return output.toString();
 }
 
+/// Masks the digits of a formatted amount and keeps its sign, separators
+/// and currency text. This is a visual aid, not encryption.
 String maskAmount(
   String value, {
   int visibleSuffixDigits = 0,
@@ -133,6 +140,8 @@ String maskAmount(
   return '${parts.prefix}$maskedNumeric${parts.suffix}';
 }
 
+/// Formats a decimal string for display, or returns `null` when it is
+/// not a valid number for the given options. Uses exact string arithmetic.
 String? formatNumber(
   String value, {
   int? decimalPlaces,

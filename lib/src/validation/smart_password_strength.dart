@@ -1,9 +1,12 @@
 import 'package:characters/characters.dart';
 import 'package:smart_field_kit/src/validation/smart_character_classes.dart';
 
+/// Informational strength level derived from the share of criteria met.
 enum SmartPasswordStrengthLevel { empty, weak, fair, good, strong }
 
+/// One rule of the password-strength checklist: a label and a test.
 final class SmartPasswordCriterion {
+  /// Creates a criterion shown as [label] and met when [test] returns `true`.
   const SmartPasswordCriterion(this.label, this.test);
 
   factory SmartPasswordCriterion.minLength(int length, {String? label}) {
@@ -37,6 +40,7 @@ final class SmartPasswordCriterion {
   final bool Function(String value) test;
 }
 
+/// The outcome of [SmartPasswordStrength.evaluate].
 final class SmartPasswordStrengthResult {
   const SmartPasswordStrengthResult({
     required this.level,
@@ -57,7 +61,11 @@ final class SmartPasswordStrengthResult {
   }
 }
 
+/// Computes password-strength feedback locally.
+///
+/// The result is guidance only and is separate from validation.
 abstract final class SmartPasswordStrength {
+  /// The criteria used when none are supplied.
   static final List<SmartPasswordCriterion> defaultCriteria = [
     SmartPasswordCriterion.minLength(8),
     SmartPasswordCriterion.uppercase,
@@ -66,6 +74,7 @@ abstract final class SmartPasswordStrength {
     SmartPasswordCriterion.specialCharacter,
   ];
 
+  /// The default English label of each level.
   static const Map<SmartPasswordStrengthLevel, String> defaultLabels = {
     SmartPasswordStrengthLevel.empty: 'Enter a password',
     SmartPasswordStrengthLevel.weak: 'Weak',
@@ -74,6 +83,7 @@ abstract final class SmartPasswordStrength {
     SmartPasswordStrengthLevel.strong: 'Strong',
   };
 
+  /// Evaluates [password] against the criteria. Nothing is stored or sent.
   static SmartPasswordStrengthResult evaluate(
     String password, {
     List<SmartPasswordCriterion>? criteria,

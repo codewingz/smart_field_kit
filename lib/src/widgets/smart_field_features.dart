@@ -605,12 +605,18 @@ final class _AsyncFeature extends _FieldFeature {
       readText: () => currentText,
       toRaw: (text) {
         final normalizer = host.field._valueNormalizer;
-        return normalizer == null ? text : normalizer(text);
+        final raw = normalizer == null ? text : normalizer(text);
+        return host.field._core.trimOnSave ? raw?.trim() : raw;
       },
       syncError: host.validateSync,
       isActive: () =>
           host.mounted && (host.isInteractive || host.pickerInteractive),
       onUpdate: _updated,
+      onResultDropped: () {
+        if (host.mounted && !_isOtp) {
+          host.fieldKey.currentState?.validate();
+        }
+      },
       isComposing: () {
         final value =
             (textController ?? _inner)?.value ?? host.currentEditingValue;
@@ -655,10 +661,10 @@ final class _AsyncFeature extends _FieldFeature {
     } else {
       _releaseOwnedController();
     }
-    engine.configure(_config);
     final hadError =
         engine.status == SmartAsyncValidationStatus.invalid ||
         engine.status == SmartAsyncValidationStatus.unavailable;
+    engine.configure(_config);
     final controller = textController;
     _binding.bind(controller);
     _inner = null;
@@ -681,6 +687,7 @@ final class _AsyncFeature extends _FieldFeature {
     if (hadError &&
         !_isOtp &&
         engine.status == SmartAsyncValidationStatus.idle) {
+      host.fieldKey.currentState?.validate();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (host.mounted) {
           host.fieldKey.currentState?.validate();

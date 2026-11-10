@@ -3,6 +3,7 @@ import 'package:smart_field_kit/src/formatting/smart_composing.dart';
 import 'package:smart_field_kit/src/formatting/smart_separator_deletion.dart';
 import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
 
+/// A card network with its number lengths and security-code length.
 enum SmartCardBrand {
   visa('Visa', {16, 18, 19}, 3, 16, [4, 8, 12]),
   mastercard('Mastercard', {16}, 3, 16, [4, 8, 12]),
@@ -40,10 +41,13 @@ enum SmartCardBrand {
   int get minLength => lengths.reduce((a, b) => a < b ? a : b);
 }
 
+/// The typed expiry layout: `MM/YY` or `MM/YYYY`.
 enum SmartExpiryFormat { mmYy, mmYyyy }
 
+/// The local state of a card number while it is entered.
 enum SmartCardNumberStatus { empty, incomplete, valid, invalid }
 
+/// Why a card number is not locally valid.
 enum SmartCardNumberIssue {
   none,
   invalidCharacters,
@@ -52,6 +56,7 @@ enum SmartCardNumberIssue {
   failsChecksum,
 }
 
+/// The brand detected from the leading digits of a card number.
 final class SmartCardBrandMatch {
   const SmartCardBrandMatch({
     required this.brand,
@@ -66,6 +71,7 @@ final class SmartCardBrandMatch {
   bool get isCertain => brand != SmartCardBrand.unknown;
 }
 
+/// The result of [SmartCardUtils.assessNumber].
 final class SmartCardNumberAssessment {
   const SmartCardNumberAssessment({
     required this.status,
@@ -286,6 +292,7 @@ const List<int> _powersOfTen = [
   100000000,
 ];
 
+/// A parsed card expiry month and four-digit year.
 final class SmartCardExpiry {
   const SmartCardExpiry(this.month, this.year);
 
@@ -299,11 +306,14 @@ final class SmartCardExpiry {
   }
 }
 
+/// Local card helpers. They make no network request and cannot confirm
+/// that a card exists or will be accepted.
 abstract final class SmartCardUtils {
   static const int maxCardDigits = 19;
 
   static final RegExp _nonDigit = RegExp(r'\D');
 
+  /// Removes every character that is not an ASCII digit.
   static String digitsOnly(String value) => value.replaceAll(_nonDigit, '');
 
   static SmartCardBrandMatch matchBrand(String value) {
@@ -362,8 +372,11 @@ abstract final class SmartCardUtils {
     );
   }
 
+  /// The brand of a number, or `unknown`.
   static SmartCardBrand detectBrand(String value) => matchBrand(value).brand;
 
+  /// Assesses length, accepted brands and the Luhn checksum. UnionPay is
+  /// exempt from the checksum unless [luhnExemptBrands] says otherwise.
   static SmartCardNumberAssessment assessNumber(
     String value, {
     Set<SmartCardBrand>? acceptedBrands,
@@ -459,6 +472,7 @@ abstract final class SmartCardUtils {
     );
   }
 
+  /// Whether the digits pass the Luhn checksum.
   static bool passesLuhn(String value) {
     final digits = digitsOnly(value);
     if (digits.length < 2 ||
@@ -503,6 +517,7 @@ abstract final class SmartCardUtils {
     return gaps;
   }
 
+  /// Groups the digits of a number the way its brand prints them.
   static String format(String value, {SmartCardBrand? brand}) {
     final digits = digitsOnly(value);
     final resolved = brand ?? detectBrand(digits);
@@ -517,6 +532,7 @@ abstract final class SmartCardUtils {
     return buffer.toString();
   }
 
+  /// Masks all but the last four digits.
   static String maskedNumber(String value, {String maskCharacter = '\u2022'}) {
     final digits = digitsOnly(value);
     if (digits.length <= 4) {
@@ -576,6 +592,7 @@ abstract final class SmartCardUtils {
   }
 }
 
+/// Groups card digits while typing and rejects other characters.
 final class SmartCardNumberFormatter extends TextInputFormatter {
   const SmartCardNumberFormatter();
 

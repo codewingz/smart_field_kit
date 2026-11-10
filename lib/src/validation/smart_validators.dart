@@ -9,19 +9,32 @@ import 'package:smart_field_kit/src/validation/smart_phone_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_url_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_validation_options.dart';
 
+/// A synchronous validator: returns `null` for a valid value or an error
+/// message.
 typedef SmartValidator = String? Function(String? value);
+
+/// Converts display text to the raw value a rule should check, or
+/// returns `null` when the text has no raw value.
 typedef SmartValueNormalizer = String? Function(String value);
 
+/// Email rule. `standard` is a practical ASCII syntax check that ignores
+/// surrounding spaces; `legacy` is the original restricted rule.
 enum SmartEmailPolicy { standard, legacy }
 
+/// The two original password rules. Neither is applied by default.
 enum SmartPasswordPolicy { weak, strong }
 
+/// Number rule: unrestricted digits, or the original legacy rule.
 enum SmartNumberPolicy { standard, legacy }
 
+/// Amount rule: any valid amount, or the original legacy rule.
 enum SmartAmountPolicy { standard, legacy }
 
+/// OTP rule: digits of the configured length, or the original legacy rule.
 enum SmartOtpPolicy { standard, legacy }
 
+/// The original ASCII-only text rules, kept unchanged for compatibility.
+/// None is applied by default.
 enum SmartTextValidationPreset {
   loginUsername(
     key: 'login_username',
@@ -88,6 +101,11 @@ enum SmartTextValidationPreset {
   final String defaultMessage;
 }
 
+/// Reusable validators that work with or without [SmartField].
+///
+/// Each builder returns a [SmartValidator]. The format and limit rules
+/// accept `null` and empty text so that optional fields stay valid;
+/// [requiredField] is the rule that rejects them.
 abstract final class SmartValidators {
   static const legacyEmailExpression =
       r"""^[A-Za-z0-9][A-Za-z0-9.!#$%&'*+\-/=?^_`{|}~]*@[A-Za-z0-9-]+\.[A-Za-z]+$""";
@@ -132,6 +150,7 @@ abstract final class SmartValidators {
   static final RegExp _asciiDigitsExpression = RegExp(r'^[0-9]+$');
   static final RegExp _legacyOtpExpression = RegExp(legacyOtpExpression);
 
+  /// Rejects `null`, empty and whitespace-only text.
   static SmartValidator requiredField({String message = smartRequiredText}) {
     return (value) {
       if (value == null || value.trim().isEmpty) {
@@ -141,6 +160,8 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Requires at least [length] user-perceived characters. Blank and
+  /// whitespace-only text is treated as not entered and passes.
   static SmartValidator minLength(
     int length, {
     String? message,
@@ -162,6 +183,8 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Checks length, brand and the Luhn checksum of a card number locally.
+  /// It does not confirm that the card exists.
   static SmartValidator cardNumber({
     Set<SmartCardBrand>? acceptedBrands,
     bool validateLuhn = true,
@@ -194,6 +217,7 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Checks that an expiry is well formed and not in the past.
   static SmartValidator cardExpiry({
     SmartExpiryFormat format = SmartExpiryFormat.mmYy,
     DateTime Function() now = DateTime.now,
@@ -212,6 +236,7 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Checks the security-code length for the card brand.
   static SmartValidator cardCvv({
     required SmartCardBrand Function() brand,
     Set<int>? allowedLengths,
@@ -239,6 +264,7 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Requires at least [count] words.
   static SmartValidator minWords(int count, {String? message}) {
     if (count < 0) {
       throw ArgumentError.value(count, 'count');
@@ -253,6 +279,7 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Allows at most [count] words.
   static SmartValidator maxWords(int count, {String? message}) {
     if (count < 0) {
       throw ArgumentError.value(count, 'count');
@@ -267,6 +294,8 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Allows at most [length] user-perceived characters, counting
+  /// whitespace. It reports an error and does not truncate input.
   static SmartValidator maxLength(
     int length, {
     String? message,
@@ -288,6 +317,7 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Checks email syntax. It does not confirm that the address exists.
   static SmartValidator email({
     SmartEmailPolicy policy = SmartEmailPolicy.standard,
     String message = smartEmailErrorText,
@@ -306,6 +336,7 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Checks that text is a complete URL with an allowed scheme.
   static SmartValidator url({
     Set<String> allowedSchemes = SmartUrlValidation.defaultSchemes,
     bool allowBareDomain = false,
@@ -325,6 +356,7 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Applies only the selected password character checks.
   static SmartValidator passwordRules(
     Set<SmartBuiltInCheck> checks, {
     String uppercaseMessage = smartUppercaseRuleText,
@@ -361,6 +393,8 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Requires the value to equal the text returned by the callback, for
+  /// example a confirm-password field.
   static SmartValidator matches(
     String? Function() other, {
     String message = 'Values do not match.',
@@ -373,6 +407,7 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Applies one of the original password policies.
   static SmartValidator password({
     required SmartPasswordPolicy policy,
     String message = 'Password does not meet the selected policy.',
@@ -394,6 +429,7 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Checks that text is a number made of ASCII digits.
   static SmartValidator number({
     SmartNumberPolicy policy = SmartNumberPolicy.standard,
     bool allowNegative = false,
@@ -414,6 +450,7 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Checks that text is a valid amount for the given formatter.
   static SmartValidator amount({
     required SmartAmountFormatter formatter,
     SmartAmountPolicy policy = SmartAmountPolicy.standard,
@@ -437,6 +474,7 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Checks that text is exactly [length] ASCII digits.
   static SmartValidator otp({
     required int length,
     SmartOtpPolicy policy = SmartOtpPolicy.standard,
@@ -472,6 +510,8 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Checks a phone number with the chosen policy. Country-aware checks
+  /// need a country or an international prefix.
   static SmartValidator phone({
     SmartPhonePolicy policy = SmartPhonePolicy.auto,
     SmartPhoneCountry? country,
@@ -485,6 +525,7 @@ abstract final class SmartValidators {
     );
   }
 
+  /// Applies one of the original text presets.
   static SmartValidator textPreset(
     SmartTextValidationPreset preset, {
     String? message,
@@ -500,6 +541,7 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Requires a decimal value of at least the given limit, compared exactly.
   static SmartValidator minValue(
     String minimum, {
     SmartValueNormalizer? normalizer,
@@ -523,6 +565,7 @@ abstract final class SmartValidators {
     };
   }
 
+  /// Requires a decimal value of at most the given limit, compared exactly.
   static SmartValidator maxValue(
     String maximum, {
     SmartValueNormalizer? normalizer,
@@ -579,6 +622,7 @@ abstract final class SmartValidators {
     ]);
   }
 
+  /// Runs validators in order and returns the first error.
   static SmartValidator compose(Iterable<SmartValidator> validators) {
     return (value) {
       for (final validator in validators) {
