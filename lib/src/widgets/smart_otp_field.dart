@@ -51,6 +51,7 @@ class SmartOtpField extends StatefulWidget {
 
 class _SmartOtpFieldState extends State<SmartOtpField> {
   final GlobalKey<FormFieldState<String>> _formFieldKey = GlobalKey();
+  final GlobalKey<EditableTextState> _editableKey = GlobalKey();
   final SmartInputHandle _input = SmartInputHandle();
   final SmartListenerGroup _listeners = SmartListenerGroup();
   late final SmartListenerBinding _controllerBinding = _listeners.add(
@@ -202,6 +203,37 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
     _controller.selection = TextSelection.collapsed(offset: offset);
   }
 
+  Future<void> _showPasteMenu(Offset position) async {
+    if (!_enabled || widget.source.readOnly) {
+      return;
+    }
+    _focusNode.requestFocus();
+    final label = MaterialLocalizations.of(context).pasteButtonLabel;
+    final target = _controller;
+    final selected = await showMenu<bool>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx,
+        position.dy,
+      ),
+      items: [PopupMenuItem<bool>(value: true, child: Text(label))],
+    );
+    if (selected != true ||
+        !mounted ||
+        !_enabled ||
+        widget.source.readOnly ||
+        !identical(_controller, target)) {
+      return;
+    }
+    target.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: target.text.length,
+    );
+    await _editableKey.currentState?.pasteText(SelectionChangedCause.toolbar);
+  }
+
   @override
   void dispose() {
     _listeners.unbindAll();
@@ -245,7 +277,12 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (label != null) ...[
-              Text(label, style: labelStyle ?? theme.textTheme.bodyMedium),
+              ExcludeSemantics(
+                child: Text(
+                  label,
+                  style: labelStyle ?? theme.textTheme.bodyMedium,
+                ),
+              ),
               const SizedBox(height: 8),
             ],
             _buildInput(context, error != null),
@@ -307,6 +344,7 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
               ExcludeFocus(
                 excluding: !_enabled,
                 child: EditableText(
+                  key: _editableKey,
                   controller: _controller,
                   focusNode: _focusNode,
                   readOnly: widget.source.readOnly || !_enabled,
@@ -318,6 +356,7 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
                   textInputAction:
                       widget.source.textInputAction ?? TextInputAction.done,
                   autofillHints: const [AutofillHints.oneTimeCode],
+                  textDirection: TextDirection.ltr,
                   inputFormatters: [
                     _SmartOtpInputFormatter(
                       length: widget.configuration.length,
@@ -333,17 +372,20 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
               ),
               ExcludeSemantics(
                 child: Row(
+                  textDirection: TextDirection.ltr,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(widget.configuration.length, (index) {
                     return Padding(
-                      padding: EdgeInsetsDirectional.only(
-                        end: index == widget.configuration.length - 1
+                      padding: EdgeInsets.only(
+                        right: index == widget.configuration.length - 1
                             ? 0
                             : spacing,
                       ),
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () => _selectBox(index),
+                        onLongPressStart: (details) =>
+                            _showPasteMenu(details.globalPosition),
                         child: _buildBox(
                           context,
                           index,

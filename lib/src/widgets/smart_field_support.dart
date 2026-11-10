@@ -99,3 +99,19 @@ class SmartPickerScope extends InheritedWidget {
     return oldWidget.interactive != interactive;
   }
 }
+
+class SmartLtrContentScope extends InheritedWidget {
+  const SmartLtrContentScope({super.key, required super.child});
+
+  static bool isActive(BuildContext context) {
+    return context.getInheritedWidgetOfExactType<SmartLtrContentScope>() !=
+        null;
+  }
+
+  @override
+  bool updateShouldNotify(SmartLtrContentScope oldWidget) => false;
+}
+
+String smartIsolateLtr(String text) {
+  return text.isEmpty ? text : '\u2066$text\u2069';
+}

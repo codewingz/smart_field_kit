@@ -496,7 +496,10 @@ void main() {
       ),
     );
 
-    expect(_textField(tester).decoration?.prefixText, '*******4567');
+    expect(
+      _textField(tester).decoration?.prefixText,
+      '\u2066*******4567\u2069',
+    );
     expect(find.text('+92'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

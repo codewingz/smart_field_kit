@@ -133,6 +133,7 @@ final class _PhoneFeature extends _FieldFeature {
               ],
               Text(
                 selected.dialCode,
+                textDirection: TextDirection.ltr,
                 style:
                     config.countryTextStyle ??
                     Theme.of(host.context).textTheme.bodyMedium,
@@ -152,7 +153,7 @@ final class _PhoneFeature extends _FieldFeature {
           padding:
               config.countryPadding ??
               const EdgeInsetsDirectional.symmetric(horizontal: 12),
-          child: content,
+          child: ExcludeSemantics(child: content),
         ),
       ),
     );
@@ -214,7 +215,7 @@ final class _PhoneFeature extends _FieldFeature {
       return;
     }
     controller.clear();
-    host.field.onChanged?.call('');
+    host.notifyChanged('');
     host.fieldKey.currentState?.didChange('');
     host.fieldKey.currentState?.validate();
     host.rebuild();
@@ -312,7 +313,7 @@ final class _PhoneFeature extends _FieldFeature {
         text: number,
         selection: TextSelection.collapsed(offset: number.length),
       );
-      host.field.onChanged?.call(number);
+      host.notifyChanged(number);
       host.fieldKey.currentState?.didChange(number);
       host.fieldKey.currentState?.validate();
       if (host.mounted) {

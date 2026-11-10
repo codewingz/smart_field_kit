@@ -603,9 +603,15 @@ final class SmartCardNumberFormatter extends TextInputFormatter {
     final deletedSpace =
         newValue.text.length < oldValue.text.length &&
         digits == oldDigits &&
-        newValue.selection.isCollapsed &&
-        baseDigits > 0;
-    if (deletedSpace) {
+        newValue.selection.isCollapsed;
+    final forward =
+        oldValue.selection.isCollapsed &&
+        oldValue.selection.baseOffset == newValue.selection.baseOffset;
+    if (deletedSpace && forward && baseDigits < digits.length) {
+      finalDigits =
+          digits.substring(0, baseDigits) + digits.substring(baseDigits + 1);
+      extentDigits = baseDigits;
+    } else if (deletedSpace && baseDigits > 0) {
       finalDigits =
           digits.substring(0, baseDigits - 1) + digits.substring(baseDigits);
       baseDigits--;

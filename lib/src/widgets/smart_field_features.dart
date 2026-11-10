@@ -178,20 +178,21 @@ final class _PasswordFeature extends _FieldFeature {
     final core = host.field._core;
     final label = obscure ? core.showPasswordLabel : core.hidePasswordLabel;
     final enabled = host.field.enabled ?? host.field.decoration.enabled;
+    void toggle() {
+      obscure = !obscure;
+      host.rebuild();
+    }
+
     actions.add(
       Semantics(
         label: label,
         button: true,
         enabled: enabled,
+        onTap: enabled ? toggle : null,
         child: ExcludeSemantics(
           child: IconButton(
             tooltip: label,
-            onPressed: !enabled
-                ? null
-                : () {
-                    obscure = !obscure;
-                    host.rebuild();
-                  },
+            onPressed: enabled ? toggle : null,
             icon: Icon(obscure ? Icons.visibility : Icons.visibility_off),
           ),
         ),
@@ -377,8 +378,10 @@ final class _MaskFeature extends _FieldFeature {
     if (!shows) {
       return decoration;
     }
+    final rtl = Directionality.of(host.context) == TextDirection.rtl;
+    final masked = rtl ? smartIsolateLtr(maskedText) : maskedText;
     return decoration.copyWith(
-      prefixText: '${decoration.prefixText ?? ''}$maskedText',
+      prefixText: '${decoration.prefixText ?? ''}$masked',
       prefixStyle:
           decoration.prefixStyle ?? Theme.of(host.context).textTheme.bodyLarge,
     );
@@ -437,9 +440,16 @@ final class _SearchFeature extends _FieldFeature {
 
   GestureTapCallback? get onTap => _config.onTap;
 
+  String? _lastSearchText;
+
   void _controllerChanged() {
+    final text = host.textController?.text ?? '';
+    if (text == _lastSearchText) {
+      return;
+    }
+    _lastSearchText = text;
     _debouncer.cancel();
-    final empty = host.textController?.text.isEmpty ?? true;
+    final empty = text.isEmpty;
     if (empty != _wasEmpty) {
       _wasEmpty = empty;
       host.rebuild();
@@ -449,6 +459,7 @@ final class _SearchFeature extends _FieldFeature {
   @override
   void bind() {
     _binding.bind(host.textController);
+    _lastSearchText = host.textController?.text ?? '';
     _wasEmpty = host.textController?.text.isEmpty ?? true;
   }
 
@@ -538,6 +549,7 @@ final class _SearchFeature extends _FieldFeature {
         Semantics(
           label: config.clearLabel,
           button: true,
+          onTap: clear,
           child: ExcludeSemantics(
             child: IconButton(
               tooltip: config.clearLabel,

@@ -207,12 +207,20 @@ final class SmartMaskFormatter extends TextInputFormatter {
         newValue.text.length < oldValue.text.length &&
         raw == oldRaw &&
         newValue.selection.isCollapsed &&
-        baseRaw > 0;
+        (baseRaw > 0 ||
+            oldValue.selection.baseOffset == newValue.selection.baseOffset);
     if (deletedOnlyLiteral) {
       final characters = raw.runes.map(String.fromCharCode).toList();
-      characters.removeAt(baseRaw - 1);
+      final forward =
+          oldValue.selection.isCollapsed &&
+          oldValue.selection.baseOffset == newValue.selection.baseOffset;
+      if (forward && baseRaw < characters.length) {
+        characters.removeAt(baseRaw);
+      } else {
+        characters.removeAt(baseRaw - 1);
+        baseRaw--;
+      }
       raw = characters.join();
-      baseRaw--;
       extentRaw = baseRaw;
     }
     final applied = mask.apply(raw);

@@ -324,6 +324,35 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   int _seedGeneration = 0;
   String? _seededText;
   DateTime? _resetBaseline;
+  bool _dropdownFocused = false;
+  final Map<String, List<DropdownMenuItem<int>>> _menuItems = {};
+
+  List<DropdownMenuItem<int>> _cachedItems(
+    String key,
+    List<int> values,
+    String Function(int value) labelOf,
+  ) {
+    return _menuItems.putIfAbsent(key, () {
+      return [
+        for (final value in values)
+          DropdownMenuItem<int>(
+            value: value,
+            child: Text(labelOf(value), overflow: TextOverflow.ellipsis),
+          ),
+      ];
+    });
+  }
+
+  void _clearParts(FormFieldState<DateTime?> state) {
+    setState(() => _loadPartsFrom(null));
+    state.didChange(null);
+    widget.source.serverError?.notifyFieldChanged();
+    _writeController('');
+    _engine?.observe('');
+    widget.source.onChanged?.call('');
+    _config.onDateChanged?.call(null);
+  }
+
   int? _day;
   int? _month;
   int? _year;
@@ -820,7 +849,9 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       return _buildDropdowns(context);
     }
     final decoration = widget.source.decoration.copyWith(suffixIcon: _suffix());
-    final Widget field = _withSeedReset(_buildTextField(decoration));
+    final Widget field = SmartLtrContentScope(
+      child: _withSeedReset(_buildTextField(decoration)),
+    );
     if (!_config.usesPicker) {
       return field;
     }
@@ -1006,6 +1037,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     final maxDay = _month == null
         ? 31
         : SmartDateUtils.daysInMonth(_year ?? 2000, _month!);
+    final interactive = _enabled && !widget.source.readOnly;
     final days = [for (var d = 1; d <= maxDay; d++) d];
     final selectedDay = _day;
     if (selectedDay != null && !days.contains(selectedDay)) {
@@ -1015,6 +1047,9 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       canRequestFocus: false,
       skipTraversal: true,
       onFocusChange: (focused) {
+        if (mounted && focused != _dropdownFocused) {
+          setState(() => _dropdownFocused = focused);
+        }
         if (!focused) {
           _engine?.focusLost();
         }
@@ -1040,75 +1075,106 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
           _engine?.reset();
         },
         builder: (state) {
-          Widget dropdown<T>({
+          Widget dropdown({
+            required int flex,
             required String hint,
-            required T? value,
-            required List<T> items,
-            required String Function(T) labelOf,
-            required ValueChanged<T?> onChanged,
+            required int? value,
+            required List<DropdownMenuItem<int>> items,
+            required ValueChanged<int?> onChanged,
           }) {
             return Expanded(
+              flex: flex,
               child: Semantics(
-                label: hint,
+                label: value == null ? null : hint,
                 child: DropdownButtonHideUnderline(
-                  child: DropdownButton<T>(
+                  child: DropdownButton<int>(
                     isExpanded: true,
-                    isDense: true,
                     hint: Text(hint),
                     value: value,
-                    items: [
-                      for (final item in items)
-                        DropdownMenuItem<T>(
-                          value: item,
-                          child: Text(
-                            labelOf(item),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                    ],
-                    onChanged: _enabled && !widget.source.readOnly
-                        ? onChanged
-                        : null,
+                    items: items,
+                    onChanged: interactive ? onChanged : null,
                   ),
                 ),
               ),
             );
           }
 
+          final source = widget.source.decoration;
+          final compact =
+              source.contentPadding == null &&
+              Theme.of(context).inputDecorationTheme.contentPadding == null &&
+              !(source.isCollapsed ?? false);
+          final anySet = _day != null || _month != null || _year != null;
+          final suffix = composeSuffixActions([
+            ?source.suffixIcon,
+            if (_config.showClearButton && anySet && interactive)
+              IconButton(
+                tooltip: _config.clearLabel,
+                onPressed: () => _clearParts(state),
+                icon: const Icon(Icons.clear),
+              ),
+          ]);
           final decoration = SmartFieldDesign.resolve(
             context,
-            widget.source.decoration.copyWith(
+            source.copyWith(
               labelText: widget.source.label,
               errorText: state.errorText,
               enabled: _enabled,
+              suffixIcon: suffix,
+              contentPadding: compact
+                  ? const EdgeInsets.symmetric(horizontal: 16, vertical: 4)
+                  : null,
             ),
           );
+          final monthNames = _config.monthNames;
           return InputDecorator(
             decoration: decoration,
             isEmpty: false,
+            isFocused: _dropdownFocused,
             child: Row(
               children: [
-                dropdown<int>(
+                dropdown(
+                  flex: 3,
                   hint: _config.dayLabel,
                   value: _day,
-                  items: days,
-                  labelOf: (value) => value.toString(),
+                  items: _cachedItems(
+                    'd:${days.join(',')}',
+                    days,
+                    (value) => value.toString(),
+                  ),
                   onChanged: (value) => _setPart(state, day: value),
                 ),
                 const SizedBox(width: 8),
-                dropdown<int>(
+                dropdown(
+                  flex: 5,
                   hint: _config.monthLabel,
                   value: _month,
-                  items: [for (var m = 1; m <= 12; m++) m],
-                  labelOf: (value) => _config.monthNames[value - 1],
+                  items: _cachedItems('m:${monthNames.join('|')}', const [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                  ], (value) => monthNames[value - 1]),
                   onChanged: (value) => _setPart(state, month: value),
                 ),
                 const SizedBox(width: 8),
-                dropdown<int>(
+                dropdown(
+                  flex: 4,
                   hint: _config.yearLabel,
                   value: _year,
-                  items: years,
-                  labelOf: (value) => value.toString(),
+                  items: _cachedItems(
+                    'y:${years.first}-${years.last}-${years.length}',
+                    years,
+                    (value) => value.toString(),
+                  ),
                   onChanged: (value) => _setPart(state, year: value),
                 ),
               ],
