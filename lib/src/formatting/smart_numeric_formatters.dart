@@ -419,14 +419,34 @@ final class SmartAmountFormatter extends TextInputFormatter {
     return TextEditingValue(text: text, selection: selection);
   }
 
+  (int, int) _numericRange(String text) {
+    final symbol = currencySymbol;
+    if (symbol == null) {
+      return (0, text.length);
+    }
+    if (currencyPosition == SmartCurrencyPosition.prefix &&
+        text.startsWith(symbol)) {
+      return (symbol.length, text.length);
+    }
+    if (currencyPosition == SmartCurrencyPosition.suffix &&
+        text.endsWith(symbol)) {
+      return (0, text.length - symbol.length);
+    }
+    return (0, text.length);
+  }
+
+  bool _isRawCharacter(String character) {
+    return _digitExpression.hasMatch(character) ||
+        character == '-' ||
+        character == decimalSeparator;
+  }
+
   int _rawOffset(String text, int displayOffset) {
     var count = 0;
-    final limit = displayOffset.clamp(0, text.length);
-    for (var index = 0; index < limit; index++) {
-      final character = text[index];
-      if (_digitExpression.hasMatch(character) ||
-          character == '-' ||
-          character == decimalSeparator) {
+    final range = _numericRange(text);
+    final limit = displayOffset.clamp(0, range.$2);
+    for (var index = range.$1; index < limit; index++) {
+      if (_isRawCharacter(text[index])) {
         count++;
       }
     }
@@ -444,17 +464,15 @@ final class SmartAmountFormatter extends TextInputFormatter {
       return 0;
     }
     var count = 0;
-    for (var index = 0; index < text.length; index++) {
-      final character = text[index];
-      if (_digitExpression.hasMatch(character) ||
-          character == '-' ||
-          character == decimalSeparator) {
+    final range = _numericRange(text);
+    for (var index = range.$1; index < range.$2; index++) {
+      if (_isRawCharacter(text[index])) {
         count++;
         if (count == rawOffset) {
           return index + 1;
         }
       }
     }
-    return text.length;
+    return range.$2;
   }
 }

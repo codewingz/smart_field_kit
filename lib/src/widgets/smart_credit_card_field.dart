@@ -487,37 +487,43 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       enabled: enabled,
       onSaved: (_) => _config.onSaved?.call(_value()),
       builder: (_) {
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final narrow = constraints.maxWidth < 300;
-            if (narrow) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  number,
-                  const SizedBox(height: 16),
-                  expiry,
-                  const SizedBox(height: 16),
-                  cvv,
-                ],
-              );
-            }
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+        return SmartLtrContentScope(
+          child: AutofillGroup(child: _layout(number, expiry, cvv)),
+        );
+      },
+    );
+  }
+
+  Widget _layout(Widget number, Widget expiry, Widget cvv) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final narrow = constraints.maxWidth < 300;
+        if (narrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              number,
+              const SizedBox(height: 16),
+              expiry,
+              const SizedBox(height: 16),
+              cvv,
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            number,
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                number,
-                const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: expiry),
-                    const SizedBox(width: 16),
-                    Expanded(child: cvv),
-                  ],
-                ),
+                Expanded(child: expiry),
+                const SizedBox(width: 16),
+                Expanded(child: cvv),
               ],
-            );
-          },
+            ),
+          ],
         );
       },
     );

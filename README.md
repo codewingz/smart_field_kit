@@ -922,7 +922,7 @@ SmartField.dateTime(mode: SmartTimeMode.picker, restriction: SmartDateRestrictio
 
 - Rules: `minDate`, `maxDate` (inclusive), `restriction` (`pastOnly` means before today, `futureOnly` means after today, both relative to `now()`), `minTime`/`maxTime`, `isRequired`, your `validator`, `serverError`, `asyncValidation`, `initialDate`/`initialTime`, `showClearButton`, and `FormState.reset`. Impossible dates such as 30 February are invalid. Calendar and wheel pickers default to 1900 to 2100 when no bounds are set. In dropdown mode a stored date outside the selectable years is still shown and is never replaced; `minDate`, `maxDate`, and `restriction` report it, and a date outside an explicit `firstYear`/`lastYear` range fails with the invalid-date message. `FormState.reset` returns a dropdown field to the date it had when it was first shown (the controller text or `initialDate`), and `save` then returns that same value. A picker result is discarded if the field was disabled, made read-only, given another controller, or removed while the picker was open. Calendar, wheel, and clock picker modes run `asyncValidation` automatically after a selection unless the field is disabled or `readOnly`.
 
-- Values: `onDateChanged`, `onTimeChanged`, `onDateTimeChanged` give `DateTime?`/`TimeOfDay?`. Dates are local calendar dates (midnight), so there are no timezone shifts. `onRawChanged`, `onRawSaved`, and async validators receive ISO text: `yyyy-MM-dd`, `HH:mm`, or `yyyy-MM-ddTHH:mm` without an offset. `SmartDateUtils` provides the same helpers. `onChanged` and `onSaved` carry the displayed text. In dropdown mode an external `controller` holds the same display text as the dropdowns and stays in sync with them.
+- Values: `onDateChanged`, `onTimeChanged`, `onDateTimeChanged` give `DateTime?`/`TimeOfDay?`. Dates are local calendar dates (midnight), so there are no timezone shifts. `onRawChanged`, `onRawSaved`, and async validators receive ISO text: `yyyy-MM-dd`, `HH:mm`, or `yyyy-MM-ddTHH:mm` without an offset. `SmartDateUtils` provides the same helpers. `onChanged` and `onSaved` carry the displayed text. In dropdown mode an external `controller` holds the same display text as the dropdowns and stays in sync with them. `showClearButton` also works in dropdown mode: the button empties all three parts, the controller, and the form value, and calls `onChanged('')` and `onDateChanged(null)`.
 
 - Limits: date-time values are minute precision and timezone-naive; daylight-saving gaps and overlaps are not adjusted, and the app owns timezone conversion. Cancelling a picker leaves the value unchanged. Programmatic controller changes do not fire typed callbacks.
 
@@ -1240,6 +1240,14 @@ All fields except `SmartField.otp()` (which draws its own boxes through `SmartOt
 - Colors from the app `ColorScheme` (`outline`, `primary`, `error`, and a faint `onSurface` for disabled), so light, dark, and custom themes apply.
 
 If the field's `decoration` or the app theme sets any border property, no fallback borders are added; if either sets `contentPadding` (or `isCollapsed`), the fallback padding is not added. Focus styling follows the field's real focus. Fixed heights are never applied, so multiline, large text, error text, and RTL layouts can grow.
+
+### Right-to-left layouts
+
+Labels, icons, alignment, and error text follow the ambient `Directionality`. Content made of digits is always drawn left to right so it reads in the order it was typed: number, amount, percentage, phone, card number, expiry, security code, date, time, and date-time text, the phone dial code, masked previews, and the OTP boxes. In a right-to-left layout that text is right-aligned inside the field. Plain text, name, email, username, description, URL, and search fields keep Flutter's default direction handling.
+
+### Accessible actions
+
+The password visibility toggle and the search clear button expose a tap action to assistive technology in addition to their labels. The OTP label, the country button, and the date dropdowns are announced once. Date dropdowns are 48 logical pixels high. A long press on the OTP boxes opens a Paste menu, and `Ctrl`/`Cmd`+`V` keeps working on desktop and web. These behaviours are covered by semantics-tree tests; checks with TalkBack and VoiceOver on real devices are still required.
 
 ## Common options
 

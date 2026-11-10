@@ -632,6 +632,7 @@ class SmartField extends _SmartFieldBase {
              clearLabel: clearLabel,
              countrySearchHint: countrySearchHint,
            ),
+           ltrContent: true,
          ),
          keyboardType: TextInputType.phone,
          autofillHints: const [AutofillHints.telephoneNumber],
@@ -1704,6 +1705,9 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
       );
     }
     final mask = _feature<_MaskFeature>();
+    final ltrContent =
+        widget._core.ltrContent || SmartLtrContentScope.isActive(context);
+    final ambientRtl = Directionality.of(context) == TextDirection.rtl;
     final field = TextFormField(
       key: _fieldKey,
       controller: textController,
@@ -1720,6 +1724,8 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
       minLines: widget.minLines,
       maxLines: widget.maxLines,
       expands: widget.expands,
+      textDirection: ltrContent ? TextDirection.ltr : null,
+      textAlign: ltrContent && ambientRtl ? TextAlign.right : TextAlign.start,
       obscureText: _feature<_PasswordFeature>()?.obscure ?? false,
       style: showsMask ? const TextStyle(color: Colors.transparent) : null,
       showCursor: showsMask ? false : null,

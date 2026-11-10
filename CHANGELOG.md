@@ -16,3 +16,12 @@
 * Recompute the card security-code length error when the card-number controller or allowed lengths change.
 * Return an invalid result instead of throwing for URLs with oversized numeric host components.
 * Enforce `SmartField.username(allowedCharacters:)` through validation as well as input formatting.
+* Fix right-to-left layouts reordering digits: OTP boxes, card numbers, phone numbers and dial codes, grouped and negative amounts, percentages, and 12-hour times now keep typed order.
+* Expose a tap action to assistive technology on the password visibility toggle and the search clear button; announce the OTP label, country button, and date dropdown labels once; make date dropdowns 48 logical pixels high with a focused border.
+* Add a long-press Paste menu to the OTP field.
+* Keep a pending debounced search when only the caret moves.
+* Clear an outdated server error when the phone clear button or contact picker changes the value.
+* Fix forward Delete on an input-mask literal or card-number space removing the character before the caret.
+* Fix caret placement for amounts whose currency symbol contains a decimal separator or a digit.
+* Honour `showClearButton` in date dropdown mode, give the month more room in narrow layouts, and roughly halve dropdown rebuild cost.
+* Group the card number, expiry, and security-code fields for platform autofill.

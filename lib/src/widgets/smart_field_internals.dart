@@ -68,6 +68,7 @@ _SmartFieldCore _numberCore({
       revealOnFocus: revealMaskOnFocus,
     ),
     formatters: [SmartNumberInputFormatter(allowNegative: allowNegative)],
+    ltrContent: true,
   );
 }
 
@@ -163,6 +164,7 @@ _SmartFieldCore _percentageCore({
     maxValueValidator: limits.max,
     percentageSuffix: percentSymbol,
     formatters: [formatter],
+    ltrContent: true,
   );
 }
 
@@ -240,6 +242,7 @@ _SmartFieldCore _amountCore({
     ),
     isAmount: true,
     formatters: [formatter],
+    ltrContent: true,
   );
 }
 
@@ -303,6 +306,7 @@ final class _SmartFieldCore {
     this.showWordCount = false,
     this.minWordsMessage,
     this.maxWordsMessage,
+    this.ltrContent = false,
   });
 
   final SmartValidator? fieldValidator;
@@ -332,6 +336,7 @@ final class _SmartFieldCore {
   final bool showWordCount;
   final String? minWordsMessage;
   final String? maxWordsMessage;
+  final bool ltrContent;
 
   String? rawValue(String text, {bool partial = false}) {
     final formatter = amountFormatter;
