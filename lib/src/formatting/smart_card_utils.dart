@@ -423,6 +423,13 @@ abstract final class SmartCardUtils {
         digits: count,
       );
     }
+    if (!digits.contains(RegExp(r'[1-9]'))) {
+      return result(
+        SmartCardNumberStatus.invalid,
+        issue: SmartCardNumberIssue.failsChecksum,
+        digits: count,
+      );
+    }
     final checksum =
         !validateLuhn || luhnExemptBrands.contains(brand) || passesLuhn(digits);
     if (checksum) {

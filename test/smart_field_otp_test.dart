@@ -66,7 +66,7 @@ void main() {
     await tester.enterText(find.byType(EditableText), '12a3');
     expect(controller.text, '12');
     await tester.enterText(find.byType(EditableText), '12345');
-    expect(controller.text, '12');
+    expect(controller.text, '1234');
     await tester.enterText(find.byType(EditableText), '0012');
     expect(controller.text, '0012');
   });

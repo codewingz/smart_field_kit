@@ -27,6 +27,9 @@
 * Add generic pattern masks for SmartField.text with separate raw and display values.
 * Add an optional password-strength indicator with developer-defined criteria.
 * Add a long-press Paste menu to the OTP field.
+* Add optional `initialValue`, `onFieldSubmitted`, `onEditingComplete`, `onTap`, `onTapOutside`, `style`, `textAlign`, `textDirection`, and `obscuringCharacter` parameters to the text-based constructors.
+* Add optional text overrides: `wordCountBuilder`, `strengthTitle`, the five password-rule messages, `allowedCharactersErrorText`, `contactPickerMessageBuilder`, `showCvvLabel`, and `hideCvvLabel`.
+* Export `SmartNumberInputFormatter`.
 
 ### Changed
 
@@ -36,6 +39,15 @@
 * Credit card: UnionPay is now exempt from the Luhn checksum by default because its numbers are not required to pass it; pass `luhnExemptBrands: const {}` to enforce Luhn, and every other brand still requires it. Strength indicator is skipped while a mask is shown, as before the feature refactor.
 * Group the card number, expiry, and security-code fields for platform autofill.
 * Lower the Dart SDK constraint to `^3.12.0` after verifying analysis, tests, and the example build on Flutter 3.44.0.
+* Discard a completed asynchronous result when the validator function is replaced, without making a request.
+* Call date `onRawChanged` with an empty string when a valid value is cleared or becomes invalid.
+* Return the same normalised text from amount `onRawSaved` whether or not the field has focus.
+* Apply `maxLength` to whitespace-only text and count grapheme clusters in `SmartPasswordCriterion.minLength`.
+* Reject card numbers made only of zeros.
+* OTP: remove spaces and hyphens from pasted text, drop extra digits, let a typed digit replace a filled box, and report each distinct completed code.
+* Phone: ignore non-breaking spaces, dots, and invisible direction marks during validation and parsing.
+* Email: ignore surrounding spaces during validation and pass the trimmed address to `onSaved`.
+* Credit card: label the security-code toggle `Show security code` / `Hide security code`, and apply decoration labels and icons to the number field only.
 
 ### Fixed
 

@@ -205,3 +205,7 @@ Pass `restorationId` (inside a `RestorationScope`, for example `MaterialApp.rest
 ## Reusable formatting and validation utilities
 
 `SmartValidators` (including `passwordRules`, `matches`, `minWords`, `maxWords`, `url`, `phone`), `SmartUrlValidation`, `SmartPhoneValidation`, `SmartTextUtils` (`countWords`, case helpers, `collapseWhitespace`), `SmartAmountFormatter`, `SmartDecimalUtils`, `maskMobile`, `maskAccountNumber`, `maskAmount`, and `formatNumber` call the same code as the widgets.
+
+## Saved raw amounts
+
+`onRawSaved` on an amount field returns the same normalised text whether or not the field has focus. With `decimalPlaces: 2`, typing `50000` saves `50000.00` in both states. Without fixed decimals the typed digits are kept (`12.5` saves `12.5`). `onSaved` and a custom `validator` still receive the text currently shown in the field.

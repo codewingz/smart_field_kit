@@ -198,3 +198,13 @@ SmartField.password(
 ```
 
 The indicator is optional, informational feedback (weak, fair, good, strong from the share of criteria met) with a polite live-region label such as `Password strength: Good`. It is separate from `policy`, `validationMode`, and validation; a password can be "strong" yet rejected by your policy and the reverse. Strength is computed locally from the field text on each change; nothing is logged, stored, or sent. `SmartPasswordStrength.evaluate()` runs without a widget.
+
+## Changes to an async validator
+
+When the `validator` function of a field is replaced by a different function, a completed result from the old function is discarded at once: the status returns to `idle` and its error is removed. No request is made by that replacement alone; the new function runs on the next trigger (a value change, focus loss, or `validateAsync()`). A check that is still pending is restarted with the new function for the `onChanged` trigger.
+
+A closure written inline in `build` is a new function on every rebuild, so its completed result is discarded on every rebuild. Keep the validator in a field, a `final` variable, or a top-level function.
+
+## Length rules and whitespace
+
+`maxLength` counts every character, including a value made only of spaces. `minLength` and the legacy presets still treat a blank value as "not entered", which `isRequired` covers. `SmartPasswordCriterion.minLength` counts characters as users see them (grapheme clusters), the same as `SmartValidators.minLength`.

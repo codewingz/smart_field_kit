@@ -36,7 +36,11 @@ void main() {
       expect(SmartValidators.minLength(3)(null), isNull);
       expect(SmartValidators.minLength(3)(''), isNull);
       expect(SmartValidators.minLength(3)('   '), isNull);
-      expect(SmartValidators.maxLength(0)('   '), isNull);
+      expect(
+        SmartValidators.maxLength(0)('   '),
+        'Enter no more than 0 characters.',
+      );
+      expect(SmartValidators.maxLength(3)('   '), isNull);
     });
 
     test('support custom messages', () {
@@ -246,7 +250,6 @@ void main() {
         'user@-example.com',
         'user@example-.com',
         'user @example.com',
-        ' user@example.com ',
         '   ',
       ]) {
         expect(validator(value), 'Enter a valid email address.', reason: value);

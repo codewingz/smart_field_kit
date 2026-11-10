@@ -74,8 +74,19 @@ abstract class _SmartFieldBase extends StatefulWidget {
     this.restorationId,
     this.decoration = const InputDecoration(),
     this.showVisibilityToggle = false,
+    this.initialValue,
+    this.onFieldSubmitted,
+    this.onEditingComplete,
+    this.onTap,
+    this.onTapOutside,
+    this.style,
+    this.textAlign,
+    this.textDirection,
+    this.obscuringCharacter = '•',
     List<TextInputFormatter>? inputFormatters,
   }) : _developerFormatters = inputFormatters,
+       assert(initialValue == null || controller == null),
+       assert(obscuringCharacter.length == 1),
        assert(minLines == null || minLines > 0),
        assert(maxLines == null || maxLines > 0),
        assert(minLines == null || maxLines == null || maxLines >= minLines),
@@ -121,6 +132,15 @@ abstract class _SmartFieldBase extends StatefulWidget {
   final String? restorationId;
   final InputDecoration decoration;
   final bool showVisibilityToggle;
+  final String? initialValue;
+  final ValueChanged<String>? onFieldSubmitted;
+  final VoidCallback? onEditingComplete;
+  final GestureTapCallback? onTap;
+  final TapRegionCallback? onTapOutside;
+  final TextStyle? style;
+  final TextAlign? textAlign;
+  final TextDirection? textDirection;
+  final String obscuringCharacter;
 
   List<TextInputFormatter>? get inputFormatters {
     final own = _core.formatters;
@@ -177,6 +197,14 @@ class SmartField extends _SmartFieldBase {
     super.serverError,
     super.restorationId,
     super.decoration,
+    super.initialValue,
+    super.onEditingComplete,
+    super.onTapOutside,
+    super.style,
+    super.textAlign,
+    super.textDirection,
+    super.onFieldSubmitted,
+    super.onTap,
     super.keyboardType,
     super.textCapitalization,
     super.autocorrect = true,
@@ -213,6 +241,14 @@ class SmartField extends _SmartFieldBase {
     super.serverError,
     super.restorationId,
     super.decoration,
+    super.initialValue,
+    super.onEditingComplete,
+    super.onTapOutside,
+    super.style,
+    super.textAlign,
+    super.textDirection,
+    super.onFieldSubmitted,
+    super.onTap,
     super.keyboardType = TextInputType.multiline,
     super.textCapitalization,
     super.autocorrect = true,
@@ -228,6 +264,7 @@ class SmartField extends _SmartFieldBase {
     int? minWords,
     int? maxWords,
     bool showWordCount = false,
+    String Function(int count, int? maxWords)? wordCountBuilder,
     String? minWordsErrorText,
     String? maxWordsErrorText,
     SmartTextValidationPreset? validationPreset,
@@ -240,6 +277,7 @@ class SmartField extends _SmartFieldBase {
            minWords: minWords,
            maxWords: maxWords,
            showWordCount: showWordCount,
+           wordCountBuilder: wordCountBuilder,
            minWordsErrorText: minWordsErrorText,
            maxWordsErrorText: maxWordsErrorText,
            validationPreset: validationPreset,
@@ -273,6 +311,14 @@ class SmartField extends _SmartFieldBase {
     super.serverError,
     super.restorationId,
     super.decoration,
+    super.initialValue,
+    super.onEditingComplete,
+    super.onTapOutside,
+    super.style,
+    super.textAlign,
+    super.textDirection,
+    super.onFieldSubmitted,
+    super.onTap,
     super.keyboardType,
     super.textCapitalization,
     super.autocorrect = true,
@@ -292,6 +338,7 @@ class SmartField extends _SmartFieldBase {
     int? minWords,
     int? maxWords,
     bool showWordCount = false,
+    String Function(int count, int? maxWords)? wordCountBuilder,
     String? minWordsErrorText,
     String? maxWordsErrorText,
     SmartTextValidationPreset? validationPreset,
@@ -307,6 +354,7 @@ class SmartField extends _SmartFieldBase {
            minWords: minWords,
            maxWords: maxWords,
            showWordCount: showWordCount,
+           wordCountBuilder: wordCountBuilder,
            minWordsErrorText: minWordsErrorText,
            maxWordsErrorText: maxWordsErrorText,
            validationPreset: validationPreset,
@@ -340,6 +388,14 @@ class SmartField extends _SmartFieldBase {
     super.serverError,
     super.restorationId,
     super.decoration,
+    super.initialValue,
+    super.onEditingComplete,
+    super.onTapOutside,
+    super.style,
+    super.textAlign,
+    super.textDirection,
+    super.onFieldSubmitted,
+    super.onTap,
     SmartEmailPolicy policy = SmartEmailPolicy.standard,
     String emailErrorText = 'Enter a valid email address.',
   }) : super(
@@ -348,6 +404,7 @@ class SmartField extends _SmartFieldBase {
              policy: policy,
              message: emailErrorText,
            ),
+           trimOnSave: policy == SmartEmailPolicy.standard,
          ),
          keyboardType: TextInputType.emailAddress,
          autofillHints: const [AutofillHints.email],
@@ -379,6 +436,14 @@ class SmartField extends _SmartFieldBase {
     super.serverError,
     super.restorationId,
     super.decoration,
+    super.initialValue,
+    super.onEditingComplete,
+    super.onTapOutside,
+    super.style,
+    super.textAlign,
+    super.textDirection,
+    super.onFieldSubmitted,
+    super.onTap,
     super.inputFormatters,
     Set<String> allowedSchemes = SmartUrlValidation.defaultSchemes,
     bool allowBareDomain = false,
@@ -421,6 +486,14 @@ class SmartField extends _SmartFieldBase {
     super.serverError,
     super.restorationId,
     super.decoration,
+    super.initialValue,
+    super.onEditingComplete,
+    super.onTapOutside,
+    super.style,
+    super.textAlign,
+    super.textDirection,
+    super.onFieldSubmitted,
+    super.onTap,
     super.autofillHints = const [AutofillHints.name],
     super.inputFormatters,
     bool capitalizeWords = false,
@@ -467,10 +540,19 @@ class SmartField extends _SmartFieldBase {
     super.serverError,
     super.restorationId,
     super.decoration,
+    super.initialValue,
+    super.onEditingComplete,
+    super.onTapOutside,
+    super.style,
+    super.textAlign,
+    super.textDirection,
+    super.onFieldSubmitted,
+    super.onTap,
     super.autofillHints = const [AutofillHints.username],
     super.inputFormatters,
     SmartTextCase usernameCase = SmartTextCase.none,
     SmartUsernameCharacters allowedCharacters = SmartUsernameCharacters.any,
+    String allowedCharactersErrorText = 'Use only the allowed characters.',
     SmartTextValidationPreset? validationPreset,
     String? validationPresetErrorText,
   }) : super(
@@ -484,6 +566,7 @@ class SmartField extends _SmartFieldBase {
                ),
            ],
            allowedCharacters: allowedCharacters,
+           allowedCharactersErrorText: allowedCharactersErrorText,
            validationPreset: validationPreset,
            validationPresetErrorText: validationPresetErrorText,
          ),
@@ -515,6 +598,12 @@ class SmartField extends _SmartFieldBase {
     super.serverError,
     super.restorationId,
     super.decoration,
+    super.initialValue,
+    super.onEditingComplete,
+    super.onTapOutside,
+    super.style,
+    super.textAlign,
+    super.textDirection,
     super.inputFormatters,
     GestureTapCallback? onTap,
     ValueChanged<String>? onSubmitted,
@@ -575,6 +664,14 @@ class SmartField extends _SmartFieldBase {
     super.serverError,
     super.restorationId,
     super.decoration,
+    super.initialValue,
+    super.onEditingComplete,
+    super.onTapOutside,
+    super.style,
+    super.textAlign,
+    super.textDirection,
+    super.onFieldSubmitted,
+    super.onTap,
     bool mask = false,
     int maskVisibleSuffixDigits = 4,
     String maskCharacter = '*',
@@ -591,6 +688,8 @@ class SmartField extends _SmartFieldBase {
     SmartPhoneCountryChanged? onCountryChanged,
     SmartPhoneChanged? onPhoneChanged,
     ValueChanged<SmartPhonePickerError>? onContactPickerError,
+    String Function(SmartPhonePickerErrorCode code)?
+    contactPickerMessageBuilder,
     SmartPhoneContactPicker? contactPicker,
     TextStyle? countryTextStyle,
     Widget? countryPlaceholder,
@@ -622,6 +721,7 @@ class SmartField extends _SmartFieldBase {
              onCountryChanged: onCountryChanged,
              onPhoneChanged: onPhoneChanged,
              onContactPickerError: onContactPickerError,
+             contactPickerMessageBuilder: contactPickerMessageBuilder,
              contactPicker: contactPicker,
              countryTextStyle: countryTextStyle,
              countryPlaceholder: countryPlaceholder,
@@ -664,6 +764,15 @@ class SmartField extends _SmartFieldBase {
     super.serverError,
     super.restorationId,
     super.decoration,
+    super.initialValue,
+    super.onEditingComplete,
+    super.onTapOutside,
+    super.style,
+    super.textAlign,
+    super.textDirection,
+    super.onFieldSubmitted,
+    super.onTap,
+    super.obscuringCharacter,
     super.showVisibilityToggle = true,
     super.keyboardType = TextInputType.visiblePassword,
     super.inputFormatters,
@@ -675,8 +784,14 @@ class SmartField extends _SmartFieldBase {
     List<SmartPasswordCriterion>? strengthCriteria,
     Map<SmartPasswordStrengthLevel, String>? strengthLabels,
     bool showStrengthChecklist = false,
+    String strengthTitle = 'Password strength',
     String showPasswordLabel = 'Show password',
     String hidePasswordLabel = 'Hide password',
+    String uppercaseErrorText = 'Include an uppercase letter.',
+    String lowercaseErrorText = 'Include a lowercase letter.',
+    String digitErrorText = 'Include a digit.',
+    String specialCharacterErrorText = 'Include a special character.',
+    String noWhitespaceErrorText = 'Do not use spaces.',
   }) : super(
          _SmartFieldCore(
            fieldValidator: policy == null
@@ -690,11 +805,19 @@ class SmartField extends _SmartFieldBase {
            mismatchMessage: mismatchErrorText,
            showPasswordLabel: showPasswordLabel,
            hidePasswordLabel: hidePasswordLabel,
+           passwordRuleMessages: (
+             uppercase: uppercaseErrorText,
+             lowercase: lowercaseErrorText,
+             digit: digitErrorText,
+             special: specialCharacterErrorText,
+             whitespace: noWhitespaceErrorText,
+           ),
            strength: showStrengthIndicator
                ? _SmartStrengthConfig(
                    criteria: strengthCriteria,
                    labels: strengthLabels,
                    showChecklist: showStrengthChecklist,
+                   title: strengthTitle,
                  )
                : null,
          ),
@@ -702,6 +825,8 @@ class SmartField extends _SmartFieldBase {
        );
 
   SmartField._securityCode({
+    required String showLabel,
+    required String hideLabel,
     super.label,
     super.hintText,
     super.controller,
@@ -721,7 +846,9 @@ class SmartField extends _SmartFieldBase {
   }) : super(
          _SmartFieldCore(
            isPassword: true,
-           mismatchMessage: 'Passwords do not match.',
+           showPasswordLabel: showLabel,
+           hidePasswordLabel: hideLabel,
+           ltrContent: true,
          ),
          showVisibilityToggle: true,
          autofillHints: const [AutofillHints.creditCardSecurityCode],
@@ -753,6 +880,14 @@ class SmartField extends _SmartFieldBase {
     super.serverError,
     super.restorationId,
     super.decoration,
+    super.initialValue,
+    super.onEditingComplete,
+    super.onTapOutside,
+    super.style,
+    super.textAlign,
+    super.textDirection,
+    super.onFieldSubmitted,
+    super.onTap,
     String? minValue,
     String? minValueErrorText,
     String? maxValue,
@@ -807,6 +942,14 @@ class SmartField extends _SmartFieldBase {
     super.serverError,
     super.restorationId,
     super.decoration,
+    super.initialValue,
+    super.onEditingComplete,
+    super.onTapOutside,
+    super.style,
+    super.textAlign,
+    super.textDirection,
+    super.onFieldSubmitted,
+    super.onTap,
     String? minValue,
     String? minValueErrorText,
     String? maxValue,
@@ -861,6 +1004,14 @@ class SmartField extends _SmartFieldBase {
     super.serverError,
     super.restorationId,
     super.decoration,
+    super.initialValue,
+    super.onEditingComplete,
+    super.onTapOutside,
+    super.style,
+    super.textAlign,
+    super.textDirection,
+    super.onFieldSubmitted,
+    super.onTap,
     String? minValue,
     String? minValueErrorText,
     String? maxValue,
@@ -1221,6 +1372,8 @@ class SmartField extends _SmartFieldBase {
     String expiryErrorText = 'Enter a valid expiry date.',
     String expiredErrorText = 'This card has expired.',
     String? cvvErrorText,
+    String showCvvLabel = 'Show security code',
+    String hideCvvLabel = 'Hide security code',
     SmartServerError? numberServerError,
     SmartServerError? expiryServerError,
     SmartServerError? cvvServerError,
@@ -1258,6 +1411,8 @@ class SmartField extends _SmartFieldBase {
              expiryErrorText: expiryErrorText,
              expiredErrorText: expiredErrorText,
              cvvErrorText: cvvErrorText,
+             showCvvLabel: showCvvLabel,
+             hideCvvLabel: hideCvvLabel,
              numberServerError: numberServerError,
              expiryServerError: expiryServerError,
              cvvServerError: cvvServerError,
@@ -1365,7 +1520,10 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
 
   @override
   String get currentText =>
-      textController?.text ?? _fieldKey.currentState?.value ?? '';
+      textController?.text ??
+      _fieldKey.currentState?.value ??
+      widget.initialValue ??
+      '';
 
   @override
   String? validateSync(String? value) => _synchronousValidator(value);
@@ -1500,7 +1658,10 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
       return;
     }
     if (widget.controller == null) {
-      _ownedController ??= TextEditingController.fromValue(initialValue);
+      final seed = widget.initialValue;
+      _ownedController ??= TextEditingController.fromValue(
+        initialValue ?? (seed == null ? null : TextEditingValue(text: seed)),
+      );
     }
     if (widget.focusNode == null) {
       _ownedFocusNode ??= FocusNode();
@@ -1568,7 +1729,14 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
       if (widget.isRequired)
         SmartValidators.requiredField(message: widget.requiredErrorText),
       if (widget._isPassword && mode == SmartValidationMode.selected)
-        SmartValidators.passwordRules(checks),
+        SmartValidators.passwordRules(
+          checks,
+          uppercaseMessage: core.passwordRuleMessages.uppercase,
+          lowercaseMessage: core.passwordRuleMessages.lowercase,
+          digitMessage: core.passwordRuleMessages.digit,
+          specialCharacterMessage: core.passwordRuleMessages.special,
+          noWhitespaceMessage: core.passwordRuleMessages.whitespace,
+        ),
       SmartValidators.modeAware(
         mode: mode,
         checks: checks,
@@ -1645,14 +1813,22 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
   }
 
   void _handleSubmitted(String value) {
+    widget.onFieldSubmitted?.call(value);
     _feature<_SearchFeature>()?.submitted(value);
   }
 
   void _handleSaved(String? value) {
-    widget.onSaved?.call(value);
-    widget.onRawSaved?.call(
-      value == null ? null : widget._core.rawValue(value),
-    );
+    final core = widget._core;
+    widget.onSaved?.call(core.trimOnSave ? value?.trim() : value);
+    if (value == null) {
+      widget.onRawSaved?.call(null);
+      return;
+    }
+    final formatter = core.amountFormatter;
+    final settled = formatter == null
+        ? value
+        : formatter.format(value) ?? value;
+    widget.onRawSaved?.call(core.rawValue(settled));
   }
 
   @override
@@ -1724,16 +1900,27 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
       minLines: widget.minLines,
       maxLines: widget.maxLines,
       expands: widget.expands,
-      textDirection: ltrContent ? TextDirection.ltr : null,
-      textAlign: ltrContent && ambientRtl ? TextAlign.right : TextAlign.start,
+      initialValue: textController == null ? widget.initialValue : null,
+      textDirection:
+          widget.textDirection ?? (ltrContent ? TextDirection.ltr : null),
+      textAlign:
+          widget.textAlign ??
+          (ltrContent && ambientRtl ? TextAlign.right : TextAlign.start),
+      obscuringCharacter: widget.obscuringCharacter,
+      onEditingComplete: widget.onEditingComplete,
+      onTapOutside: widget.onTapOutside,
       obscureText: _feature<_PasswordFeature>()?.obscure ?? false,
-      style: showsMask ? const TextStyle(color: Colors.transparent) : null,
+      style: showsMask
+          ? const TextStyle(color: Colors.transparent)
+          : widget.style,
       showCursor: showsMask ? false : null,
       enableInteractiveSelection: !showsMask,
       inputFormatters: widget.inputFormatters,
-      onTap: widget._searchConfig?.onTap,
+      onTap: widget.onTap ?? widget._searchConfig?.onTap,
       onChanged: _handleChanged,
-      onFieldSubmitted: widget._isSearch ? _handleSubmitted : null,
+      onFieldSubmitted: widget._isSearch || widget.onFieldSubmitted != null
+          ? _handleSubmitted
+          : null,
       onSaved: _handleSaved,
       validator: _effectiveValidator,
       forceErrorText: widget.serverError?.errorText,
@@ -1771,8 +1958,12 @@ SmartField smartConcealedSecurityCodeField({
   AutovalidateMode? autovalidateMode,
   SmartServerError? serverError,
   InputDecoration decoration = const InputDecoration(),
+  String showLabel = 'Show security code',
+  String hideLabel = 'Hide security code',
 }) {
   return SmartField._securityCode(
+    showLabel: showLabel,
+    hideLabel: hideLabel,
     label: label,
     hintText: hintText,
     controller: controller,

@@ -8,12 +8,14 @@ class SmartPasswordStrengthIndicator extends StatelessWidget {
     this.criteria,
     this.labels,
     this.showChecklist = false,
+    this.title = 'Password strength',
   });
 
   final String password;
   final List<SmartPasswordCriterion>? criteria;
   final Map<SmartPasswordStrengthLevel, String>? labels;
   final bool showChecklist;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +32,7 @@ class SmartPasswordStrengthIndicator extends StatelessWidget {
     };
     final text = result.level == SmartPasswordStrengthLevel.empty
         ? names[result.level]!
-        : 'Password strength: ${names[result.level]}';
+        : '$title: ${names[result.level]}';
     return Semantics(
       label: text,
       liveRegion: true,

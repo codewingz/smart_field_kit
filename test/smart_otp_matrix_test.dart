@@ -87,7 +87,7 @@ void main() {
     await tester.pump();
     expect(find.text('Six digits needed'), findsOneWidget);
     await tester.enterText(find.byType(EditableText), '1234567');
-    expect(_text(tester), '123');
+    expect(_text(tester), '123456');
     await tester.enterText(find.byType(EditableText), '123456');
     expect(formKey.currentState!.validate(), isTrue);
   });
@@ -97,17 +97,20 @@ void main() {
   ) async {
     final completed = <String>[];
     await tester.pumpWidget(_app(SmartField.otp(onCompleted: completed.add)));
-    await tester.enterText(find.byType(EditableText), '123 456');
-    expect(_text(tester), isEmpty);
     await tester.enterText(find.byType(EditableText), '12a456');
     expect(_text(tester), isEmpty);
     await tester.enterText(find.byType(EditableText), '１２３４５６');
     expect(_text(tester), isEmpty);
+    await tester.enterText(find.byType(EditableText), '123 456');
+    expect(_text(tester), '123456');
+    await tester.enterText(find.byType(EditableText), '');
+    await tester.enterText(find.byType(EditableText), '987-654');
+    expect(_text(tester), '987654');
+    await tester.enterText(find.byType(EditableText), '');
     await tester.enterText(find.byType(EditableText), '12345678');
-    expect(_text(tester), isEmpty);
-    await tester.enterText(find.byType(EditableText), '123456');
+    expect(_text(tester), '123456');
     await tester.pump();
-    expect(completed, ['123456']);
+    expect(completed, ['123456', '987654', '123456']);
   });
 
   testWidgets('O05 rapid editing fires one completion per transition', (
@@ -129,7 +132,7 @@ void main() {
       await tester.enterText(find.byType(EditableText), value);
     }
     await tester.pump();
-    expect(completed, ['123456', '123456']);
+    expect(completed, ['123456', '123456', '123450']);
   });
 
   testWidgets('O06 backspace and middle edits keep focus and caret', (

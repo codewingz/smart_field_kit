@@ -65,6 +65,7 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
   bool _nextChangeIsUser = false;
   bool _composing = false;
   bool _wasComplete = false;
+  String? _lastCompleted;
   bool _resetting = false;
 
   TextEditingController get _controller => _input.controller;
@@ -166,8 +167,12 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
 
   void _handleCompletion(String value) {
     final complete = _isComplete(value);
-    if (complete && !_wasComplete) {
+    if (complete && (!_wasComplete || value != _lastCompleted)) {
+      _lastCompleted = value;
       widget.configuration.onCompleted?.call(value);
+    }
+    if (!complete) {
+      _lastCompleted = null;
     }
     _wasComplete = complete;
   }
@@ -198,9 +203,22 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
     if (!_enabled) {
       return;
     }
+    final hadFocus = _focusNode.hasFocus;
     _focusNode.requestFocus();
-    final offset = math.min(index, _controller.text.length);
-    _controller.selection = TextSelection.collapsed(offset: offset);
+    final target = _controller;
+    final offset = math.min(index, target.text.length);
+    target.selection = TextSelection.collapsed(offset: offset);
+    if (hadFocus) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted &&
+          identical(_controller, target) &&
+          _focusNode.hasFocus &&
+          offset <= target.text.length) {
+        target.selection = TextSelection.collapsed(offset: offset);
+      }
+    });
   }
 
   Future<void> _showPasteMenu(Offset position) async {
@@ -488,6 +506,9 @@ class _SmartOtpInputFormatter extends TextInputFormatter {
   final int length;
   final VoidCallback onAccepted;
 
+  static final RegExp _separators = RegExp(r'[ \-\u00a0]');
+  static final RegExp _digits = RegExp(r'^[0-9]*$');
+
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
@@ -496,17 +517,53 @@ class _SmartOtpInputFormatter extends TextInputFormatter {
     if (smartIsComposing(newValue)) {
       return newValue;
     }
-    final isDigits = RegExp(r'^[0-9]*$').hasMatch(newValue.text);
-    final wasOversized = oldValue.text.length > length;
-    final reducesOversizedValue =
-        wasOversized && newValue.text.length < oldValue.text.length;
-    if (!isDigits ||
-        (newValue.text.length > length && !reducesOversizedValue)) {
+    final stripped = newValue.text.replaceAll(_separators, '');
+    if (!_digits.hasMatch(stripped)) {
       return oldValue;
     }
-    if (newValue != oldValue) {
+    var result = stripped == newValue.text
+        ? newValue
+        : TextEditingValue(
+            text: stripped,
+            selection: TextSelection.collapsed(offset: stripped.length),
+          );
+    final wasOversized = oldValue.text.length > length;
+    final reducesOversizedValue =
+        wasOversized && result.text.length < oldValue.text.length;
+    if (result.text.length > length && !reducesOversizedValue) {
+      final caret = oldValue.selection.isValid && oldValue.selection.isCollapsed
+          ? oldValue.selection.baseOffset
+          : -1;
+      final typedOne =
+          oldValue.text.length == length &&
+          result.text.length == length + 1 &&
+          caret >= 0 &&
+          result.selection.isCollapsed &&
+          result.selection.baseOffset == caret + 1 &&
+          result.text.substring(0, caret) ==
+              oldValue.text.substring(0, caret) &&
+          result.text.substring(caret + 1) == oldValue.text.substring(caret);
+      if (typedOne && caret < length) {
+        final text =
+            oldValue.text.substring(0, caret) +
+            result.text[caret] +
+            oldValue.text.substring(caret + 1);
+        result = TextEditingValue(
+          text: text,
+          selection: TextSelection.collapsed(offset: caret + 1),
+        );
+      } else if (typedOne) {
+        return oldValue;
+      } else {
+        result = TextEditingValue(
+          text: result.text.substring(0, length),
+          selection: TextSelection.collapsed(offset: length),
+        );
+      }
+    }
+    if (result != oldValue) {
       onAccepted();
     }
-    return newValue;
+    return result;
   }
 }

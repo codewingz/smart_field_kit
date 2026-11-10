@@ -12,6 +12,7 @@ export 'src/formatting/smart_numeric_formatters.dart'
         SmartDecimalLength,
         SmartDecimalUtils,
         SmartGroupingStyle,
+        SmartNumberInputFormatter,
         SmartRoundingMode;
 export 'src/masking/smart_masking.dart';
 export 'src/models/smart_otp_style.dart';

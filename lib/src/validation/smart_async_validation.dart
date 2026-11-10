@@ -60,6 +60,7 @@ class SmartAsyncValidationEngine {
     required this.isActive,
     required this.onUpdate,
     this.isComposing = _neverComposing,
+    this.onResultDropped,
   });
 
   static bool _neverComposing() => false;
@@ -70,6 +71,7 @@ class SmartAsyncValidationEngine {
   final bool Function() isActive;
   final void Function() onUpdate;
   final bool Function() isComposing;
+  final void Function()? onResultDropped;
 
   SmartAsyncValidation? _config;
   SmartFieldAsyncController? _controller;
@@ -105,6 +107,14 @@ class SmartAsyncValidationEngine {
     }
     if (replacedValidator && _pendingFuture != null) {
       _restartAfterValidatorChange();
+    } else if (replacedValidator && _resultRaw != null) {
+      final generation = _generation;
+      scheduleMicrotask(() {
+        if (!_disposed && generation == _generation && _resultRaw != null) {
+          _invalidate();
+          onResultDropped?.call();
+        }
+      });
     }
   }
 

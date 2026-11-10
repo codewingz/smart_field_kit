@@ -333,7 +333,15 @@ final class _PhoneFeature extends _FieldFeature {
     }
   }
 
-  void _reportPhonePickerError(SmartPhonePickerError error) {
+  void _reportPhonePickerError(SmartPhonePickerError original) {
+    final builder = _config.contactPickerMessageBuilder;
+    final error = builder == null
+        ? original
+        : SmartPhonePickerError(
+            original.code,
+            builder(original.code),
+            original.cause,
+          );
     final callback = _config.onContactPickerError;
     if (callback != null) {
       callback(error);
@@ -351,14 +359,19 @@ final class _PhoneFeature extends _FieldFeature {
 
   ({SmartPhoneCountry? country, bool disallowed})
   _countryForInternationalNumber(String value) {
-    if (!value.startsWith('+')) {
+    if (!value.contains('+')) {
       return (country: null, disallowed: false);
     }
     final parsedIsoCode = SmartPhoneValidation.parsedIsoCode(value);
     if (parsedIsoCode != null && !_isCountryAllowed(parsedIsoCode)) {
       return (country: null, disallowed: true);
     }
-    final compact = value.replaceAll(RegExp(r'[ ()-]'), '');
+    final compact = value.replaceAll(
+      RegExp(
+        '[ ().\\-\u00a0\u2007\u202f\u200e\u200f\u202a-\u202e\u2066-\u2069]',
+      ),
+      '',
+    );
     final all = _countryService.getAll();
     final matching = all
         .where((country) => compact.startsWith('+${country.phoneCode}'))
