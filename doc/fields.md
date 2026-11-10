@@ -555,7 +555,7 @@ The default, `text`, `description`, `email`, `url`, `name`, `username`, `phone`,
 
 ## Email whitespace
 
-With the standard policy, validation ignores spaces before and after the address, and `onSaved` receives the trimmed address. The text in the field and in your controller is not rewritten, and `onChanged` reports it as typed. The legacy policy is unchanged and still rejects surrounding spaces.
+With the standard policy, validation ignores spaces before and after the address, and `onSaved` receives the trimmed address. The text in the field and in your controller is not rewritten, and `onChanged` reports it as typed. The legacy policy is unchanged and still rejects surrounding spaces. Asynchronous validation receives the trimmed address too, so a uniqueness check runs on the value that is saved.
 
 ## OTP paste and overwrite
 

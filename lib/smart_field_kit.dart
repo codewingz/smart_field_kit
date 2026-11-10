@@ -1,3 +1,7 @@
+/// Form fields built on Flutter's Material `TextFormField`.
+///
+/// [SmartField] is the widget. The other exports are validators, input
+/// formatters, masking functions and value types that also work without it.
 library;
 
 export 'src/formatting/smart_card_utils.dart';

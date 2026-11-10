@@ -2,14 +2,33 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
+/// Checks a raw field value asynchronously.
+///
+/// Return `null` when the value is accepted, or the message to show.
+/// A thrown error is reported as [SmartAsyncValidationStatus.unavailable].
 typedef SmartAsyncValidator = Future<String?> Function(String value);
 
+/// When a field starts its asynchronous check.
+///
+/// `onChanged` runs after the debounce following an edit, `onUnfocus` when
+/// focus leaves the field, and `manual` only from
+/// [SmartFieldAsyncController.validateAsync].
 enum SmartAsyncValidationTrigger { onChanged, onUnfocus, manual }
 
+/// The state of a field's asynchronous check for its current value.
+///
+/// `unavailable` means the check threw or timed out; it never counts as
+/// valid.
 enum SmartAsyncValidationStatus { idle, pending, valid, invalid, unavailable }
 
+/// Configuration for asynchronous validation of one field.
+///
+/// The check runs only for a non-empty value that already passes the
+/// synchronous rules. A parent rebuild keeps the pending check and the
+/// completed result, so [validator] may be an inline closure.
 @immutable
 class SmartAsyncValidation {
+  /// Creates an asynchronous validation configuration.
   const SmartAsyncValidation({
     required this.validator,
     this.trigger = SmartAsyncValidationTrigger.onChanged,
@@ -19,26 +38,71 @@ class SmartAsyncValidation {
     this.unavailableErrorText = 'Could not verify this value. Try again.',
     this.loadingIndicator,
     this.loadingSemanticsLabel = 'Validating',
+    this.revalidationKey,
   }) : assert(debounceDuration >= Duration.zero);
 
+  /// Receives the raw value: typed text, the normalized number for amount
+  /// and percentage fields, the unmasked text for masked fields, and the
+  /// trimmed address for the standard email policy.
   final SmartAsyncValidator validator;
+
+  /// When the check starts. Defaults to `onChanged`.
   final SmartAsyncValidationTrigger trigger;
+
+  /// Quiet period after an edit before an `onChanged` check starts.
+  /// `Duration.zero` checks immediately.
   final Duration debounceDuration;
+
+  /// Optional limit for one check. A timeout counts as unavailable.
   final Duration? timeout;
+
+  /// Exposes status and lets the application await the check before
+  /// submitting. Created and disposed by the application.
   final SmartFieldAsyncController? controller;
+
+  /// Message shown when the check throws or times out.
   final String unavailableErrorText;
+
+  /// Replaces the default progress indicator shown while a check is
+  /// pending.
   final Widget? loadingIndicator;
+
+  /// Screen-reader label of the pending indicator.
   final String loadingSemanticsLabel;
+
+  /// Identifies the rule the [validator] applies.
+  ///
+  /// When a rebuild supplies a key that is not equal to the previous one,
+  /// the completed result and any pending check are dropped and are not
+  /// reused. With the `onChanged` trigger one new check then starts for the
+  /// current value. With the other triggers nothing is requested until the
+  /// next trigger. Leave it `null` when the rule never changes.
+  final Object? revalidationKey;
 }
 
+/// Reads and drives the asynchronous validation of one field.
+///
+/// Attach one controller to one field through
+/// [SmartAsyncValidation.controller]. Listeners are notified when [status]
+/// changes. The application owns and disposes the controller.
 class SmartFieldAsyncController extends ChangeNotifier {
   SmartAsyncValidationEngine? _engine;
 
+  /// The status for the field's current value, or `idle` when detached.
   SmartAsyncValidationStatus get status =>
       _engine?.status ?? SmartAsyncValidationStatus.idle;
 
+  /// The message of a rejected or unavailable result, otherwise `null`.
   String? get errorText => _engine?.errorText;
 
+  /// Completes with `true` when the current value is accepted, or is empty
+  /// and therefore needs no check.
+  ///
+  /// Returns the cached result for an unchanged value and joins a check
+  /// that is already pending. With [force] it always starts one new check
+  /// using the validator from the latest build. Completes with `false` when
+  /// the value fails a synchronous rule, changes while the check runs, or
+  /// the controller is not attached.
   Future<bool> validateAsync({bool force = false}) {
     final engine = _engine;
     if (engine == null) {
@@ -60,6 +124,7 @@ class SmartAsyncValidationEngine {
     required this.isActive,
     required this.onUpdate,
     this.isComposing = _neverComposing,
+    this.onResultDropped,
   });
 
   static bool _neverComposing() => false;
@@ -70,6 +135,7 @@ class SmartAsyncValidationEngine {
   final bool Function() isActive;
   final void Function() onUpdate;
   final bool Function() isComposing;
+  final void Function()? onResultDropped;
 
   SmartAsyncValidation? _config;
   SmartFieldAsyncController? _controller;
@@ -91,6 +157,9 @@ class SmartAsyncValidationEngine {
 
   void configure(SmartAsyncValidation config) {
     final previous = _controller;
+    final earlier = _config;
+    final policyChanged =
+        earlier != null && earlier.revalidationKey != config.revalidationKey;
     _config = config;
     if (!identical(previous, config.controller)) {
       if (previous != null && identical(previous._engine, this)) {
@@ -99,6 +168,44 @@ class SmartAsyncValidationEngine {
       _controller = config.controller;
       _controller?._engine = this;
     }
+    if (policyChanged) {
+      _dropForPolicyChange();
+    }
+  }
+
+  void _dropForPolicyChange() {
+    final hadWork = _pendingFuture != null || _resultRaw != null;
+    if (!hadWork) {
+      return;
+    }
+    final hadError =
+        _status == SmartAsyncValidationStatus.invalid ||
+        _status == SmartAsyncValidationStatus.unavailable;
+    _timer?.cancel();
+    _timer = null;
+    final generation = ++_generation;
+    _pendingRaw = null;
+    _pendingFuture = null;
+    _resultRaw = null;
+    _message = null;
+    _status = SmartAsyncValidationStatus.idle;
+    scheduleMicrotask(() {
+      if (_disposed) {
+        return;
+      }
+      if (generation == _generation) {
+        _controller?._publish();
+        onUpdate();
+      }
+      if (hadError) {
+        onResultDropped?.call();
+      }
+      if (generation == _generation &&
+          _config?.trigger == SmartAsyncValidationTrigger.onChanged) {
+        _lastRaw = null;
+        observe(readText());
+      }
+    });
   }
 
   String? errorFor(String text) {

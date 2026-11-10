@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/formatting/smart_composing.dart';
 import 'package:smart_field_kit/src/formatting/smart_text_utils.dart';
 
+/// The characters a username field accepts while typing.
 enum SmartUsernameCharacters { any, letters, lettersAndDigits, usernameSafe }
 
 TextEditingValue _transform(
@@ -35,6 +36,7 @@ TextEditingValue _transform(
   );
 }
 
+/// Applies a [SmartTextCase] to committed text and keeps the caret.
 final class SmartTextCaseFormatter extends TextInputFormatter {
   const SmartTextCaseFormatter(this.mode);
 
@@ -52,6 +54,7 @@ final class SmartTextCaseFormatter extends TextInputFormatter {
   }
 }
 
+/// Collapses repeated spaces in committed text.
 final class SmartWhitespaceFormatter extends TextInputFormatter {
   const SmartWhitespaceFormatter({this.trimLeading = false});
 
@@ -70,6 +73,8 @@ final class SmartWhitespaceFormatter extends TextInputFormatter {
   }
 }
 
+/// Rejects edits containing characters outside the allowed set and can
+/// force lower or upper case.
 final class SmartUsernameFormatter extends TextInputFormatter {
   const SmartUsernameFormatter({
     this.allowedCharacters = SmartUsernameCharacters.any,
@@ -118,5 +123,26 @@ final class SmartUsernameFormatter extends TextInputFormatter {
       newValue,
       (text) => SmartTextUtils.applyCase(text, textCase),
     );
+  }
+}
+
+/// Replaces Arabic-Indic, Persian and fullwidth digits with ASCII digits.
+///
+/// Text length, caret and selection are unchanged. Text that the
+/// keyboard is still composing is left alone until it is committed.
+final class SmartDigitNormalizationFormatter extends TextInputFormatter {
+  /// Creates a digit-normalizing formatter.
+  const SmartDigitNormalizationFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (smartIsComposing(newValue)) {
+      return newValue;
+    }
+    final text = SmartTextUtils.normalizeDigits(newValue.text);
+    return text == newValue.text ? newValue : newValue.copyWith(text: text);
   }
 }

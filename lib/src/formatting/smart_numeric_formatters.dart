@@ -1,12 +1,16 @@
 import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/formatting/smart_composing.dart';
 
+/// Where the currency text is placed in the displayed amount.
 enum SmartCurrencyPosition { prefix, suffix }
 
+/// Digit grouping: thousands (`1,234,567`) or Indian (`12,34,567`).
 enum SmartGroupingStyle { international, indian }
 
+/// How extra decimal digits are handled. `none` rejects them.
 enum SmartRoundingMode { none, down, up, halfUp, halfEven }
 
+/// The number of decimal places of an amount: none, or 1 to 3.
 final class SmartDecimalLength {
   const SmartDecimalLength.none() : places = 0;
 
@@ -43,9 +47,12 @@ final class SmartDecimalLength {
   int get hashCode => places.hashCode;
 }
 
+/// Exact decimal helpers that never convert through `double`.
 abstract final class SmartDecimalUtils {
   static final RegExp _numberExpression = RegExp(r'^-?\d*(\.\d*)?$');
 
+  /// Rounds a plain decimal string to [decimalPlaces] with [mode].
+  /// Throws [FormatException] for text that is not a plain decimal.
   static String round(
     String value, {
     required int decimalPlaces,
@@ -106,12 +113,16 @@ abstract final class SmartDecimalUtils {
   }
 }
 
+/// Allows only ASCII digits, with an optional leading minus sign.
+/// An edit that breaks the rule is rejected as a whole.
 final class SmartNumberInputFormatter extends TextInputFormatter {
+  /// Creates a whole-number input formatter.
   const SmartNumberInputFormatter({this.allowNegative = false});
 
   static final RegExp _signedExpression = RegExp(r'^-?\d*$');
   static final RegExp _unsignedExpression = RegExp(r'^\d*$');
 
+  /// Whether a leading minus sign is accepted.
   final bool allowNegative;
 
   @override
@@ -129,7 +140,14 @@ final class SmartNumberInputFormatter extends TextInputFormatter {
   }
 }
 
+/// Formats and normalizes decimal amounts as exact strings.
+///
+/// While typing it allows only text that can become a valid amount.
+/// [format] produces the display text with grouping, padding and currency
+/// text; [normalize] produces the raw value with a dot decimal separator
+/// and no grouping. Leading zeros and the sign are kept as entered.
 final class SmartAmountFormatter extends TextInputFormatter {
+  /// Creates an amount formatter.
   SmartAmountFormatter({
     this.decimalPlaces,
     this.useGrouping = false,
@@ -140,6 +158,7 @@ final class SmartAmountFormatter extends TextInputFormatter {
     this.allowNegative = false,
     this.groupingStyle = SmartGroupingStyle.international,
     this.roundingMode = SmartRoundingMode.none,
+    this.acceptDotAsDecimal = false,
   }) : assert(decimalPlaces == null || decimalPlaces >= 0),
        assert(groupingSeparator.length == 1),
        assert(decimalSeparator.length == 1),
@@ -150,15 +169,36 @@ final class SmartAmountFormatter extends TextInputFormatter {
   static final RegExp _digitsExpression = RegExp(r'^\d+$');
   static final RegExp _optionalDigitsExpression = RegExp(r'^\d*$');
 
+  /// Fixed number of decimal places, or `null` for no limit.
   final int? decimalPlaces;
+
+  /// Whether the display text groups digits.
   final bool useGrouping;
+
+  /// The grouping character of the display text.
   final String groupingSeparator;
+
+  /// The decimal character that is typed and displayed.
   final String decimalSeparator;
+
+  /// Currency text added to the display, exactly as supplied.
   final String? currencySymbol;
+
+  /// Whether the currency text comes before or after the number.
   final SmartCurrencyPosition currencyPosition;
   final bool allowNegative;
+
+  /// The digit grouping style.
   final SmartGroupingStyle groupingStyle;
+
+  /// How digits beyond [decimalPlaces] are handled.
   final SmartRoundingMode roundingMode;
+
+  /// Treats one typed `.` as the decimal separator when [decimalSeparator]
+  /// is another character. It has no effect when [groupingSeparator] is
+  /// `.`, when the text already has a decimal separator, or when the text
+  /// has more than one dot.
+  final bool acceptDotAsDecimal;
 
   bool get _rounds =>
       roundingMode != SmartRoundingMode.none && decimalPlaces != null;
@@ -171,17 +211,33 @@ final class SmartAmountFormatter extends TextInputFormatter {
     if (smartIsComposing(newValue)) {
       return newValue;
     }
-    final raw = normalize(newValue.text, allowPartial: true);
+    final typed = _withTypedDot(newValue);
+    final raw = normalize(typed.text, allowPartial: true);
     if (raw == null) {
       return smartBeforeComposition(oldValue);
     }
     final editable = _editableText(raw);
-    if (editable == newValue.text) {
-      return newValue;
+    if (editable == typed.text) {
+      return typed;
     }
-    return _replaceText(newValue, editable);
+    return _replaceText(typed, editable);
   }
 
+  TextEditingValue _withTypedDot(TextEditingValue value) {
+    final text = value.text;
+    if (!acceptDotAsDecimal ||
+        decimalSeparator == '.' ||
+        groupingSeparator == '.' ||
+        text.contains(decimalSeparator) ||
+        '.'.allMatches(text).length != 1) {
+      return value;
+    }
+    return value.copyWith(text: text.replaceFirst('.', decimalSeparator));
+  }
+
+  /// The raw value of display or editable text, or `null` when the text is
+  /// not a valid amount. With [allowPartial], typing states such as `12.`
+  /// are accepted.
   String? normalize(String value, {bool allowPartial = false}) {
     if (value.isEmpty) {
       return '';
@@ -271,6 +327,7 @@ final class SmartAmountFormatter extends TextInputFormatter {
     return result;
   }
 
+  /// The display text of a complete amount, or `null` when it is not valid.
   String? format(String value) {
     final raw = normalize(value);
     if (raw == null || raw.isEmpty) {

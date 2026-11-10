@@ -85,6 +85,7 @@ abstract class _SmartFieldBase extends StatefulWidget {
     this.textAlign,
     this.textDirection,
     this.obscuringCharacter = '•',
+    this.normalizeDigits = false,
     List<TextInputFormatter>? inputFormatters,
   }) : _developerFormatters = inputFormatters,
        assert(initialValue == null || controller == null),
@@ -99,12 +100,26 @@ abstract class _SmartFieldBase extends StatefulWidget {
 
   final _SmartFieldCore _core;
   final List<TextInputFormatter>? _developerFormatters;
+
+  /// Label text, used when [decoration] has no label.
   final String? label;
+
+  /// Hint text, used when [decoration] has no hint.
   final String? hintText;
+
+  /// An optional controller. It stays owned by the caller, which must
+  /// dispose it; the field disposes only controllers it creates itself.
   final TextEditingController? controller;
+
+  /// An optional focus node. It stays owned by the caller, which must
+  /// dispose it.
   final FocusNode? focusNode;
   final bool autofocus;
+
+  /// Whether the field accepts interaction. `null` follows [decoration].
   final bool? enabled;
+
+  /// Whether the text can be focused and selected but not edited.
   final bool readOnly;
   final TextInputType? keyboardType;
   final TextCapitalization textCapitalization;
@@ -115,25 +130,67 @@ abstract class _SmartFieldBase extends StatefulWidget {
   final int? minLines;
   final int? maxLines;
   final bool expands;
+
+  /// Called with the text as shown in the field after a user edit.
+  /// Programmatic controller changes do not call it.
   final ValueChanged<String>? onChanged;
+
+  /// Called by `FormState.save()` with the field text. The standard email
+  /// policy passes the address without surrounding spaces.
   final FormFieldSetter<String>? onSaved;
+
+  /// Called after a user edit with the raw value, for field types that
+  /// have one, such as the ungrouped number of an amount.
   final ValueChanged<String>? onRawChanged;
+
+  /// Called by `FormState.save()` with the raw value, or `null` when the
+  /// text has no valid raw value.
   final FormFieldSetter<String>? onRawSaved;
+
+  /// Whether empty or whitespace-only text is an error. Off by default.
   final bool isRequired;
   final String requiredErrorText;
+
+  /// Minimum number of user-perceived characters. Blank text is treated as
+  /// not entered.
   final int? minLength;
   final String? minLengthErrorText;
+
+  /// Maximum number of user-perceived characters. This is a validation
+  /// rule: it shows an error and does not stop typing or add a counter.
   final int? maxLength;
   final String? maxLengthErrorText;
+
+  /// A custom rule that receives the text as typed. It runs after the
+  /// built-in rules unless [validationMode] says otherwise.
   final FormFieldValidator<String>? validator;
+
+  /// When the field validates itself, as for `TextFormField`.
   final AutovalidateMode? autovalidateMode;
+
+  /// Optional asynchronous check. `FormState.validate()` stays synchronous
+  /// and does not wait for it; await
+  /// [SmartFieldAsyncController.validateAsync] before submitting.
   final SmartAsyncValidation? asyncValidation;
+
+  /// Which of the built-in and custom rules run.
   final SmartValidationMode validationMode;
+
+  /// The built-in checks used with [SmartValidationMode.selected].
   final Set<SmartBuiltInCheck> builtInChecks;
+
+  /// A server message shown on this field, owned by the caller.
   final SmartServerError? serverError;
+
+  /// Restores the text of plain fields. It is ignored for password, OTP,
+  /// amount, phone, search and masked fields.
   final String? restorationId;
+
+  /// The decoration. Its values take priority over the package defaults.
   final InputDecoration decoration;
   final bool showVisibilityToggle;
+
+  /// Initial text. Cannot be combined with [controller].
   final String? initialValue;
   final ValueChanged<String>? onFieldSubmitted;
   final VoidCallback? onEditingComplete;
@@ -144,12 +201,23 @@ abstract class _SmartFieldBase extends StatefulWidget {
   final TextDirection? textDirection;
   final String obscuringCharacter;
 
+  /// Whether typed or pasted Arabic-Indic, Persian and fullwidth digits
+  /// are replaced with ASCII digits before any rule runs. Off by default.
+  /// Text set through a controller is not rewritten.
+  final bool normalizeDigits;
+
+  /// The formatters applied to typed text: digit normalization when
+  /// enabled, then the field type's own formatter, then the caller's.
   List<TextInputFormatter>? get inputFormatters {
     final own = _core.formatters;
-    if (own.isEmpty) {
+    if (own.isEmpty && !normalizeDigits) {
       return _developerFormatters;
     }
-    return [...own, ...?_developerFormatters];
+    return [
+      if (normalizeDigits) const SmartDigitNormalizationFormatter(),
+      ...own,
+      ...?_developerFormatters,
+    ];
   }
 
   SmartValidator? get _fieldValidator => _core.fieldValidator;
@@ -172,7 +240,19 @@ abstract class _SmartFieldBase extends StatefulWidget {
   bool get _supportsMasking => _maskConfig != null;
 }
 
+/// A form field built on Flutter's `TextFormField`.
+///
+/// The default constructor is a plain text field that accepts any text.
+/// The named constructors add behavior for one kind of input. Every field
+/// works inside a `Form`: `validate`, `save` and `reset` behave as they do
+/// for `TextFormField`.
+///
+/// A supplied `controller` or `focusNode` stays owned by the caller. Rules
+/// such as required, length and value limits are applied only when
+/// requested. Validation improves input quality; it is not a security
+/// boundary, so validate again on the server.
 class SmartField extends _SmartFieldBase {
+  /// Creates a plain text field with no built-in rule or formatter.
   const SmartField({
     super.key,
     super.label,
@@ -218,6 +298,7 @@ class SmartField extends _SmartFieldBase {
     super.inputFormatters,
   }) : super(const _SmartFieldCore());
 
+  /// Creates a multiline field that grows with its text.
   SmartField.description({
     super.key,
     super.label,
@@ -287,6 +368,8 @@ class SmartField extends _SmartFieldBase {
          ),
        );
 
+  /// Creates a text field with optional case and whitespace formatting,
+  /// word limits, legacy presets and a pattern input mask.
   SmartField.text({
     super.key,
     super.label,
@@ -364,6 +447,8 @@ class SmartField extends _SmartFieldBase {
          ),
        );
 
+  /// Creates an email field. The standard policy checks syntax and ignores
+  /// surrounding spaces; the controller text is never rewritten.
   SmartField.email({
     super.key,
     super.label,
@@ -412,6 +497,8 @@ class SmartField extends _SmartFieldBase {
          autofillHints: const [AutofillHints.email],
        );
 
+  /// Creates a URL field that checks for a complete `http` or `https` URL by
+  /// default.
   SmartField.url({
     super.key,
     super.label,
@@ -462,6 +549,8 @@ class SmartField extends _SmartFieldBase {
          autofillHints: const [AutofillHints.url],
        );
 
+  /// Creates a name field. No characters are filtered by default, so names
+  /// in any script are accepted.
   SmartField.name({
     super.key,
     super.label,
@@ -516,6 +605,7 @@ class SmartField extends _SmartFieldBase {
          enableSuggestions: true,
        );
 
+  /// Creates a username field with optional character restrictions.
   SmartField.username({
     super.key,
     super.label,
@@ -575,6 +665,8 @@ class SmartField extends _SmartFieldBase {
          keyboardType: TextInputType.text,
        );
 
+  /// Creates a search field. `onSearch` is called once after typing pauses
+  /// for the debounce period; the application owns the search itself.
   SmartField.search({
     super.key,
     super.label,
@@ -640,6 +732,8 @@ class SmartField extends _SmartFieldBase {
          textInputAction: TextInputAction.search,
        );
 
+  /// Creates a phone field with an optional country picker and, on Android
+  /// and iOS, an optional contact picker. No number length is assumed.
   SmartField.phone({
     super.key,
     super.label,
@@ -648,6 +742,7 @@ class SmartField extends _SmartFieldBase {
     super.focusNode,
     super.autofocus,
     super.enabled,
+    super.normalizeDigits,
     super.readOnly,
     super.textInputAction,
     super.onChanged,
@@ -740,6 +835,8 @@ class SmartField extends _SmartFieldBase {
          autofillHints: const [AutofillHints.telephoneNumber],
        );
 
+  /// Creates an obscured password field with a visibility toggle. No
+  /// policy is applied unless requested, and the text is never trimmed.
   SmartField.password({
     super.key,
     super.label,
@@ -856,6 +953,8 @@ class SmartField extends _SmartFieldBase {
          autofillHints: const [AutofillHints.creditCardSecurityCode],
        );
 
+  /// Creates a whole-number field. The text is kept as typed, so leading
+  /// zeros are preserved.
   SmartField.number({
     super.key,
     super.label,
@@ -864,6 +963,7 @@ class SmartField extends _SmartFieldBase {
     super.focusNode,
     super.autofocus,
     super.enabled,
+    super.normalizeDigits,
     super.readOnly,
     super.textInputAction,
     super.onChanged,
@@ -918,6 +1018,8 @@ class SmartField extends _SmartFieldBase {
          keyboardType: TextInputType.numberWithOptions(signed: allowNegative),
        );
 
+  /// Creates a percentage field with a visual `%` suffix and a raw decimal
+  /// value.
   SmartField.percentage({
     super.key,
     super.label,
@@ -926,6 +1028,7 @@ class SmartField extends _SmartFieldBase {
     super.focusNode,
     super.autofocus,
     super.enabled,
+    super.normalizeDigits,
     super.readOnly,
     super.textInputAction,
     super.onChanged,
@@ -978,6 +1081,12 @@ class SmartField extends _SmartFieldBase {
          ),
        );
 
+  /// Creates an amount field with exact decimal text.
+  ///
+  /// While focused the text is ungrouped; when focus leaves it shows
+  /// grouping, decimal padding and currency text. `onRawChanged` and
+  /// `onRawSaved` carry the ungrouped number. Use either `decimalPlaces` or
+  /// `decimalLength` (`false`, 1, 2 or 3).
   SmartField.amount({
     super.key,
     super.label,
@@ -986,6 +1095,7 @@ class SmartField extends _SmartFieldBase {
     super.focusNode,
     super.autofocus,
     super.enabled,
+    super.normalizeDigits,
     super.readOnly,
     super.textInputAction,
     super.onChanged,
@@ -1025,6 +1135,7 @@ class SmartField extends _SmartFieldBase {
     bool useGrouping = false,
     String groupingSeparator = ',',
     String decimalSeparator = '.',
+    bool acceptDotAsDecimal = false,
     String? currencySymbol,
     SmartCurrencyPosition currencyPosition = SmartCurrencyPosition.prefix,
     bool allowNegative = false,
@@ -1047,6 +1158,7 @@ class SmartField extends _SmartFieldBase {
            useGrouping: useGrouping,
            groupingSeparator: groupingSeparator,
            decimalSeparator: decimalSeparator,
+           acceptDotAsDecimal: acceptDotAsDecimal,
            currencySymbol: currencySymbol,
            currencyPosition: currencyPosition,
            allowNegative: allowNegative,
@@ -1063,6 +1175,8 @@ class SmartField extends _SmartFieldBase {
          ),
        );
 
+  /// Creates a one-time-code field drawn as separate boxes over a single
+  /// input. The package does not read SMS messages.
   SmartField.otp({
     super.key,
     super.label,
@@ -1071,6 +1185,7 @@ class SmartField extends _SmartFieldBase {
     super.focusNode,
     super.autofocus,
     super.enabled,
+    super.normalizeDigits,
     super.readOnly,
     super.textInputAction,
     super.onChanged,
@@ -1116,6 +1231,8 @@ class SmartField extends _SmartFieldBase {
          autofillHints: const [AutofillHints.oneTimeCode],
        );
 
+  /// Creates a date field. Dates are local calendar dates; the raw value
+  /// is `yyyy-MM-dd`.
   SmartField.date({
     super.key,
     super.label,
@@ -1124,6 +1241,7 @@ class SmartField extends _SmartFieldBase {
     super.focusNode,
     super.autofocus,
     super.enabled,
+    super.normalizeDigits,
     super.readOnly,
     super.textInputAction,
     super.onChanged,
@@ -1198,6 +1316,9 @@ class SmartField extends _SmartFieldBase {
          keyboardType: TextInputType.datetime,
        );
 
+  /// Creates a time field. The raw value is `HH:mm`. With
+  /// `use24Hour: false`, `amLabel` and `pmLabel` set the period markers; in
+  /// manual mode they must be letters only and of equal length.
   SmartField.time({
     super.key,
     super.label,
@@ -1206,6 +1327,7 @@ class SmartField extends _SmartFieldBase {
     super.focusNode,
     super.autofocus,
     super.enabled,
+    super.normalizeDigits,
     super.readOnly,
     super.textInputAction,
     super.onChanged,
@@ -1228,6 +1350,8 @@ class SmartField extends _SmartFieldBase {
     DateTime Function() now = DateTime.now,
     SmartTimeMode mode = SmartTimeMode.manual,
     bool use24Hour = true,
+    String amLabel = 'AM',
+    String pmLabel = 'PM',
     TimeOfDay? initialTime,
     TimeOfDay? minTime,
     TimeOfDay? maxTime,
@@ -1237,12 +1361,25 @@ class SmartField extends _SmartFieldBase {
     String hourLabel = 'Hour',
     String minuteLabel = 'Minute',
     String periodLabel = 'AM or PM',
-  }) : super(
+  }) : assert(
+         use24Hour ||
+             mode != SmartTimeMode.manual ||
+             SmartTimeFormat(
+               use24Hour: false,
+               amLabel: amLabel,
+               pmLabel: pmLabel,
+             ).labelsFitInputMask,
+       ),
+       super(
          _SmartFieldCore(
            dateTimeConfig: SmartDateTimeConfig(
              kind: SmartDateTimeKind.time,
              timeMode: mode,
-             timeFormat: SmartTimeFormat(use24Hour: use24Hour),
+             timeFormat: SmartTimeFormat(
+               use24Hour: use24Hour,
+               amLabel: amLabel,
+               pmLabel: pmLabel,
+             ),
              minTime: minTime,
              maxTime: maxTime,
              initialTime: initialTime,
@@ -1264,6 +1401,8 @@ class SmartField extends _SmartFieldBase {
          keyboardType: TextInputType.datetime,
        );
 
+  /// Creates a date and time field with minute precision and no timezone.
+  /// The raw value is `yyyy-MM-ddTHH:mm`.
   SmartField.dateTime({
     super.key,
     super.label,
@@ -1272,6 +1411,7 @@ class SmartField extends _SmartFieldBase {
     super.focusNode,
     super.autofocus,
     super.enabled,
+    super.normalizeDigits,
     super.readOnly,
     super.textInputAction,
     super.onChanged,
@@ -1294,6 +1434,8 @@ class SmartField extends _SmartFieldBase {
     DateTime Function() now = DateTime.now,
     SmartTimeMode mode = SmartTimeMode.manual,
     bool use24Hour = true,
+    String amLabel = 'AM',
+    String pmLabel = 'PM',
     String dateFormat = 'dd/MM/yyyy',
     DateTime? initialDateTime,
     DateTime? minDateTime,
@@ -1305,6 +1447,15 @@ class SmartField extends _SmartFieldBase {
     String clearLabel = 'Clear',
     String? pickerLabel,
   }) : assert(mode != SmartTimeMode.wheel),
+       assert(
+         use24Hour ||
+             mode != SmartTimeMode.manual ||
+             SmartTimeFormat(
+               use24Hour: false,
+               amLabel: amLabel,
+               pmLabel: pmLabel,
+             ).labelsFitInputMask,
+       ),
        super(
          _SmartFieldCore(
            dateTimeConfig: SmartDateTimeConfig(
@@ -1314,7 +1465,11 @@ class SmartField extends _SmartFieldBase {
                  : SmartDateMode.calendar,
              timeMode: mode,
              dateFormat: SmartDateFormat(dateFormat),
-             timeFormat: SmartTimeFormat(use24Hour: use24Hour),
+             timeFormat: SmartTimeFormat(
+               use24Hour: use24Hour,
+               amLabel: amLabel,
+               pmLabel: pmLabel,
+             ),
              minDate: minDateTime,
              maxDate: maxDateTime,
              restriction: restriction,
@@ -1336,9 +1491,12 @@ class SmartField extends _SmartFieldBase {
          keyboardType: TextInputType.datetime,
        );
 
+  /// Creates card number, expiry and security-code fields. Checks are
+  /// local only, and card data is never stored, restored, logged or sent.
   SmartField.creditCard({
     super.key,
     super.enabled,
+    super.normalizeDigits,
     super.readOnly,
     super.autofocus,
     super.isRequired,

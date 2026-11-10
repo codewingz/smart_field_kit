@@ -1,3 +1,4 @@
+/// URL syntax checks without a widget.
 final class SmartUrlValidation {
   const SmartUrlValidation._();
 
@@ -17,6 +18,7 @@ final class SmartUrlValidation {
   );
   static final RegExp _asciiExpression = RegExp(r'^[\u0000-\u007f]*$');
 
+  /// Whether text is a complete URL with an allowed scheme.
   static bool isValid(
     String value, {
     Set<String> allowedSchemes = defaultSchemes,

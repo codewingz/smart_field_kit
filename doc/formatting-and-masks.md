@@ -33,6 +33,19 @@ SmartField.amount(
 
 `currencySymbol` accepts a symbol or code exactly as supplied. Include a space in that string when separation is wanted.
 
+## Typing a dot with another decimal separator
+
+```dart
+SmartField.amount(
+  decimalPlaces: 2,
+  decimalSeparator: ',',
+  groupingSeparator: ' ',
+  acceptDotAsDecimal: true,
+)
+```
+
+`acceptDotAsDecimal` is off by default. When it is on and `decimalSeparator` is not `.`, one typed or pasted `.` is taken as the decimal separator and shown as the configured character, so `12.5` becomes `12,5`. The raw value is still `12.5`. Nothing is reinterpreted when the grouping separator is `.`, when the text already contains the decimal separator, or when it contains more than one dot.
+
 ## Displayed and raw amount values
 
 - The controller, `onChanged`, custom `validator`, and `onSaved` preserve Flutter's display-text behavior.

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_input_mask.dart';
+import 'package:smart_field_kit/src/formatting/smart_text_formatters.dart';
 import 'package:smart_field_kit/src/validation/smart_async_validation.dart';
 import 'package:smart_field_kit/src/validation/smart_validators.dart';
 import 'package:smart_field_kit/src/widgets/smart_field.dart';
@@ -13,14 +14,18 @@ import 'package:smart_field_kit/src/widgets/smart_field_design.dart';
 import 'package:smart_field_kit/src/widgets/smart_field_support.dart';
 import 'package:smart_field_kit/src/widgets/smart_listener_binding.dart';
 
+/// How a date is entered: typed, calendar dialog, dropdowns or wheel.
 enum SmartDateMode { manual, calendar, dropdowns, wheel }
 
+/// How a time is entered: typed, clock dialog or wheel.
 enum SmartTimeMode { manual, picker, wheel }
 
+/// Limits a date to before today or after today.
 enum SmartDateRestriction { none, pastOnly, futureOnly }
 
 enum SmartDateTimeKind { date, time, dateTime }
 
+/// The default month names used by the dropdown and wheel modes.
 const List<String> smartEnglishMonthNames = [
   'January',
   'February',
@@ -460,6 +465,9 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
           status == SmartAsyncValidationStatus.unavailable;
       if (wasDropdown) {
         _engine?.reset();
+        if (hadError) {
+          _dropdownKey.currentState?.validate();
+        }
       }
       scheduleMicrotask(() {
         if (mounted) {
@@ -494,8 +502,19 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       syncError: (_) => _syncPartsError(),
       isActive: () => mounted && _interactive,
       onUpdate: _asyncUpdated,
+      onResultDropped: () {
+        if (mounted) {
+          _dropdownKey.currentState?.validate();
+        }
+      },
     );
+    final hadError =
+        engine.status == SmartAsyncValidationStatus.invalid ||
+        engine.status == SmartAsyncValidationStatus.unavailable;
     engine.configure(config);
+    if (hadError && engine.status == SmartAsyncValidationStatus.idle) {
+      _dropdownKey.currentState?.validate();
+    }
   }
 
   void _asyncUpdated() {
@@ -832,6 +851,8 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       builder: (context) => _TimeWheelSheet(
         initial: _currentTime(),
         use24Hour: _config.timeFormat.use24Hour,
+        amLabel: _config.timeFormat.amLabel,
+        pmLabel: _config.timeFormat.pmLabel,
         hourLabel: _config.hourLabel,
         minuteLabel: _config.minuteLabel,
         periodLabel: _config.periodLabel,
@@ -927,7 +948,11 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       decoration: decoration,
       rawValueBuilder: _config.serialize,
       inputFormatters: _config.isManual
-          ? [SmartMaskFormatter(SmartInputMask(_config.maskPattern))]
+          ? [
+              if (widget.source.normalizeDigits)
+                const SmartDigitNormalizationFormatter(),
+              SmartMaskFormatter(SmartInputMask(_config.maskPattern)),
+            ]
           : null,
     );
   }
@@ -1461,9 +1486,13 @@ class _TimeWheelSheet extends StatefulWidget {
     required this.hourLabel,
     required this.minuteLabel,
     required this.periodLabel,
+    required this.amLabel,
+    required this.pmLabel,
   });
 
   final TimeOfDay initial;
+  final String amLabel;
+  final String pmLabel;
   final bool use24Hour;
   final String hourLabel;
   final String minuteLabel;
@@ -1526,7 +1555,7 @@ class _TimeWheelSheetState extends State<_TimeWheelSheet> {
         if (!widget.use24Hour)
           _WheelColumn(
             label: widget.periodLabel,
-            items: const ['AM', 'PM'],
+            items: [widget.amLabel, widget.pmLabel],
             controller: _periodController,
             onChanged: (index) => _pm = index == 1,
           ),

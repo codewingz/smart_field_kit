@@ -846,7 +846,7 @@ void main() {
       expect(controller.text, typed);
       expect(changed, [typed]);
       expect(custom.last, typed);
-      expect(asyncValues, [typed]);
+      expect(asyncValues, ['User@Example.com']);
       expect(saved, ['User@Example.com']);
     });
 

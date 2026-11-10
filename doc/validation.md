@@ -144,7 +144,7 @@ Status values: `idle`, `pending`, `valid`, `invalid`, `unavailable`.
 
 - Order: required, field syntax and policies, length/value rules and your synchronous `validator`, then async. The checker is never called for empty or synchronously invalid values.
 
-- The checker receives the raw value: the typed text, the normalized number for `.amount()` and `.percentage()` (no grouping, currency symbol, or `%`), and the unmasked text for masked fields. Phone fields pass the entered text.
+- The checker receives the raw value: the address without surrounding spaces for the standard email policy (the same value `onSaved` receives), otherwise the typed text, the normalized number for `.amount()` and `.percentage()` (no grouping, currency symbol, or `%`), and the unmasked text for masked fields. Phone fields pass the entered text.
 
 - Any edit, clear, reset, controller replacement, or disabling discards the previous result and ignores late completions. When a controller replacement or disabling discards a result whose error is on screen, that error is removed and the field is validated again for its current value, without a new asynchronous request. A parent rebuild never discards a result or restarts a check, whether the `validator` is written inline or kept in a variable: a pending check finishes with the function it started with, and a completed result is kept until the value changes or you call `validateAsync(force: true)`. `validateAsync()` returns `false` if the value changed while it ran.
 
@@ -212,7 +212,21 @@ SmartField.username(
 )
 ```
 
-The package cannot tell that your rule changed (for example `tenant` above). When it does, ask again yourself:
+The package cannot tell from the function that your rule changed (for example `tenant` above). Tell it in one of two ways.
+
+Declare what the rule depends on with `revalidationKey`:
+
+```dart
+SmartAsyncValidation(
+  controller: usernameAsync,
+  revalidationKey: tenant,
+  validator: (value) => api.isUsernameFree(value, tenant: tenant),
+)
+```
+
+When a rebuild supplies a key that is not equal to the previous one, the completed result and any pending check are dropped: the message is removed, the status returns to `idle`, and `validateAsync()` no longer returns the old answer. With the `onChanged` trigger one new check then starts for the current value after the debounce. With `onUnfocus` and `manual` nothing is requested until the next trigger. A rebuild with an equal key changes nothing, and the default `null` keeps the behaviour described above.
+
+Or ask again yourself:
 
 ```dart
 setState(() => tenant = next);
