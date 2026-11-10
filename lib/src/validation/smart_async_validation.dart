@@ -60,7 +60,6 @@ class SmartAsyncValidationEngine {
     required this.isActive,
     required this.onUpdate,
     this.isComposing = _neverComposing,
-    this.onResultDropped,
   });
 
   static bool _neverComposing() => false;
@@ -71,7 +70,6 @@ class SmartAsyncValidationEngine {
   final bool Function() isActive;
   final void Function() onUpdate;
   final bool Function() isComposing;
-  final void Function()? onResultDropped;
 
   SmartAsyncValidation? _config;
   SmartFieldAsyncController? _controller;
@@ -82,8 +80,6 @@ class SmartAsyncValidationEngine {
   String? _resultRaw;
   String? _pendingRaw;
   Future<bool>? _pendingFuture;
-  SmartAsyncValidator? _pendingValidator;
-  SmartAsyncValidator? _resultValidator;
   SmartAsyncValidationStatus _status = SmartAsyncValidationStatus.idle;
   String? _message;
 
@@ -95,8 +91,6 @@ class SmartAsyncValidationEngine {
 
   void configure(SmartAsyncValidation config) {
     final previous = _controller;
-    final replacedValidator =
-        _config != null && _config!.validator != config.validator;
     _config = config;
     if (!identical(previous, config.controller)) {
       if (previous != null && identical(previous._engine, this)) {
@@ -105,40 +99,6 @@ class SmartAsyncValidationEngine {
       _controller = config.controller;
       _controller?._engine = this;
     }
-    if (replacedValidator && _pendingFuture != null) {
-      _restartAfterValidatorChange();
-    } else if (replacedValidator && _resultRaw != null) {
-      final generation = _generation;
-      scheduleMicrotask(() {
-        if (!_disposed && generation == _generation && _resultRaw != null) {
-          _invalidate();
-          onResultDropped?.call();
-        }
-      });
-    }
-  }
-
-  void _restartAfterValidatorChange() {
-    final raw = _pendingRaw;
-    final generation = ++_generation;
-    _pendingRaw = null;
-    _pendingFuture = null;
-    _pendingValidator = null;
-    scheduleMicrotask(() {
-      if (_disposed || generation != _generation) {
-        return;
-      }
-      final config = _config;
-      if (config != null &&
-          raw != null &&
-          config.trigger == SmartAsyncValidationTrigger.onChanged &&
-          isActive() &&
-          toRaw(readText()) == raw) {
-        unawaited(_run(raw));
-      } else {
-        _invalidate();
-      }
-    });
   }
 
   String? errorFor(String text) {
@@ -216,19 +176,18 @@ class SmartAsyncValidationEngine {
       return true;
     }
     _lastRaw = raw;
-    final validator = config.validator;
-    if (!force && _resultRaw == raw && _resultValidator == validator) {
-      if (_status == SmartAsyncValidationStatus.valid) {
-        return true;
+    if (!force) {
+      if (_resultRaw == raw) {
+        if (_status == SmartAsyncValidationStatus.valid) {
+          return true;
+        }
+        if (_status == SmartAsyncValidationStatus.invalid) {
+          return false;
+        }
       }
-      if (_status == SmartAsyncValidationStatus.invalid) {
-        return false;
+      if (_pendingRaw == raw && _pendingFuture != null) {
+        return _pendingFuture!;
       }
-    }
-    if (_pendingRaw == raw &&
-        _pendingFuture != null &&
-        _pendingValidator == validator) {
-      return _pendingFuture!;
     }
     return _run(raw);
   }
@@ -237,9 +196,7 @@ class SmartAsyncValidationEngine {
     final config = _config!;
     final generation = ++_generation;
     _pendingRaw = raw;
-    _pendingValidator = config.validator;
     _resultRaw = null;
-    _resultValidator = null;
     _message = null;
     _setStatus(SmartAsyncValidationStatus.pending);
     final future = _execute(config, raw, generation);
@@ -269,9 +226,7 @@ class SmartAsyncValidationEngine {
     }
     _pendingRaw = null;
     _pendingFuture = null;
-    _pendingValidator = null;
     _resultRaw = raw;
-    _resultValidator = config.validator;
     if (unavailable) {
       _message = config.unavailableErrorText;
       _setStatus(SmartAsyncValidationStatus.unavailable);
@@ -293,9 +248,7 @@ class SmartAsyncValidationEngine {
     _generation++;
     _pendingRaw = null;
     _pendingFuture = null;
-    _pendingValidator = null;
     _resultRaw = null;
-    _resultValidator = null;
     _message = null;
     if (_status != SmartAsyncValidationStatus.idle) {
       _setStatus(SmartAsyncValidationStatus.idle);

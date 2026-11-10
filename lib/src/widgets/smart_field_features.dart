@@ -483,17 +483,21 @@ final class _SearchFeature extends _FieldFeature {
     final current = _config;
     if (old == null ||
         previous.controller != host.field.controller ||
-        !old.hasSameDebounceBehavior(current) ||
+        old.debounceDuration != current.debounceDuration ||
         !host.isInteractive) {
       _debouncer.cancel();
     }
+  }
+
+  void _search(String query) {
+    host.field._searchConfig?.onSearch?.call(query);
   }
 
   @override
   void textChanged(String value) {
     _debouncer.schedule(
       query: value,
-      onSearch: _config.onSearch,
+      onSearch: _config.onSearch == null ? null : _search,
       debounce: _config.debounceDuration,
       canSearch: () => host.mounted && host.isInteractive,
       currentText: () => host.textController?.text ?? '',
@@ -581,11 +585,6 @@ final class _AsyncFeature extends _FieldFeature {
       isActive: () =>
           host.mounted && (host.isInteractive || host.pickerInteractive),
       onUpdate: _updated,
-      onResultDropped: () {
-        if (host.mounted && !_isOtp) {
-          host.fieldKey.currentState?.validate();
-        }
-      },
       isComposing: () {
         final value =
             (textController ?? _inner)?.value ?? host.currentEditingValue;

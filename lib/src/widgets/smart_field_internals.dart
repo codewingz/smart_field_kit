@@ -535,11 +535,6 @@ final class _SmartSearchConfig {
   final Widget? clearIcon;
   final String clearLabel;
   final String loadingLabel;
-
-  bool hasSameDebounceBehavior(_SmartSearchConfig other) {
-    return onSearch == other.onSearch &&
-        debounceDuration == other.debounceDuration;
-  }
 }
 
 _SmartSearchConfig _createSearchConfig({
