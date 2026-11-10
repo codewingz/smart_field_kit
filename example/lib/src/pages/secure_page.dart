@@ -29,9 +29,11 @@ class _SecurePageState extends State<SecurePage> {
         DemoCard(
           title: 'Password policy',
           description:
-              'Visibility toggle and a documented policy. The weak policy only '
-              'rejects empty values; the strong policy needs several character '
-              'types. Passwords are never displayed or logged here.',
+              'Visibility toggle and a documented policy. The weak policy '
+              'accepts any five or more characters; the strong policy needs '
+              'eight or more with upper case, lower case, a digit, a special '
+              'character, and no spaces. An empty optional field passes both. '
+              'This page never logs or stores what you type.',
           snippet: "SmartField.password(policy: SmartPasswordPolicy.strong)",
           child: Column(
             children: [
