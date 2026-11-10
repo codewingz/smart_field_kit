@@ -411,11 +411,47 @@ final class _MaskFeature extends _FieldFeature {
     }
     final rtl = Directionality.of(host.context) == TextDirection.rtl;
     final masked = rtl ? smartIsolateLtr(maskedText) : maskedText;
+    final style =
+        decoration.prefixStyle ?? Theme.of(host.context).textTheme.bodyLarge;
+    if (decoration.prefixText != null || decoration.prefix != null) {
+      return decoration.copyWith(
+        prefixText: '${decoration.prefixText ?? ''}$masked',
+        prefixStyle: style,
+      );
+    }
+    final prefixIcon = decoration.prefixIcon;
+    final suffixIcon = decoration.suffixIcon;
+    _widths
+      ..container = null
+      ..prefixIcon = null
+      ..suffixIcon = null;
     return decoration.copyWith(
-      prefixText: '${decoration.prefixText ?? ''}$masked',
-      prefixStyle:
-          decoration.prefixStyle ?? Theme.of(host.context).textTheme.bodyLarge,
+      prefixIcon: prefixIcon == null
+          ? null
+          : SmartWidthProbe(onLayout: _prefixIconLaidOut, child: prefixIcon),
+      suffixIcon: suffixIcon == null
+          ? null
+          : SmartWidthProbe(onLayout: _suffixIconLaidOut, child: suffixIcon),
+      prefix: SmartScaleToFit(
+        availableWidth: _widths.available,
+        child: Text(masked, maxLines: 1, softWrap: false),
+      ),
+      prefixStyle: style,
     );
+  }
+
+  final SmartAffixWidths _widths = SmartAffixWidths();
+
+  void _prefixIconLaidOut(double width, double maxWidth) {
+    _widths
+      ..prefixIcon = width
+      ..container = maxWidth;
+  }
+
+  void _suffixIconLaidOut(double width, double maxWidth) {
+    _widths
+      ..suffixIcon = width
+      ..container = maxWidth;
   }
 
   String? _textOf(Widget? widget) => widget is Text ? widget.data : null;

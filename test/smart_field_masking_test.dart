@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
+import 'support/masked_prefix.dart';
 
 Widget _app(
   Widget child, {
@@ -58,9 +59,9 @@ void main() {
     final fields = tester
         .widgetList<TextField>(find.byType(TextField))
         .toList();
-    expect(fields[0].decoration?.prefixText, isNull);
-    expect(fields[1].decoration?.prefixText, isNull);
-    expect(fields[2].decoration?.prefixText, isNull);
+    expect(maskedPrefixOf(fields[0].decoration), isNull);
+    expect(maskedPrefixOf(fields[1].decoration), isNull);
+    expect(maskedPrefixOf(fields[2].decoration), isNull);
     expect(phone.text, '03001234567');
     expect(number.text, '00012345');
     expect(amount.text, '12345.67');
@@ -90,7 +91,7 @@ void main() {
     );
 
     var field = _textField(tester);
-    expect(field.decoration?.prefixText, '******5678');
+    expect(maskedPrefixOf(field.decoration), '******5678');
     expect(field.style?.color, Colors.transparent);
     expect(field.enableInteractiveSelection, isFalse);
     expect(field.showCursor, isFalse);
@@ -101,7 +102,7 @@ void main() {
     await tester.pump();
     expect(focusNode.hasFocus, isTrue);
     field = _textField(tester);
-    expect(field.decoration?.prefixText, isNull);
+    expect(maskedPrefixOf(field.decoration), isNull);
     expect(field.enableInteractiveSelection, isTrue);
     expect(controller.text, '0012345678');
     await tester.showKeyboard(find.byType(TextFormField));
@@ -119,7 +120,7 @@ void main() {
     focusNode.unfocus();
     await tester.pump();
     field = _textField(tester);
-    expect(field.decoration?.prefixText, '*******5678');
+    expect(maskedPrefixOf(field.decoration), '*******5678');
     expect(controller.text, '00912345678');
     expect(controller.selection, const TextSelection.collapsed(offset: 3));
   });
@@ -166,7 +167,7 @@ void main() {
     expect(validated, '00012345');
     expect(saved, '00012345');
     expect(controller.text, '00012345');
-    expect(_textField(tester).decoration?.prefixText, '****2345');
+    expect(maskedPrefixOf(_textField(tester).decoration), '****2345');
   });
 
   testWidgets('programmatic updates reset and rebuild without callbacks', (
@@ -201,15 +202,15 @@ void main() {
       ),
     );
 
-    expect(_textField(tester).decoration?.prefixText, '******2222');
+    expect(maskedPrefixOf(_textField(tester).decoration), '******2222');
     first.text = '5555566666';
     await tester.pump();
-    expect(_textField(tester).decoration?.prefixText, '******6666');
+    expect(maskedPrefixOf(_textField(tester).decoration), '******6666');
     expect(changes, isEmpty);
 
     first.clear();
     await tester.pump();
-    expect(_textField(tester).decoration?.prefixText, isNull);
+    expect(maskedPrefixOf(_textField(tester).decoration), isNull);
     expect(changes, isEmpty);
     first.text = '5555566666';
     await tester.pump();
@@ -219,14 +220,14 @@ void main() {
       suffix = 2;
     });
     await tester.pump();
-    expect(_textField(tester).decoration?.prefixText, '********44');
+    expect(maskedPrefixOf(_textField(tester).decoration), '********44');
     expect(first.text, '5555566666');
     expect(second.text, '3333344444');
 
     formKey.currentState!.reset();
     await tester.pump();
     expect(second.text, '3333344444');
-    expect(_textField(tester).decoration?.prefixText, '********44');
+    expect(maskedPrefixOf(_textField(tester).decoration), '********44');
     expect(changes, ['3333344444']);
   });
 
@@ -271,9 +272,9 @@ void main() {
     final fields = tester
         .widgetList<TextField>(find.byType(TextField))
         .toList();
-    expect(fields[0].decoration?.prefixText, '****5678');
-    expect(fields[1].decoration?.prefixText, '****4321');
-    expect(fields[2].decoration?.prefixText, '****3344');
+    expect(maskedPrefixOf(fields[0].decoration), '****5678');
+    expect(maskedPrefixOf(fields[1].decoration), '****4321');
+    expect(maskedPrefixOf(fields[2].decoration), '****3344');
     expect(fields[2].readOnly, isTrue);
     expect(fields[2].enableInteractiveSelection, isFalse);
   });
@@ -325,7 +326,7 @@ void main() {
     );
 
     expect(find.text('+92'), findsOneWidget);
-    expect(_textField(tester).decoration?.prefixText, '*******4567');
+    expect(maskedPrefixOf(_textField(tester).decoration), '*******4567');
     expect(controller.text, '03001234567');
 
     await tester.tap(find.byTooltip('Clear phone number'));
@@ -333,7 +334,7 @@ void main() {
     expect(controller.text, isEmpty);
     expect(changes, ['']);
     expect(phoneValue?.text, '');
-    expect(_textField(tester).decoration?.prefixText, isNull);
+    expect(maskedPrefixOf(_textField(tester).decoration), isNull);
     expect(find.text('+92'), findsOneWidget);
   });
 
@@ -360,7 +361,7 @@ void main() {
       await tester.tap(find.byTooltip('Select phone number from contacts'));
       await tester.pumpAndSettle();
       expect(controller.text, '+923001234567');
-      expect(_textField(tester).decoration?.prefixText, '+********4567');
+      expect(maskedPrefixOf(_textField(tester).decoration), '+********4567');
       expect(find.text('+92'), findsOneWidget);
       debugDefaultTargetPlatformOverride = null;
     },
@@ -396,19 +397,19 @@ void main() {
     );
 
     expect(controller.text, r'$50,000.00');
-    expect(_textField(tester).decoration?.prefixText, r'$**,***.**');
+    expect(maskedPrefixOf(_textField(tester).decoration), r'$**,***.**');
 
     focusNode.requestFocus();
     await tester.pump();
     expect(controller.text, '50000.00');
-    expect(_textField(tester).decoration?.prefixText, isNull);
+    expect(maskedPrefixOf(_textField(tester).decoration), isNull);
     controller.selection = const TextSelection.collapsed(offset: 2);
 
     focusNode.unfocus();
     await tester.pump();
     expect(controller.text, r'$50,000.00');
     expect(controller.selection, const TextSelection.collapsed(offset: 3));
-    expect(_textField(tester).decoration?.prefixText, r'$**,***.**');
+    expect(maskedPrefixOf(_textField(tester).decoration), r'$**,***.**');
     expect(formKey.currentState!.validate(), isTrue);
     formKey.currentState!.save();
     expect(saved, r'$50,000.00');
@@ -437,7 +438,7 @@ void main() {
     );
 
     expect(controller.text, '5,000.oo');
-    expect(_textField(tester).decoration?.prefixText, '*,***.**');
+    expect(maskedPrefixOf(_textField(tester).decoration), '*,***.**');
     expect(formKey.currentState!.validate(), isFalse);
     expect(controller.text, '5,000.oo');
   });
@@ -499,7 +500,7 @@ void main() {
     );
 
     expect(
-      _textField(tester).decoration?.prefixText,
+      maskedPrefixOf(_textField(tester).decoration),
       '\u2066*******4567\u2069',
     );
     expect(find.text('+92'), findsOneWidget);

@@ -152,16 +152,65 @@ abstract class SmartFormFieldValue extends FormFieldState<String> {
   }
 }
 
+final class SmartAffixWidths {
+  double? container;
+  double? prefixIcon;
+  double? suffixIcon;
+
+  double available(double contentWidth) {
+    final total = container;
+    if (total == null || (prefixIcon == null && suffixIcon == null)) {
+      return contentWidth;
+    }
+    final side = (total - contentWidth) / 2;
+    final room = total - (prefixIcon ?? side) - (suffixIcon ?? side);
+    return room < 0 ? 0 : room;
+  }
+}
+
+class SmartWidthProbe extends SingleChildRenderObjectWidget {
+  const SmartWidthProbe({super.key, required this.onLayout, super.child});
+
+  final void Function(double width, double maxWidth) onLayout;
+
+  @override
+  RenderSmartWidthProbe createRenderObject(BuildContext context) {
+    return RenderSmartWidthProbe(onLayout);
+  }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    RenderSmartWidthProbe renderObject,
+  ) {
+    renderObject.onLayout = onLayout;
+  }
+}
+
+class RenderSmartWidthProbe extends RenderProxyBox {
+  RenderSmartWidthProbe(this.onLayout);
+
+  void Function(double width, double maxWidth) onLayout;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    onLayout(size.width, constraints.maxWidth);
+  }
+}
+
 class SmartScaleToFit extends SingleChildRenderObjectWidget {
   const SmartScaleToFit({
     super.key,
     this.minChildWidth,
     this.maxWidthFactor = 1,
+    this.availableWidth,
     super.child,
   });
 
   final double? minChildWidth;
   final double maxWidthFactor;
+  final double Function(double maxWidth)? availableWidth;
 
   @override
   RenderSmartScaleToFit createRenderObject(BuildContext context) {
@@ -169,7 +218,7 @@ class SmartScaleToFit extends SingleChildRenderObjectWidget {
       minChildWidth,
       maxWidthFactor,
       Directionality.of(context),
-    );
+    )..availableWidth = availableWidth;
   }
 
   @override
@@ -180,6 +229,7 @@ class SmartScaleToFit extends SingleChildRenderObjectWidget {
     renderObject
       ..minChildWidth = minChildWidth
       ..maxWidthFactor = maxWidthFactor
+      ..availableWidth = availableWidth
       ..textDirection = Directionality.of(context);
   }
 }
@@ -218,7 +268,20 @@ class RenderSmartScaleToFit extends RenderProxyBox {
     }
   }
 
+  double Function(double maxWidth)? _availableWidth;
+
+  set availableWidth(double Function(double maxWidth)? value) {
+    if (!identical(_availableWidth, value)) {
+      _availableWidth = value;
+      markNeedsLayout();
+    }
+  }
+
   double _available(BoxConstraints constraints) {
+    final custom = _availableWidth;
+    if (custom != null && constraints.maxWidth.isFinite) {
+      return custom(constraints.maxWidth);
+    }
     return constraints.maxWidth * _maxWidthFactor;
   }
 

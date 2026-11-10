@@ -59,6 +59,7 @@
 
 ### Fixed
 
+* Fix masked phone, number, and amount text being cut off on narrow screens with large text; it is now drawn smaller to fit.
 * Remove a dropped asynchronous error within the same frame instead of one frame later.
 * Remove a displayed asynchronous validation error when its result is dropped because the text controller was replaced or the field was disabled; the field then shows the validation state of its current value.
 * Expose each password-strength checklist rule to screen readers with a checked or not-checked state.

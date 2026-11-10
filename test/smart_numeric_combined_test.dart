@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
+import 'support/masked_prefix.dart';
 
 Widget _app(Widget child) => MaterialApp(
   home: Scaffold(body: SingleChildScrollView(child: child)),
@@ -84,7 +85,9 @@ void main() {
       await tester.pump();
       expect(second.text, '99.00');
       expect(
-        tester.widget<TextField>(find.byType(TextField)).decoration?.prefixText,
+        maskedPrefixOf(
+          tester.widget<TextField>(find.byType(TextField)).decoration,
+        ),
         isNotNull,
       );
       expect(first.text, '1,234.50');

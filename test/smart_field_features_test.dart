@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
+import 'support/masked_prefix.dart';
 
 Widget _app(Widget child) => MaterialApp(home: Scaffold(body: child));
 
@@ -139,13 +140,13 @@ void _maskFeatureTests() {
       ),
     );
     await tester.pumpWidget(build(true));
-    expect(_textField(tester).decoration?.prefixText, '******5678');
+    expect(maskedPrefixOf(_textField(tester).decoration), '******5678');
     await tester.pumpWidget(build(false));
-    expect(_textField(tester).decoration?.prefixText, isNull);
+    expect(maskedPrefixOf(_textField(tester).decoration), isNull);
     controller.text = '1';
     await tester.pump();
     await tester.pumpWidget(build(true));
-    expect(_textField(tester).decoration?.prefixText, isNotNull);
+    expect(maskedPrefixOf(_textField(tester).decoration), isNotNull);
     expect(controller.text, '1');
     expect(tester.takeException(), isNull);
   });
