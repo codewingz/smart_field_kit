@@ -39,7 +39,8 @@ class _UtilitiesPageState extends State<UtilitiesPage> {
               'Independent of the widget. They return masked copies and never '
               'change their input. Masking is a visual privacy aid, not '
               'encryption. Use only sample values here.',
-          snippet: "maskMobile('03001234567')\nmaskAccountNumber('000012345678')\nmaskAmount('12,345.67 PKR')",
+          snippet:
+              "maskMobile('03001234567')\nmaskAccountNumber('000012345678')\nmaskAmount('12,345.67 PKR')",
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

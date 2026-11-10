@@ -761,8 +761,9 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       initialTime: _currentTime(),
       builder: (context, child) {
         return MediaQuery(
-          data: MediaQuery.of(context)
-              .copyWith(alwaysUse24HourFormat: _config.timeFormat.use24Hour),
+          data: MediaQuery.of(
+            context,
+          ).copyWith(alwaysUse24HourFormat: _config.timeFormat.use24Hour),
           child: child!,
         );
       },

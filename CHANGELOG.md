@@ -25,3 +25,5 @@
 * Fix caret placement for amounts whose currency symbol contains a decimal separator or a digit.
 * Honour `showClearButton` in date dropdown mode, give the month more room in narrow layouts, and roughly halve dropdown rebuild cost.
 * Group the card number, expiry, and security-code fields for platform autofill.
+* Lower the Dart SDK constraint to `^3.12.0` after verifying analysis, tests, and the example build on Flutter 3.44.0.
+* Make the test suite pass on Chrome, add Chrome, Windows, macOS, and minimum-SDK jobs to CI, add real-engine integration tests, and add the missing macOS Podfile to the example.

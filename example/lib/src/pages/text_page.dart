@@ -117,7 +117,8 @@ class _TextPageState extends State<TextPage> {
           description:
               'Multiline, grows with the text, and counts words. Word limits '
               'never block typing; they only affect validation.',
-          snippet: "SmartField.description(\n  minWords: 3,\n  maxWords: 20,\n  showWordCount: true,\n)",
+          snippet:
+              "SmartField.description(\n  minWords: 3,\n  maxWords: 20,\n  showWordCount: true,\n)",
           child: SmartField.description(
             label: 'Description',
             minWords: 3,
@@ -165,7 +166,8 @@ class _TextPageState extends State<TextPage> {
               'A format mask changes the formatted controller text '
               '(1234-5678). The raw value contains only the entered characters. '
               'This is not privacy masking.',
-          snippet: "SmartField.text(\n  inputMask: '####-####',\n  onRawChanged: (raw) {},\n)",
+          snippet:
+              "SmartField.text(\n  inputMask: '####-####',\n  onRawChanged: (raw) {},\n)",
           child: Column(
             children: [
               SmartField.text(
@@ -184,7 +186,8 @@ class _TextPageState extends State<TextPage> {
           description:
               'Checks URL syntax and allowed schemes. It does not tell you '
               'whether a site is safe or reachable.',
-          snippet: "SmartField.url(\n  allowedSchemes: {'https'},\n  allowBareDomain: true,\n)",
+          snippet:
+              "SmartField.url(\n  allowedSchemes: {'https'},\n  allowBareDomain: true,\n)",
           child: Column(
             children: [
               SwitchListTile(

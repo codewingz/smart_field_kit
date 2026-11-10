@@ -500,8 +500,9 @@ void main() {
                 width: width,
                 child: Theme(
                   data: Theme.of(context).copyWith(
-                    textTheme: Theme.of(context).textTheme
-                        .apply(fontSizeFactor: fontSize / 14),
+                    textTheme: Theme.of(
+                      context,
+                    ).textTheme.apply(fontSizeFactor: fontSize / 14),
                   ),
                   child: SmartField.description(controller: controller),
                 ),

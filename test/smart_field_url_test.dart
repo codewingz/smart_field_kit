@@ -432,7 +432,8 @@ void main() {
                 textDirection: TextDirection.rtl,
                 child: Scaffold(
                   body: SmartField.url(
-                    label: 'A very long website label that should wrap or ellipsize',
+                    label:
+                        'A very long website label that should wrap or ellipsize',
                     decoration: const InputDecoration(
                       suffixIcon: Icon(Icons.link),
                     ),

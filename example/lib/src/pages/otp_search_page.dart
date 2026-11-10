@@ -71,7 +71,8 @@ class _OtpSearchPageState extends State<OtpSearchPage> {
               'A single native input drawn as boxes: autofill, paste, and '
               'completion. Code values are never shown or logged by this app. '
               'Enter any code; 000000 simulates a server rejection.',
-          snippet: "SmartField.otp(\n  length: 6,\n  obscureText: false,\n  onCompleted: (code) {},\n  serverError: serverError,\n)",
+          snippet:
+              "SmartField.otp(\n  length: 6,\n  obscureText: false,\n  onCompleted: (code) {},\n  serverError: serverError,\n)",
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -122,7 +123,8 @@ class _OtpSearchPageState extends State<OtpSearchPage> {
               'onSearch runs after typing pauses. Clear cancels pending work. '
               'This demo filters a local list with a simulated 350 ms delay; '
               'there is no network.',
-          snippet: "SmartField.search(\n  debounceDuration: const Duration(milliseconds: 400),\n  onSearch: (query) {},\n  isLoading: loading,\n)",
+          snippet:
+              "SmartField.search(\n  debounceDuration: const Duration(milliseconds: 400),\n  onSearch: (query) {},\n  isLoading: loading,\n)",
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

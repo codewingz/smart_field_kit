@@ -592,8 +592,9 @@ final class SmartCardNumberFormatter extends TextInputFormatter {
     }
     int digitsBefore(int offset) {
       final clamped = offset.clamp(0, newValue.text.length);
-      return SmartCardUtils.digitsOnly(newValue.text.substring(0, clamped))
-          .length;
+      return SmartCardUtils.digitsOnly(
+        newValue.text.substring(0, clamped),
+      ).length;
     }
 
     final oldDigits = SmartCardUtils.digitsOnly(oldValue.text);

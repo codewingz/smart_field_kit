@@ -67,7 +67,8 @@ class _PaymentsDatesPageState extends State<PaymentsDatesPage> {
               'card exists or will be approved. Number and security code are '
               'never displayed, stored, or logged by this app; do not enter '
               'real card data in a demo.',
-          snippet: "SmartField.creditCard(\n  acceptedBrands: {SmartCardBrand.visa, SmartCardBrand.mastercard},\n  onChanged: (card) => card.brand,\n)",
+          snippet:
+              "SmartField.creditCard(\n  acceptedBrands: {SmartCardBrand.visa, SmartCardBrand.mastercard},\n  onChanged: (card) => card.brand,\n)",
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -120,7 +121,8 @@ class _PaymentsDatesPageState extends State<PaymentsDatesPage> {
               'Four modes: manual (masked typing), calendar, dropdowns, and '
               'wheel. Raw values are ISO text; the typed text stays in your '
               'chosen format.',
-          snippet: "SmartField.date(\n  mode: SmartDateMode.calendar,\n  restriction: SmartDateRestriction.pastOnly,\n  onRawChanged: (iso) {},\n)",
+          snippet:
+              "SmartField.date(\n  mode: SmartDateMode.calendar,\n  restriction: SmartDateRestriction.pastOnly,\n  onRawChanged: (iso) {},\n)",
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

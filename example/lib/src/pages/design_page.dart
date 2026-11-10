@@ -128,7 +128,8 @@ class _DesignPageState extends State<DesignPage> {
               'InputDecorationTheme, then the package fallback. The first field '
               'inherits a pill-shaped app theme; the second overrides it with '
               'its own decoration; the third uses the package fallback.',
-          snippet: "Theme(\n  data: theme.copyWith(inputDecorationTheme: ...),\n  child: SmartField(label: 'Inherits theme'),\n)\nSmartField(decoration: InputDecoration(border: ...))",
+          snippet:
+              "Theme(\n  data: theme.copyWith(inputDecorationTheme: ...),\n  child: SmartField(label: 'Inherits theme'),\n)\nSmartField(decoration: InputDecoration(border: ...))",
           child: Column(
             children: [
               Theme(
@@ -255,7 +256,8 @@ class _DesignPageState extends State<DesignPage> {
               'SmartOtpStyle controls box size, spacing, borders, fills, text, '
               'cursor, and animation. OTP draws its own boxes, so it does not '
               'use InputDecoration.',
-          snippet: "SmartField.otp(\n  style: SmartOtpStyle(\n    boxWidth: 40,\n    borderRadius: BorderRadius.circular(24),\n    focusedBorderColor: Colors.teal,\n  ),\n)",
+          snippet:
+              "SmartField.otp(\n  style: SmartOtpStyle(\n    boxWidth: 40,\n    borderRadius: BorderRadius.circular(24),\n    focusedBorderColor: Colors.teal,\n  ),\n)",
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
