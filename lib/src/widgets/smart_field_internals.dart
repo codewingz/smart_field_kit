@@ -71,6 +71,20 @@ _SmartFieldCore _numberCore({
   );
 }
 
+SmartValidator _usernameCharactersValidator(
+  SmartUsernameCharacters allowedCharacters,
+) {
+  final formatter = SmartUsernameFormatter(
+    allowedCharacters: allowedCharacters,
+  );
+  return (value) {
+    if (value == null || value.isEmpty || formatter.allows(value)) {
+      return null;
+    }
+    return 'Use only the allowed characters.';
+  };
+}
+
 _SmartFieldCore _textCore({
   SmartTextCase textCase = SmartTextCase.none,
   bool collapseWhitespace = false,
@@ -85,15 +99,22 @@ _SmartFieldCore _textCore({
   SmartTextValidationPreset? validationPreset,
   String? validationPresetErrorText,
   List<TextInputFormatter> extraFormatters = const [],
+  SmartUsernameCharacters allowedCharacters = SmartUsernameCharacters.any,
 }) {
   final mask = inputMask == null ? null : SmartInputMask(inputMask);
+  final preset = validationPreset == null
+      ? null
+      : SmartValidators.textPreset(
+          validationPreset,
+          message: validationPresetErrorText,
+        );
+  final characters = allowedCharacters == SmartUsernameCharacters.any
+      ? null
+      : _usernameCharactersValidator(allowedCharacters);
   return _SmartFieldCore(
-    fieldValidator: validationPreset == null
-        ? null
-        : SmartValidators.textPreset(
-            validationPreset,
-            message: validationPresetErrorText,
-          ),
+    fieldValidator: characters == null
+        ? preset
+        : SmartValidators.compose([characters, ?preset]),
     inputMask: mask,
     inputMaskMessage: inputMaskErrorText,
     valueNormalizer: rawValueBuilder ?? mask?.extractRaw,

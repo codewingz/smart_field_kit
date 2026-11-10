@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/formatting/smart_card_utils.dart';
@@ -171,12 +172,20 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
   @override
   void didUpdateWidget(covariant SmartCreditCardField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _syncInputs();
+    final numberRebound = _syncInputs();
     _refreshNumberDisplay();
-    _refreshCvvDisplay();
+    final cvvPolicyChanged = !setEquals(
+      oldWidget.config.cvvLengths,
+      _config.cvvLengths,
+    );
+    if ((numberRebound || cvvPolicyChanged) && _cvvBrandError != null) {
+      _updateCvvForBrand();
+    } else {
+      _refreshCvvDisplay();
+    }
   }
 
-  void _syncInputs() {
+  bool _syncInputs() {
     _numberInput.update(
       controller: _config.numberController,
       focusNode: _config.numberFocusNode,
@@ -189,11 +198,13 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       controller: _config.cvvController,
       focusNode: _config.cvvFocusNode,
     );
-    if (_numberText.bind(_number)) {
+    final rebound = _numberText.bind(_number);
+    if (rebound) {
       _lastNumberText = _number.text;
     }
     _numberServer.bind(_config.numberServerError);
     _cvvServer.bind(_config.cvvServerError);
+    return rebound;
   }
 
   void _handleNumberController() {

@@ -483,6 +483,7 @@ class SmartField extends _SmartFieldBase {
                  textCase: usernameCase,
                ),
            ],
+           allowedCharacters: allowedCharacters,
            validationPreset: validationPreset,
            validationPresetErrorText: validationPresetErrorText,
          ),
@@ -1390,6 +1391,12 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
   bool get showsMask => _feature<_MaskFeature>()?.shows ?? false;
 
   @override
+  bool get pickerInteractive {
+    final scope = context.getInheritedWidgetOfExactType<SmartPickerScope>();
+    return scope?.interactive ?? false;
+  }
+
+  @override
   void initState() {
     super.initState();
     _ensureOwnedState(null);
@@ -1410,7 +1417,7 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
       element.visitChildren(visit);
     }
 
-    final context = _fieldKey.currentContext;
+    final context = _fieldKey.currentContext ?? (mounted ? this.context : null);
     if (context is Element) {
       context.visitChildren(visit);
     }
@@ -1680,17 +1687,20 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
       final async = _feature<_AsyncFeature>();
       final asyncError =
           widget.serverError?.errorText ?? async?.errorFor(async.currentText);
+      final otp = SmartOtpField(
+        configuration: otpConfig,
+        source: widget,
+        controller: async?.otpController ?? widget.controller,
+        onChanged: _handleOtpChanged,
+        validator: _synchronousValidator,
+        decoration: asyncError == null || widget.decoration.errorText != null
+            ? widget.decoration
+            : widget.decoration.copyWith(errorText: asyncError),
+      );
       return _wrapFeatures(
-        SmartOtpField(
-          configuration: otpConfig,
-          source: widget,
-          controller: async?.otpController ?? widget.controller,
-          onChanged: _handleOtpChanged,
-          validator: _synchronousValidator,
-          decoration: asyncError == null || widget.decoration.errorText != null
-              ? widget.decoration
-              : widget.decoration.copyWith(errorText: asyncError),
-        ),
+        async == null
+            ? Focus(canRequestFocus: false, skipTraversal: true, child: otp)
+            : otp,
       );
     }
     final mask = _feature<_MaskFeature>();

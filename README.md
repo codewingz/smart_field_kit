@@ -920,9 +920,9 @@ SmartField.dateTime(mode: SmartTimeMode.picker, restriction: SmartDateRestrictio
 
 - Formats use `dd`, `MM`, `yyyy` once each with any separators (`dd/MM/yyyy`, `MM/dd/yyyy`, `yyyy-MM-dd`). Time is `HH:mm` or, with `use24Hour: false`, `hh:mm AM/PM`. No `intl` dependency; for localization pass `monthNames` and use the app's Material locale for the calendar and clock dialogs.
 
-- Rules: `minDate`, `maxDate` (inclusive), `restriction` (`pastOnly` means before today, `futureOnly` means after today, both relative to `now()`), `minTime`/`maxTime`, `isRequired`, your `validator`, `serverError`, `asyncValidation`, `initialDate`/`initialTime`, `showClearButton`, and `FormState.reset`. Impossible dates such as 30 February are invalid. Calendar and wheel pickers default to 1900 to 2100 when no bounds are set.
+- Rules: `minDate`, `maxDate` (inclusive), `restriction` (`pastOnly` means before today, `futureOnly` means after today, both relative to `now()`), `minTime`/`maxTime`, `isRequired`, your `validator`, `serverError`, `asyncValidation`, `initialDate`/`initialTime`, `showClearButton`, and `FormState.reset`. Impossible dates such as 30 February are invalid. Calendar and wheel pickers default to 1900 to 2100 when no bounds are set. In dropdown mode a stored date outside the selectable years is still shown and is never replaced; `minDate`, `maxDate`, and `restriction` report it, and a date outside an explicit `firstYear`/`lastYear` range fails with the invalid-date message. `FormState.reset` returns a dropdown field to the date it had when it was first shown (the controller text or `initialDate`), and `save` then returns that same value. A picker result is discarded if the field was disabled, made read-only, given another controller, or removed while the picker was open. Calendar, wheel, and clock picker modes run `asyncValidation` automatically after a selection unless the field is disabled or `readOnly`.
 
-- Values: `onDateChanged`, `onTimeChanged`, `onDateTimeChanged` give `DateTime?`/`TimeOfDay?`. Dates are local calendar dates (midnight), so there are no timezone shifts. `onRawChanged`, `onRawSaved`, and async validators receive ISO text: `yyyy-MM-dd`, `HH:mm`, or `yyyy-MM-ddTHH:mm` without an offset. `SmartDateUtils` provides the same helpers. `onChanged` and `onSaved` carry the displayed text. Dropdown mode has no text controller.
+- Values: `onDateChanged`, `onTimeChanged`, `onDateTimeChanged` give `DateTime?`/`TimeOfDay?`. Dates are local calendar dates (midnight), so there are no timezone shifts. `onRawChanged`, `onRawSaved`, and async validators receive ISO text: `yyyy-MM-dd`, `HH:mm`, or `yyyy-MM-ddTHH:mm` without an offset. `SmartDateUtils` provides the same helpers. `onChanged` and `onSaved` carry the displayed text. In dropdown mode an external `controller` holds the same display text as the dropdowns and stays in sync with them.
 
 - Limits: date-time values are minute precision and timezone-naive; daylight-saving gaps and overlaps are not adjusted, and the app owns timezone conversion. Cancelling a picker leaves the value unchanged. Programmatic controller changes do not fire typed callbacks.
 
@@ -1072,7 +1072,7 @@ Status values: `idle`, `pending`, `valid`, `invalid`, `unavailable`.
 
 - The checker receives the raw value: the typed text, the normalized number for `.amount()` and `.percentage()` (no grouping, currency symbol, or `%`), and the unmasked text for masked fields. Phone fields pass the entered text.
 
-- Any edit, clear, reset, controller replacement, or disabling discards the previous result and ignores late completions. `validateAsync()` returns `false` if the value changed while it ran.
+- Any edit, clear, reset, controller replacement, or disabling discards the previous result and ignores late completions. Replacing the `validator` function restarts a check that is still pending; a result that has already completed is kept until the value changes or you call `validateAsync(force: true)`, so keep the validator function stable and re-run it yourself when the rule changes. `validateAsync()` returns `false` if the value changed while it ran.
 
 - A thrown error or timeout gives `unavailable` and the unavailable message; it never counts as valid. Calling `validateAsync()` again retries. A rejected value is cached until it changes; use `force: true` to ask again.
 
@@ -1133,7 +1133,7 @@ All formatters are optional.
 
 - `SmartField.name(capitalizeWords: true)`.
 
-- `SmartField.username(usernameCase: SmartTextCase.lowercase, allowedCharacters: SmartUsernameCharacters.usernameSafe)`. Disallowed edits are rejected rather than stripped.
+- `SmartField.username(usernameCase: SmartTextCase.lowercase, allowedCharacters: SmartUsernameCharacters.usernameSafe)`. Disallowed edits are rejected rather than stripped. The same rule is checked by validation, so a value set through the controller, pasted, or committed by a keyboard composition that breaks `allowedCharacters` fails with `Use only the allowed characters.`
 
 - `SmartField.text()` / `.description()`: `textCase` (`capitalizeFirstLetter`, `capitalizeWords`, `capitalizeSentences`, `lowercase`, `uppercase`) and `collapseWhitespace`.
 

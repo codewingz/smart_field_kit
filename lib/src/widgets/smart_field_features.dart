@@ -13,6 +13,7 @@ abstract interface class _FieldHost {
   void rebuild();
   void notifyChanged(String value);
   bool get showsMask;
+  bool get pickerInteractive;
   TextEditingValue? get currentEditingValue;
   TextEditingController? get currentEditingController;
 }
@@ -256,6 +257,26 @@ final class _AmountFeature extends _FieldFeature {
   late final SmartListenerBinding _focusBinding;
 
   SmartAmountFormatter get _formatter => host.field._amountFormatter!;
+  int _displayGeneration = 0;
+
+  void _scheduleDisplay() {
+    final controller = host.textController;
+    if (controller == null ||
+        _formatter.toDisplayValue(controller.value) == controller.value) {
+      return;
+    }
+    final generation = ++_displayGeneration;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!host.mounted ||
+          generation != _displayGeneration ||
+          !identical(host.textController, controller) ||
+          host.field._amountFormatter == null ||
+          (host.focusNode?.hasFocus ?? false)) {
+        return;
+      }
+      _display.showDisplay(_formatter, controller);
+    });
+  }
 
   void _controllerChanged() {
     _display.handleControllerChange(
@@ -274,12 +295,13 @@ final class _AmountFeature extends _FieldFeature {
     _controllerBinding.bind(host.textController);
     _focusBinding.bind(host.focusNode);
     if (!(host.focusNode?.hasFocus ?? false)) {
-      _display.showDisplay(_formatter, host.textController);
+      _scheduleDisplay();
     }
   }
 
   @override
   void unbind() {
+    _displayGeneration++;
     _controllerBinding.dispose();
     _focusBinding.dispose();
   }
@@ -324,10 +346,15 @@ final class _MaskFeature extends _FieldFeature {
     return !(host.focusNode?.hasFocus ?? false);
   }
 
-  String get maskedText => config.render(
-    host.textController?.text ?? '',
-    host.field._amountFormatter,
-  );
+  String get maskedText {
+    final text = host.textController?.text ?? '';
+    final formatter = host.field._amountFormatter;
+    final focused = host.focusNode?.hasFocus ?? false;
+    final shown = formatter == null || focused
+        ? text
+        : formatter.format(text) ?? text;
+    return config.render(shown, formatter);
+  }
 
   @override
   void bind() {
@@ -534,7 +561,8 @@ final class _AsyncFeature extends _FieldFeature {
         return normalizer == null ? text : normalizer(text);
       },
       syncError: host.validateSync,
-      isActive: () => host.mounted && host.isInteractive,
+      isActive: () =>
+          host.mounted && (host.isInteractive || host.pickerInteractive),
       onUpdate: _updated,
       isComposing: () {
         final value =
@@ -574,7 +602,9 @@ final class _AsyncFeature extends _FieldFeature {
   @override
   void bind() {
     if (_isOtp && host.field.controller == null) {
-      _ownedOtpController ??= TextEditingController();
+      _ownedOtpController ??= TextEditingController.fromValue(
+        host.currentEditingValue,
+      );
     } else {
       _releaseOwnedController();
     }

@@ -168,6 +168,8 @@ final class _PhoneFeature extends _FieldFeature {
     final favorites = config.favoriteCountryCodes
         ?.where(_isCountryAllowed)
         .toList(growable: false);
+    final generation = _pickerGeneration;
+    final target = host.textController;
     country_picker.showCountryPicker(
       context: host.context,
       showPhoneCode: true,
@@ -186,9 +188,11 @@ final class _PhoneFeature extends _FieldFeature {
         ),
       ),
       onSelect: (country) {
-        if (!_isCountryAllowed(country.countryCode)) {
+        if (!_isCurrentPick(generation, target) ||
+            !_isCountryAllowed(country.countryCode)) {
           return;
         }
+        final config = _config;
         final selected = _toSmartCountry(country);
         selectedCountry = selected;
         host.rebuild();

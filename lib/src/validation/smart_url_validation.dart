@@ -116,7 +116,9 @@ final class SmartUrlValidation {
       return false;
     }
     if (_ipv4Expression.hasMatch(host)) {
-      return host.split('.').every((part) => int.parse(part) <= 255);
+      return host
+          .split('.')
+          .every((part) => (int.tryParse(part) ?? 256) <= 255);
     }
     if (bare && !host.contains('.')) {
       return false;
