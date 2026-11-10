@@ -45,3 +45,14 @@ Most field controls use Flutter's Material widgets. Some features depend on mobi
 | Contact picker doesn't open | Test device support, native integration and platform setup |
 | A controller is unexpectedly disposed | Confirm who created the controller; application-created controllers remain application-owned |
 | Custom border or padding isn't visible | An explicit `InputDecoration` or app `InputDecorationTheme` takes priority over package fallback |
+
+## Running the integration tests
+
+Inside `example/`, run all real-engine tests with one command:
+
+```bash
+flutter test integration_test/all_test.dart -d <device>
+```
+
+On desktop, pass that single file. `flutter test integration_test -d macos` starts a new copy of the app for every test file, and the second launch fails with `Unable to start the app on the device`. This is how the Flutter tool behaves on desktop and does not depend on the package; each file also passes when run on its own.
+
