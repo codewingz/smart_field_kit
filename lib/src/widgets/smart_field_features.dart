@@ -656,6 +656,9 @@ final class _AsyncFeature extends _FieldFeature {
       _releaseOwnedController();
     }
     engine.configure(_config);
+    final hadError =
+        engine.status == SmartAsyncValidationStatus.invalid ||
+        engine.status == SmartAsyncValidationStatus.unavailable;
     final controller = textController;
     _binding.bind(controller);
     _inner = null;
@@ -674,7 +677,20 @@ final class _AsyncFeature extends _FieldFeature {
     _lastController = controller;
     if (!host.isEnabled) {
       engine.reset();
-    } else if (observeExisting && !_observedExisting) {
+    }
+    if (hadError &&
+        !_isOtp &&
+        engine.status == SmartAsyncValidationStatus.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (host.mounted) {
+          host.fieldKey.currentState?.validate();
+        }
+      });
+    }
+    if (!host.isEnabled) {
+      return;
+    }
+    if (observeExisting && !_observedExisting) {
       _observedExisting = true;
       scheduleMicrotask(() {
         if (host.mounted) {

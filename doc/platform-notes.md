@@ -9,10 +9,10 @@ Most field controls use Flutter's Material widgets. Some features depend on mobi
 | Area | Current behavior or limitation |
 |---|---|
 | Flutter and Dart versions | Requires Flutter 3.44.0 or later and Dart 3.12.0 or later. Analysis, all package tests, the example tests, and the example web build pass on Flutter 3.44.0 (Dart 3.12.0) and on Flutter 3.47.8 (Dart 3.13.7). Flutter 3.44 is the oldest version the bundled contact-picker plugin accepts |
-| Flutter web | The package test suite runs on Chrome (932 tests pass; 47 are skipped there: 34 need the native contact picker, which is not offered on web, 11 read project files through `dart:io`, and 2 send native undo key events that the browser handles itself). The example web build passes. On web, Flutter selects all text when a field gains focus programmatically, and the browser owns the undo shortcut |
+| Flutter web | The package test suite runs on Chrome (947 tests pass; 47 are skipped there: 34 need the native contact picker, which is not offered on web, 11 read project files through `dart:io`, and 2 send native undo key events that the browser handles itself). The example web build passes. On web, Flutter selects all text when a field gains focus programmatically, and the browser owns the undo shortcut |
 | iOS | The example integration tests (card entry, amount formatting, RTL digit order, calendar and country pickers, dropdown dates, password toggle, masking) pass on an iPhone 17 simulator. The native contact picker, the system keyboard, SMS code autofill, and VoiceOver were not exercised |
 | Android | The same integration tests pass on an Android API 36 emulator. The merged example manifest declares no contacts permission. The native contact picker, third-party keyboards, SMS code autofill, and TalkBack were not exercised |
-| macOS | The example builds and the integration tests pass on macOS desktop when run as the single file `integration_test/all_test.dart`. Run them from an interactive desktop session; in an unattended session the run has sometimes stalled before the first test. The contact button is not shown on desktop |
+| macOS | The example builds and the integration tests pass on macOS desktop with `flutter test integration_test -d macos`. Run them from an interactive desktop session; in an unattended session the run has sometimes stalled before the first test. The contact button is not shown on desktop |
 | Windows and Linux | Not tested locally. CI is configured to run the package tests on Windows; no hosted run has been verified yet |
 | Keyboards that compose text (IME) | Text is not changed while the keyboard is still composing. When the composed text is committed and the field's input rule rejects it, the field returns to the text it held before that composition, with the caret where the composition began. This is covered by simulated composition tests; hardware and third-party keyboards were not tested |
 | Digits | Number, amount, percentage, OTP, card, date, and time fields accept ASCII digits `0`-`9` only. Arabic-Indic (`١٢٣`), Persian (`۱۲۳`), and fullwidth digits are not entered and no message is shown; a phone field keeps them and reports the number as invalid. They are not converted to ASCII |
@@ -56,8 +56,7 @@ Most field controls use Flutter's Material widgets. Some features depend on mobi
 Inside `example/`, run all real-engine tests with one command:
 
 ```bash
-flutter test integration_test/all_test.dart -d <device>
+flutter test integration_test -d <device>
 ```
 
-On desktop, pass that single file. `flutter test integration_test -d macos` starts a new copy of the app for every test file, and the second launch fails with `Unable to start the app on the device`. This is how the Flutter tool behaves on desktop and does not depend on the package; each file also passes when run on its own.
-
+The folder holds one test entry file, `all_test.dart`, which runs every case in a single app launch; `flutter test integration_test/all_test.dart -d <device>` is the same run. The cases live in `credit_card_cases.dart` and `fields_cases.dart`, which can also be run on their own by path. They are deliberately not named `*_test.dart`: on desktop the Flutter tool starts a new copy of the app for every test file in a folder, and the second launch fails with `Unable to start the app on the device`. That is how the tool behaves on desktop and does not depend on the package.
