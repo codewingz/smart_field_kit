@@ -280,8 +280,12 @@ final class _AmountFeature extends _FieldFeature {
           (host.focusNode?.hasFocus ?? false)) {
         return;
       }
-      _display.showDisplay(_formatter, controller);
+      _display.showDisplay(_formatter, controller, beforeWrite: _syncFormValue);
     });
+  }
+
+  void _syncFormValue(String text) {
+    SmartFormFieldValue.set(host.fieldKey.currentState, text);
   }
 
   void _controllerChanged() {
@@ -290,10 +294,32 @@ final class _AmountFeature extends _FieldFeature {
       host.textController,
       host.focusNode,
     );
+    if (_alignScheduled) {
+      return;
+    }
+    _alignScheduled = true;
+    scheduleMicrotask(() {
+      _alignScheduled = false;
+      final controller = host.textController;
+      final state = host.fieldKey.currentState;
+      if (host.mounted &&
+          controller != null &&
+          state != null &&
+          state.value != controller.text) {
+        _syncFormValue(controller.text);
+      }
+    });
   }
 
+  bool _alignScheduled = false;
+
   void _focusChanged() {
-    _display.handleFocus(_formatter, host.textController, host.focusNode);
+    _display.handleFocus(
+      _formatter,
+      host.textController,
+      host.focusNode,
+      beforeWrite: _syncFormValue,
+    );
   }
 
   @override

@@ -144,3 +144,9 @@ Widget smartPassiveFocus({
     child: child,
   );
 }
+
+abstract class SmartFormFieldValue extends FormFieldState<String> {
+  static void set(FormFieldState<String>? state, String text) {
+    state?.setValue(text);
+  }
+}

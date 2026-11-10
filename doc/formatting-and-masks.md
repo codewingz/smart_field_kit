@@ -41,6 +41,8 @@ SmartField.amount(
 
 - When focus leaves, configured grouping, decimal padding, and currency text are displayed.
 
+- Switching between these two forms on load, focus, and focus loss is not reported as a change: `Form.onChanged` is not called and `AutovalidateMode.onUserInteraction` shows no error until the user edits. A change you make to your own controller is still reported once, as Flutter does.
+
 - `onRawChanged` receives normalized ungrouped numeric text during user edits.
 
 - `onRawSaved` receives normalized ungrouped numeric text when the `Form` is saved, or `null` when the display is not a complete valid amount.

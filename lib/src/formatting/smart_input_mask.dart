@@ -190,7 +190,7 @@ final class SmartMaskFormatter extends TextInputFormatter {
     }
     final scanned = mask.scan(newValue.text);
     if (scanned == null) {
-      return oldValue;
+      return smartBeforeComposition(oldValue);
     }
     var raw = scanned.raw;
     int rawAt(int offset) {

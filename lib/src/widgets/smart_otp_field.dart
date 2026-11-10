@@ -520,7 +520,7 @@ class _SmartOtpInputFormatter extends TextInputFormatter {
     }
     final stripped = newValue.text.replaceAll(_separators, '');
     if (!_digits.hasMatch(stripped)) {
-      return oldValue;
+      return smartBeforeComposition(oldValue);
     }
     var result = stripped == newValue.text
         ? newValue

@@ -123,7 +123,9 @@ final class SmartNumberInputFormatter extends TextInputFormatter {
       return newValue;
     }
     final expression = allowNegative ? _signedExpression : _unsignedExpression;
-    return expression.hasMatch(newValue.text) ? newValue : oldValue;
+    return expression.hasMatch(newValue.text)
+        ? newValue
+        : smartBeforeComposition(oldValue);
   }
 }
 
@@ -171,7 +173,7 @@ final class SmartAmountFormatter extends TextInputFormatter {
     }
     final raw = normalize(newValue.text, allowPartial: true);
     if (raw == null) {
-      return oldValue;
+      return smartBeforeComposition(oldValue);
     }
     final editable = _editableText(raw);
     if (editable == newValue.text) {
