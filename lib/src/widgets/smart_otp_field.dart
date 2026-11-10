@@ -103,6 +103,7 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
       if (controllerChanged) {
         _initialValue = _controller.text;
         _lastText = _controller.text;
+        _wasComplete = _isComplete(_controller.text);
       }
       _controllerBinding.bind(_controller);
       _focusBinding.bind(_focusNode);

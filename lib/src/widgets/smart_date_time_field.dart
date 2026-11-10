@@ -320,6 +320,10 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   final Set<int> _suffixPointers = {};
   bool _writingController = false;
   SmartAsyncValidationEngine? _engine;
+  int _pickerGeneration = 0;
+  int _seedGeneration = 0;
+  String? _seededText;
+  DateTime? _resetBaseline;
   int? _day;
   int? _month;
   int? _year;
@@ -339,20 +343,76 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   void initState() {
     super.initState();
     _syncBindings();
-    if (widget.source.controller != null &&
-        widget.source.controller!.text.isEmpty) {
-      final initial = _initialText();
-      if (initial.isNotEmpty) {
-        widget.source.controller!.text = initial;
-      }
-    }
+    _scheduleInitialSeed();
     _loadPartsFromController();
+    _resetBaseline = _composeDate();
+  }
+
+  void _scheduleInitialSeed() {
+    final target = widget.source.controller;
+    if (target == null || target.text.isNotEmpty) {
+      return;
+    }
+    final initial = _initialText();
+    if (initial.isEmpty) {
+      return;
+    }
+    final generation = ++_seedGeneration;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          generation != _seedGeneration ||
+          !identical(widget.source.controller, target) ||
+          target.text.isNotEmpty) {
+        return;
+      }
+      _writeController(initial);
+      setState(() => _seededText = initial);
+    });
+  }
+
+  void _restoreSeedAfterReset() {
+    final seeded = _seededText;
+    final target = widget.source.controller;
+    if (seeded == null || target == null) {
+      return;
+    }
+    scheduleMicrotask(() {
+      if (mounted &&
+          identical(widget.source.controller, target) &&
+          target.text.isEmpty) {
+        _writeController(seeded);
+      }
+    });
+  }
+
+  bool get _interactive => _enabled && !widget.source.readOnly;
+
+  bool _isCurrentPick(int generation, TextEditingController target) {
+    return mounted &&
+        _interactive &&
+        generation == _pickerGeneration &&
+        identical(_controller, target);
   }
 
   @override
   void didUpdateWidget(covariant SmartDateTimeField oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final controllerChanged = !identical(
+      oldWidget.source.controller,
+      widget.source.controller,
+    );
     _syncBindings();
+    if (controllerChanged ||
+        !_interactive ||
+        oldWidget.config.kind != _config.kind ||
+        oldWidget.config.dateMode != _config.dateMode ||
+        oldWidget.config.timeMode != _config.timeMode) {
+      _pickerGeneration++;
+    }
+    if (controllerChanged) {
+      _seedGeneration++;
+      _seededText = null;
+    }
     final wasDropdown =
         oldWidget.config.kind == SmartDateTimeKind.date &&
         oldWidget.config.dateMode == SmartDateMode.dropdowns;
@@ -363,6 +423,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
               widget.source.controller,
             ))) {
       _loadPartsFromController();
+      _resetBaseline = _composeDate();
       scheduleMicrotask(() {
         if (mounted) {
           _dropdownKey.currentState?.didChange(_composeDate());
@@ -435,12 +496,22 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   }
 
   void _loadPartsFromController() {
-    final parsed = _config.dateFormat.tryParse(_controller.text);
+    final text = _controller.text;
+    final parsed = _config.dateFormat.tryParse(text);
+    if (parsed == null &&
+        text.isEmpty &&
+        _config.kind == SmartDateTimeKind.date &&
+        widget.source.controller != null) {
+      _loadPartsFrom(_config.initialDate);
+      return;
+    }
     _loadPartsFrom(parsed);
   }
 
   @override
   void dispose() {
+    _pickerGeneration++;
+    _seedGeneration++;
     _engine?.dispose();
     _engine = null;
     _listeners.unbindAll();
@@ -580,31 +651,34 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   }
 
   Future<void> _openPicker() async {
-    if (!_enabled || widget.source.readOnly) {
+    if (!_interactive) {
       return;
     }
-    switch (_config.kind) {
+    final generation = ++_pickerGeneration;
+    final target = _controller;
+    final config = _config;
+    switch (config.kind) {
       case SmartDateTimeKind.date:
-        final picked = _config.dateMode == SmartDateMode.wheel
+        final picked = config.dateMode == SmartDateMode.wheel
             ? await _pickWheelDate()
             : await _pickCalendarDate();
-        if (picked != null && mounted) {
+        if (picked != null && _isCurrentPick(generation, target)) {
           _applyText(_config.dateFormat.format(picked));
         }
       case SmartDateTimeKind.time:
-        final picked = _config.timeMode == SmartTimeMode.wheel
+        final picked = config.timeMode == SmartTimeMode.wheel
             ? await _pickWheelTime()
             : await _pickClockTime();
-        if (picked != null && mounted) {
+        if (picked != null && _isCurrentPick(generation, target)) {
           _applyText(_config.timeFormat.format(picked));
         }
       case SmartDateTimeKind.dateTime:
         final date = await _pickCalendarDate();
-        if (date == null || !mounted) {
+        if (date == null || !_isCurrentPick(generation, target)) {
           return;
         }
         final time = await _pickClockTime();
-        if (time == null || !mounted) {
+        if (time == null || !_isCurrentPick(generation, target)) {
           return;
         }
         _applyText(
@@ -746,7 +820,29 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       return _buildDropdowns(context);
     }
     final decoration = widget.source.decoration.copyWith(suffixIcon: _suffix());
-    final field = SmartField.text(
+    final Widget field = _withSeedReset(_buildTextField(decoration));
+    if (!_config.usesPicker) {
+      return field;
+    }
+    final canOpen = _enabled && !widget.source.readOnly;
+    return SmartPickerScope(
+      interactive: canOpen,
+      child: _buildPicker(canOpen, field),
+    );
+  }
+
+  Widget _withSeedReset(Widget field) {
+    if (widget.source.controller == null || _initialText().isEmpty) {
+      return field;
+    }
+    return FormField<String>(
+      onReset: _restoreSeedAfterReset,
+      builder: (_) => field,
+    );
+  }
+
+  Widget _buildTextField(InputDecoration decoration) {
+    return SmartField.text(
       label: widget.source.label,
       hintText: widget.source.hintText ?? _config.displayPattern,
       controller: _controller,
@@ -771,10 +867,9 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
           ? [SmartMaskFormatter(SmartInputMask(_config.maskPattern))]
           : null,
     );
-    if (!_config.usesPicker) {
-      return field;
-    }
-    final canOpen = _enabled && !widget.source.readOnly;
+  }
+
+  Widget _buildPicker(bool canOpen, Widget field) {
     return Semantics(
       onTap: canOpen ? _openPicker : null,
       child: Focus(
@@ -848,6 +943,13 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     if (value == null) {
       return _config.incompleteErrorText;
     }
+    final range = _config.yearRange;
+    if (range != null && (value.year < range.$1 || value.year > range.$2)) {
+      return _combine(
+        _config.dateFormat.format(value),
+        () => _config.defaultInvalidText,
+      );
+    }
     return _combine(_config.dateFormat.format(value), () {
       return _config.validateValue(value);
     });
@@ -895,10 +997,20 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     final firstYear = _config.yearRange?.$1 ?? bounds.first.year;
     final lastYear = _config.yearRange?.$2 ?? bounds.last.year;
     final years = [for (var y = firstYear; y <= lastYear; y++) y];
+    final selectedYear = _year;
+    if (selectedYear != null && !years.contains(selectedYear)) {
+      years
+        ..add(selectedYear)
+        ..sort();
+    }
     final maxDay = _month == null
         ? 31
         : SmartDateUtils.daysInMonth(_year ?? 2000, _month!);
     final days = [for (var d = 1; d <= maxDay; d++) d];
+    final selectedDay = _day;
+    if (selectedDay != null && !days.contains(selectedDay)) {
+      days.add(selectedDay);
+    }
     return Focus(
       canRequestFocus: false,
       skipTraversal: true,
@@ -909,7 +1021,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       },
       child: FormField<DateTime?>(
         key: _dropdownKey,
-        initialValue: _composeDate(),
+        initialValue: _resetBaseline,
         enabled: _enabled,
         autovalidateMode: widget.source.autovalidateMode,
         forceErrorText: widget.source.serverError?.errorText,
@@ -923,7 +1035,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
           );
         },
         onReset: () {
-          setState(() => _loadPartsFrom(_config.initialDate));
+          setState(() => _loadPartsFrom(_resetBaseline));
           _writeController(_dropdownText());
           _engine?.reset();
         },

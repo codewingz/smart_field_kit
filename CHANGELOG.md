@@ -7,3 +7,12 @@
 * Add a README quick-start regression test to verify that the documented signup example remains compatible with the public API.
 * Add an example application README with setup instructions, feature overview, and screenshot-capture information.
 * Add initial `.pubignore` rules for internal development references, historical reports, generated files, and unnecessary example-platform assets.
+* Fix date dropdown mode failing a framework assertion when the stored date is outside the selectable years; the date is kept, shown, and reported through validation.
+* Fix date dropdown `FormState.reset()` followed by `save()` returning a date that was no longer visible.
+* Discard date, time, date-time, wheel, and country picker results when the field was disabled, made read-only, given another controller, or removed while the picker was open.
+* Stop amount and date fields from writing to a developer-owned controller during build, which could throw `setState() or markNeedsBuild() called during build`.
+* Run automatic asynchronous validation after a selection in calendar, wheel, and clock picker modes.
+* Keep OTP text, selection, and focus when asynchronous validation is added to or removed from a field without an external controller.
+* Recompute the card security-code length error when the card-number controller or allowed lengths change.
+* Return an invalid result instead of throwing for URLs with oversized numeric host components.
+* Enforce `SmartField.username(allowedCharacters:)` through validation as well as input formatting.

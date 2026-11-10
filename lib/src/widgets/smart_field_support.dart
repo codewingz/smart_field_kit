@@ -84,3 +84,18 @@ Widget? composeSuffixActions(Iterable<Widget> children) {
   }
   return Row(mainAxisSize: MainAxisSize.min, children: list);
 }
+
+class SmartPickerScope extends InheritedWidget {
+  const SmartPickerScope({
+    super.key,
+    required this.interactive,
+    required super.child,
+  });
+
+  final bool interactive;
+
+  @override
+  bool updateShouldNotify(SmartPickerScope oldWidget) {
+    return oldWidget.interactive != interactive;
+  }
+}
