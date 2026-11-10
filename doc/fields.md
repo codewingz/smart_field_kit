@@ -536,3 +536,31 @@ The control exposes one semantic text field, supports RTL and text scaling, and 
 `label` and `hintText` fill missing values in `decoration`. Values already supplied by `decoration` take precedence.
 
 Controllers and focus nodes supplied by the developer remain developer-owned and must be disposed by their owner. When they are omitted, Flutter's native `TextFormField` lifecycle applies.
+
+## Standard text-field options
+
+The default, `text`, `description`, `email`, `url`, `name`, `username`, `phone`, `password`, `number`, `percentage`, and `amount` constructors accept these optional Flutter options. Leaving them out keeps the previous behaviour.
+
+| Parameter | Notes |
+|---|---|
+| `initialValue` | Starting text when you do not pass a `controller`. Passing both fails an assertion, as in `TextFormField`. `FormState.reset` returns to it. Amount fields format it for display |
+| `onFieldSubmitted` | Called with the text when the keyboard action is pressed |
+| `onEditingComplete` | Replaces Flutter's default editing-complete behaviour, as in `TextFormField` |
+| `onTap`, `onTapOutside` | Passed to the underlying field |
+| `style` | Text style of the input. Ignored while a privacy mask is shown |
+| `textAlign`, `textDirection` | Override the defaults, including the left-to-right default of digit fields |
+| `obscuringCharacter` | `SmartField.password` only |
+
+`SmartField.search` accepts the same options except `onFieldSubmitted` and `onTap`, because it already has `onSubmitted` and `onTap`. The OTP, credit-card, date, time, and date-time constructors do not take these options. `contextMenuBuilder` and `maxLengthEnforcement` are not exposed.
+
+## Email whitespace
+
+With the standard policy, validation ignores spaces before and after the address, and `onSaved` receives the trimmed address. The text in the field and in your controller is not rewritten, and `onChanged` reports it as typed. The legacy policy is unchanged and still rejects surrounding spaces.
+
+## OTP paste and overwrite
+
+Spaces, hyphens, and non-breaking spaces in pasted text are removed, so `123 456` and `123-456` fill a six-digit field. Extra digits beyond the configured length are dropped. Text containing any other character is rejected as before. When every box is filled, tapping a box and typing a digit replaces that digit. `onCompleted` is called once for each distinct complete code, including a code produced by replacing a digit.
+
+## Number formatter export
+
+`SmartNumberInputFormatter` is exported from `package:smart_field_kit/smart_field_kit.dart` for use on your own `TextField`.

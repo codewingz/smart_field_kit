@@ -74,6 +74,7 @@ _SmartFieldCore _numberCore({
 
 SmartValidator _usernameCharactersValidator(
   SmartUsernameCharacters allowedCharacters,
+  String message,
 ) {
   final formatter = SmartUsernameFormatter(
     allowedCharacters: allowedCharacters,
@@ -82,7 +83,7 @@ SmartValidator _usernameCharactersValidator(
     if (value == null || value.isEmpty || formatter.allows(value)) {
       return null;
     }
-    return 'Use only the allowed characters.';
+    return message;
   };
 }
 
@@ -95,12 +96,14 @@ _SmartFieldCore _textCore({
   int? minWords,
   int? maxWords,
   bool showWordCount = false,
+  String Function(int count, int? maxWords)? wordCountBuilder,
   String? minWordsErrorText,
   String? maxWordsErrorText,
   SmartTextValidationPreset? validationPreset,
   String? validationPresetErrorText,
   List<TextInputFormatter> extraFormatters = const [],
   SmartUsernameCharacters allowedCharacters = SmartUsernameCharacters.any,
+  String allowedCharactersErrorText = 'Use only the allowed characters.',
 }) {
   final mask = inputMask == null ? null : SmartInputMask(inputMask);
   final preset = validationPreset == null
@@ -111,7 +114,10 @@ _SmartFieldCore _textCore({
         );
   final characters = allowedCharacters == SmartUsernameCharacters.any
       ? null
-      : _usernameCharactersValidator(allowedCharacters);
+      : _usernameCharactersValidator(
+          allowedCharacters,
+          allowedCharactersErrorText,
+        );
   return _SmartFieldCore(
     fieldValidator: characters == null
         ? preset
@@ -122,6 +128,7 @@ _SmartFieldCore _textCore({
     minWords: minWords,
     maxWords: maxWords,
     showWordCount: showWordCount,
+    wordCountBuilder: wordCountBuilder,
     minWordsMessage: minWordsErrorText,
     maxWordsMessage: maxWordsErrorText,
     formatters: [
@@ -307,6 +314,15 @@ final class _SmartFieldCore {
     this.minWordsMessage,
     this.maxWordsMessage,
     this.ltrContent = false,
+    this.trimOnSave = false,
+    this.wordCountBuilder,
+    this.passwordRuleMessages = const (
+      uppercase: 'Include an uppercase letter.',
+      lowercase: 'Include a lowercase letter.',
+      digit: 'Include a digit.',
+      special: 'Include a special character.',
+      whitespace: 'Do not use spaces.',
+    ),
   });
 
   final SmartValidator? fieldValidator;
@@ -337,6 +353,16 @@ final class _SmartFieldCore {
   final String? minWordsMessage;
   final String? maxWordsMessage;
   final bool ltrContent;
+  final bool trimOnSave;
+  final String Function(int count, int? maxWords)? wordCountBuilder;
+  final ({
+    String uppercase,
+    String lowercase,
+    String digit,
+    String special,
+    String whitespace,
+  })
+  passwordRuleMessages;
 
   String? rawValue(String text, {bool partial = false}) {
     final formatter = amountFormatter;
@@ -440,6 +466,7 @@ class _SmartPhoneConfig {
     required this.onCountryChanged,
     required this.onPhoneChanged,
     required this.onContactPickerError,
+    this.contactPickerMessageBuilder,
     required this.contactPicker,
     required this.countryTextStyle,
     required this.countryPlaceholder,
@@ -469,6 +496,8 @@ class _SmartPhoneConfig {
   final SmartPhoneCountryChanged? onCountryChanged;
   final SmartPhoneChanged? onPhoneChanged;
   final ValueChanged<SmartPhonePickerError>? onContactPickerError;
+  final String Function(SmartPhonePickerErrorCode code)?
+  contactPickerMessageBuilder;
   final SmartPhoneContactPicker? contactPicker;
   final TextStyle? countryTextStyle;
   final Widget? countryPlaceholder;
@@ -550,7 +579,10 @@ final class _SmartStrengthConfig {
     required this.criteria,
     required this.labels,
     required this.showChecklist,
+    this.title = 'Password strength',
   });
+
+  final String title;
 
   final List<SmartPasswordCriterion>? criteria;
   final Map<SmartPasswordStrengthLevel, String>? labels;

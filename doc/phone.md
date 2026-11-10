@@ -64,3 +64,7 @@ The contact button is shown only on Android and iOS. It opens the operating syst
 Country names work in English without extra setup. Apps that need translated country names can add `CountryLocalizations.delegate` from `country_picker` to their `MaterialApp` localization delegates.
 
 Phone support uses [`country_picker` 2.0.28](https://pub.dev/packages/country_picker), [`phone_numbers_parser` 9.0.29](https://pub.dev/packages/phone_numbers_parser), and [`flutter_native_contact_picker` 0.0.13](https://pub.dev/packages/flutter_native_contact_picker). The first two use the MIT license and the native picker uses BSD-3-Clause. Their notices are retained in `THIRD_PARTY_NOTICES.md`.
+
+## Separators in phone numbers
+
+Before validation and parsing, non-breaking spaces and dots are treated as spaces, and invisible direction marks are ignored. `(415)<non-breaking space>555-2671` and `415.555.2671` validate like `(415) 555-2671`. Digits are never changed and the country check still applies. The text in the field is not rewritten, and `SmartPhoneValue.text` holds it as entered. Extensions such as `x12` are not supported. `SmartPhonePolicy.legacy` is unchanged.

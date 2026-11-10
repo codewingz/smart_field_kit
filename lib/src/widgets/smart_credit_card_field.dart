@@ -72,6 +72,8 @@ final class SmartCreditCardConfig {
     this.expiryErrorText = 'Enter a valid expiry date.',
     this.expiredErrorText = 'This card has expired.',
     this.cvvErrorText,
+    this.showCvvLabel = 'Show security code',
+    this.hideCvvLabel = 'Hide security code',
     this.numberServerError,
     this.expiryServerError,
     this.cvvServerError,
@@ -109,6 +111,8 @@ final class SmartCreditCardConfig {
   final String expiryErrorText;
   final String expiredErrorText;
   final String? cvvErrorText;
+  final String showCvvLabel;
+  final String hideCvvLabel;
   final SmartServerError? numberServerError;
   final SmartServerError? expiryServerError;
   final SmartServerError? cvvServerError;
@@ -401,6 +405,32 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
         luhnMessage: _config.luhnErrorText,
       ),
     );
+    final shared = widget.source.decoration;
+    final secondary = InputDecoration(
+      labelStyle: shared.labelStyle,
+      floatingLabelStyle: shared.floatingLabelStyle,
+      floatingLabelBehavior: shared.floatingLabelBehavior,
+      floatingLabelAlignment: shared.floatingLabelAlignment,
+      hintStyle: shared.hintStyle,
+      helperStyle: shared.helperStyle,
+      errorStyle: shared.errorStyle,
+      errorMaxLines: shared.errorMaxLines,
+      isDense: shared.isDense,
+      contentPadding: shared.contentPadding,
+      filled: shared.filled,
+      fillColor: shared.fillColor,
+      focusColor: shared.focusColor,
+      hoverColor: shared.hoverColor,
+      border: shared.border,
+      enabledBorder: shared.enabledBorder,
+      focusedBorder: shared.focusedBorder,
+      errorBorder: shared.errorBorder,
+      focusedErrorBorder: shared.focusedErrorBorder,
+      disabledBorder: shared.disabledBorder,
+      enabled: shared.enabled,
+      constraints: shared.constraints,
+      alignLabelWithHint: shared.alignLabelWithHint,
+    );
     final expiryMask = _config.expiryFormat == SmartExpiryFormat.mmYy
         ? '##/##'
         : '##/####';
@@ -425,7 +455,7 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       requiredErrorText: widget.source.requiredErrorText,
       autovalidateMode: widget.source.autovalidateMode,
       serverError: _config.expiryServerError,
-      decoration: widget.source.decoration,
+      decoration: secondary,
       inputFormatters: [SmartMaskFormatter(SmartInputMask(expiryMask))],
       validator: SmartValidators.cardExpiry(
         format: _config.expiryFormat,
@@ -459,8 +489,10 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
             requiredErrorText: widget.source.requiredErrorText,
             autovalidateMode: widget.source.autovalidateMode,
             serverError: _cvvDisplay,
-            decoration: widget.source.decoration,
+            decoration: secondary,
             validator: cvvValidator,
+            showLabel: _config.showCvvLabel,
+            hideLabel: _config.hideCvvLabel,
           )
         : SmartField(
             label: _config.cvvLabel,
@@ -479,7 +511,7 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
             requiredErrorText: widget.source.requiredErrorText,
             autovalidateMode: widget.source.autovalidateMode,
             serverError: _cvvDisplay,
-            decoration: widget.source.decoration,
+            decoration: secondary,
             inputFormatters: cvvFormatters,
             validator: cvvValidator,
           );

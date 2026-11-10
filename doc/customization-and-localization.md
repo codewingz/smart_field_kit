@@ -30,21 +30,17 @@ The package ships English defaults and has no translation system. Pass your own 
 |---|---|
 | Every field | `label`, `hintText`, `requiredErrorText`, `minLengthErrorText`, `maxLengthErrorText`, and any text in `decoration` |
 | Field-specific errors | `emailErrorText`, `urlErrorText`, `passwordErrorText`, `mismatchErrorText`, `numberErrorText`, `amountErrorText`, `percentageErrorText`, `phoneErrorText`, `minValueErrorText`, `maxValueErrorText`, `inputMaskErrorText`, `minWordsErrorText`, `maxWordsErrorText`, `validationPresetErrorText` |
-| Password | `showPasswordLabel`, `hidePasswordLabel`, `strengthLabels`, `strengthCriteria` (each criterion carries its own label) |
+| Password | `showPasswordLabel`, `hidePasswordLabel`, `strengthTitle`, `strengthLabels`, `strengthCriteria` (each criterion carries its own label), and for `SmartValidationMode.selected`: `uppercaseErrorText`, `lowercaseErrorText`, `digitErrorText`, `specialCharacterErrorText`, `noWhitespaceErrorText` |
+| Text and description | `wordCountBuilder` for the word counter |
+| Username | `allowedCharactersErrorText` |
 | Search | `clearLabel`, `loadingLabel` |
-| Phone | `selectCountryLabel`, `changeCountryLabelBuilder`, `contactPickerLabel`, `clearLabel`, `countrySearchHint`, and `onContactPickerError` to show your own picker messages |
+| Phone | `selectCountryLabel`, `changeCountryLabelBuilder`, `contactPickerLabel`, `clearLabel`, `countrySearchHint`, and `contactPickerMessageBuilder` for the picker messages, and `onContactPickerError` to present them yourself |
 | OTP | `digitErrorText`, `otpLengthErrorText`, `legacyErrorText`, `errorText` |
 | Dates and times | `invalidErrorText`, `incompleteErrorText`, `minErrorText`, `maxErrorText`, `pastErrorText`, `futureErrorText`, `clearLabel`, `pickerLabel`, `dayLabel`, `monthLabel`, `yearLabel`, `hourLabel`, `minuteLabel`, `periodLabel`, `monthNames` |
-| Credit card | `numberLabel`, `expiryLabel`, `cvvLabel`, the hint and error texts, and `numberStatusBuilder` |
+| Credit card | `numberLabel`, `expiryLabel`, `cvvLabel`, `showCvvLabel`, `hideCvvLabel`, the hint and error texts, and `numberStatusBuilder` |
 | Async validation | `unavailableErrorText`, `loadingSemanticsLabel` |
 
-Text that is still fixed in English:
+Every user-facing string now has an override. The English defaults are unchanged.
 
-- The word counter (`3 words`, `3 / 10 words`). Supply `decoration.counterText` to replace it.
-- The `Password strength:` prefix of the strength indicator.
-- The five rule messages used by `SmartValidationMode.selected` on password fields (for example `Include a digit.`).
-- The default contact-picker messages shown in a `SnackBar` when `onContactPickerError` is not set.
-- `Use only the allowed characters.` for `SmartField.username(allowedCharacters:)`.
-- The security-code visibility toggle on the card field, which is announced as `Show password` / `Hide password`.
 - The OTP Paste menu and the wheel-picker buttons use Flutter's `MaterialLocalizations`, so they follow your app's locale.
 

@@ -11,18 +11,31 @@ abstract final class SmartPhoneValidation {
   static final RegExp _legacyExpression = RegExp(legacyExpression);
   static final RegExp _syntaxExpression = RegExp(r'^\+?[0-9 ()-]+$');
 
+  static final RegExp _directionMarks = RegExp(
+    '[\u200e\u200f\u202a-\u202e\u2066-\u2069]',
+  );
+  static final RegExp _spaceLike = RegExp('[\u00a0\u2007\u202f.]');
+
+  static String _normalizeSeparators(String value) {
+    return value
+        .replaceAll(_directionMarks, '')
+        .replaceAll(_spaceLike, ' ')
+        .trim();
+  }
+
   static String? validate(
-    String? value, {
+    String? input, {
     required SmartPhonePolicy policy,
     SmartPhoneCountry? country,
     String message = 'Enter a valid phone number.',
   }) {
-    if (value == null || value.isEmpty) {
+    if (input == null || input.isEmpty) {
       return null;
     }
     if (policy == SmartPhonePolicy.legacy) {
-      return _legacyExpression.hasMatch(value) ? null : message;
+      return _legacyExpression.hasMatch(input) ? null : message;
     }
+    final value = _normalizeSeparators(input);
     if (!_hasValidSyntax(value)) {
       return message;
     }
@@ -47,12 +60,13 @@ abstract final class SmartPhoneValidation {
   }
 
   static SmartPhoneValue parseValue(
-    String value, {
+    String input, {
     SmartPhoneCountry? country,
   }) {
+    final value = _normalizeSeparators(input);
     if (value.isEmpty || !_hasValidSyntax(value)) {
       return SmartPhoneValue(
-        text: value,
+        text: input,
         country: country,
         nationalNumber: null,
         e164: null,
@@ -65,7 +79,7 @@ abstract final class SmartPhoneValidation {
         parsed.isValid() &&
         (country == null || parsed.isoCode.name == country.isoCode);
     return SmartPhoneValue(
-      text: value,
+      text: input,
       country: country,
       nationalNumber: parsed?.nsn,
       e164: valid ? parsed.international : null,
@@ -73,7 +87,8 @@ abstract final class SmartPhoneValidation {
     );
   }
 
-  static String? parsedIsoCode(String value) {
+  static String? parsedIsoCode(String input) {
+    final value = _normalizeSeparators(input);
     if (!_hasValidSyntax(value) || !value.startsWith('+')) {
       return null;
     }

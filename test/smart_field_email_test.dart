@@ -172,7 +172,9 @@ void main() {
 
     const spacedValue = ' Name+Tag@Example.com ';
     await tester.enterText(find.byType(TextFormField), spacedValue);
-    expect(formKey.currentState!.validate(), isFalse);
+    expect(formKey.currentState!.validate(), isTrue);
     expect(controller.text, spacedValue);
+    formKey.currentState!.save();
+    expect(savedValue, 'Name+Tag@Example.com');
   });
 }

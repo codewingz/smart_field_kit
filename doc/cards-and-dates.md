@@ -60,3 +60,13 @@ SmartField.dateTime(mode: SmartTimeMode.picker, restriction: SmartDateRestrictio
 - Values: `onDateChanged`, `onTimeChanged`, `onDateTimeChanged` give `DateTime?`/`TimeOfDay?`. Dates are local calendar dates (midnight), so there are no timezone shifts. `onRawChanged`, `onRawSaved`, and async validators receive ISO text: `yyyy-MM-dd`, `HH:mm`, or `yyyy-MM-ddTHH:mm` without an offset. `SmartDateUtils` provides the same helpers. `onChanged` and `onSaved` carry the displayed text. In dropdown mode an external `controller` holds the same display text as the dropdowns and stays in sync with them. `showClearButton` also works in dropdown mode: the button empties all three parts, the controller, and the form value, and calls `onChanged('')` and `onDateChanged(null)`.
 
 - Limits: date-time values are minute precision and timezone-naive; daylight-saving gaps and overlaps are not adjusted, and the app owns timezone conversion. Cancelling a picker leaves the value unchanged. Programmatic controller changes do not fire typed callbacks.
+
+## Card decoration, labels, and zero numbers
+
+- The `decoration` passed to `SmartField.creditCard` applies in full to the card-number field. The expiry and security-code fields take its borders, padding, fill, and text styles, but not its label, hint, helper, prefix, suffix, or icons.
+- The security-code visibility toggle is labelled `Show security code` / `Hide security code`. Change it with `showCvvLabel` and `hideCvvLabel`.
+- A number made only of zeros is invalid and reports the checksum message. Brand rules and the UnionPay Luhn exemption are unchanged.
+
+## Raw date values when a date is removed
+
+`onRawChanged` is called with an empty string when a date, time, or date-time that was valid is cleared or edited into an incomplete value. It is not called again until the value becomes valid.

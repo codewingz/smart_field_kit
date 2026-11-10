@@ -607,7 +607,7 @@ void main() {
       await tester.enterText(find.byType(TextFormField), '12.5');
       expect(raws, ['1.', '12.5']);
       formKey.currentState!.save();
-      expect(saved, '12.5');
+      expect(saved, '12.50');
     });
 
     testWidgets('mask raw, percentage raw, and plain text raw callbacks', (

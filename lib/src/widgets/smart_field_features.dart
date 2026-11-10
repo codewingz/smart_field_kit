@@ -118,7 +118,10 @@ final class _WordCountFeature extends _FieldFeature {
     }
     final count = SmartTextUtils.countWords(host.currentText);
     final maxWords = host.field._core.maxWords;
-    final text = maxWords != null
+    final builder = host.field._core.wordCountBuilder;
+    final text = builder != null
+        ? builder(count, maxWords)
+        : maxWords != null
         ? '$count / $maxWords words'
         : count == 1
         ? '1 word'
@@ -149,6 +152,7 @@ final class _StrengthFeature extends _FieldFeature {
             criteria: config.criteria,
             labels: config.labels,
             showChecklist: config.showChecklist,
+            title: config.title,
           ),
         ),
       ],
@@ -576,6 +580,11 @@ final class _AsyncFeature extends _FieldFeature {
       isActive: () =>
           host.mounted && (host.isInteractive || host.pickerInteractive),
       onUpdate: _updated,
+      onResultDropped: () {
+        if (host.mounted && !_isOtp) {
+          host.fieldKey.currentState?.validate();
+        }
+      },
       isComposing: () {
         final value =
             (textController ?? _inner)?.value ?? host.currentEditingValue;

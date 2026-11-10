@@ -1,3 +1,5 @@
+import 'package:characters/characters.dart';
+
 enum SmartPasswordStrengthLevel { empty, weak, fair, good, strong }
 
 final class SmartPasswordCriterion {
@@ -6,7 +8,7 @@ final class SmartPasswordCriterion {
   factory SmartPasswordCriterion.minLength(int length, {String? label}) {
     return SmartPasswordCriterion(
       label ?? 'At least $length characters',
-      (value) => value.runes.length >= length,
+      (value) => value.characters.length >= length,
     );
   }
 

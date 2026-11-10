@@ -283,10 +283,6 @@ final class SmartDateTimeConfig {
       case SmartDateTimeKind.dateTime:
         onDateTimeChanged?.call(value as DateTime?);
     }
-    final raw = serialize(text);
-    if (raw != null) {
-      onRawChanged?.call(raw);
-    }
   }
 }
 
@@ -351,6 +347,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     _engine?.observe('');
     widget.source.onChanged?.call('');
     _config.onDateChanged?.call(null);
+    _emitRaw(null);
   }
 
   int? _day;
@@ -375,6 +372,10 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     _scheduleInitialSeed();
     _loadPartsFromController();
     _resetBaseline = _composeDate();
+    final initialText = _controller.text.isEmpty
+        ? _initialText()
+        : _controller.text;
+    _lastRaw = _config.serialize(initialText);
   }
 
   void _scheduleInitialSeed() {
@@ -483,6 +484,11 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       syncError: (_) => _syncPartsError(),
       isActive: () => mounted && _enabled && !widget.source.readOnly,
       onUpdate: _asyncUpdated,
+      onResultDropped: () {
+        if (mounted) {
+          _dropdownKey.currentState?.validate();
+        }
+      },
     );
     engine.configure(config);
   }
@@ -614,6 +620,19 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   void _onTextChanged(String text) {
     widget.source.onChanged?.call(text);
     _config.notifyTyped(text);
+    _emitRaw(_config.serialize(text));
+  }
+
+  String? _lastRaw;
+
+  void _emitRaw(String? raw) {
+    if (raw != null) {
+      _lastRaw = raw;
+      _config.onRawChanged?.call(raw);
+    } else if (_lastRaw != null && _lastRaw!.isNotEmpty) {
+      _lastRaw = '';
+      _config.onRawChanged?.call('');
+    }
   }
 
   void _applyText(String text) {
@@ -637,6 +656,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       case SmartDateTimeKind.dateTime:
         _config.onDateTimeChanged?.call(null);
     }
+    _emitRaw(null);
   }
 
   DateTime _clampDate(DateTime value, DateTime first, DateTime last) {
@@ -1019,9 +1039,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     _engine?.observe(text);
     widget.source.onChanged?.call(text);
     _config.onDateChanged?.call(value);
-    if (value != null) {
-      _config.onRawChanged?.call(SmartDateUtils.toIsoDate(value));
-    }
+    _emitRaw(value == null ? null : SmartDateUtils.toIsoDate(value));
   }
 
   Widget _buildDropdowns(BuildContext context) {

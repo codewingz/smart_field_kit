@@ -65,7 +65,7 @@ void main() {
     await tester.pump();
     expect(values.last.cvv, '123');
     expect(formKey.currentState!.validate(), isTrue);
-    await tester.tap(find.byTooltip('Show password'));
+    await tester.tap(find.byTooltip('Show security code'));
     await tester.pump();
     expect(_field(tester, 2).obscureText, isFalse);
   });

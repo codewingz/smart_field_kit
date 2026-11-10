@@ -290,10 +290,10 @@ abstract final class SmartValidators {
     }
 
     return (value) {
-      if (_isBlank(value)) {
+      if (value == null || value.isEmpty) {
         return null;
       }
-      final checkedValue = normalizer?.call(value!) ?? value!;
+      final checkedValue = normalizer?.call(value) ?? value;
       if (checkedValue.characters.length > length) {
         return message ?? 'Enter no more than $length characters.';
       }
@@ -310,8 +310,9 @@ abstract final class SmartValidators {
         return null;
       }
 
+      final trimmed = value.trim();
       final isValid = switch (policy) {
-        SmartEmailPolicy.standard => _isStandardEmail(value),
+        SmartEmailPolicy.standard => _isStandardEmail(trimmed),
         SmartEmailPolicy.legacy => _legacyEmailExpression.hasMatch(value),
       };
       return isValid ? null : message;
