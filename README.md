@@ -275,7 +275,7 @@ For publishing preparation, **dry run only** until the project owner authorizes 
 flutter pub publish --dry-run
 ```
 
-Add `flutter test --platform chrome` to run the suite in a browser, and `flutter test integration_test -d <device>` inside `example/` to run the real-engine tests on a simulator, emulator, or desktop.
+Add `flutter test --platform chrome` to run the suite in a browser, and `flutter test integration_test/all_test.dart -d <device>` inside `example/` to run the real-engine tests on a simulator, emulator, or desktop. Pass that single file on desktop; see [Platform notes](doc/platform-notes.md#running-the-integration-tests).
 
 ### Project organization
 
@@ -329,7 +329,7 @@ No. It provides input controls and local checks, not message retrieval, identity
 
 ## Contributing
 
-Contributions, bug reports and reproducible test cases are welcome once the repository is made public.
+Contributions, bug reports and reproducible test cases are welcome through the GitHub repository.
 
 A good contribution should:
 
