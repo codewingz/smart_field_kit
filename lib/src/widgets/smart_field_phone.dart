@@ -152,14 +152,22 @@ final class _PhoneFeature extends _FieldFeature {
           padding:
               config.countryPadding ??
               const EdgeInsetsDirectional.symmetric(horizontal: 12),
-          child: ExcludeSemantics(child: content),
+          child: ExcludeSemantics(
+            child: SmartScaleToFit(maxWidthFactor: 0.5, child: content),
+          ),
         ),
       ),
     );
     if (existing == null) {
       return picker;
     }
-    return Row(mainAxisSize: MainAxisSize.min, children: [existing, picker]);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        existing,
+        Flexible(child: picker),
+      ],
+    );
   }
 
   void _showCountryPicker() {

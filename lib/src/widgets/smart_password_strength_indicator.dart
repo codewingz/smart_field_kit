@@ -34,27 +34,42 @@ class SmartPasswordStrengthIndicator extends StatelessWidget {
     final text = result.level == SmartPasswordStrengthLevel.empty
         ? names[result.level]!
         : '$title: ${names[result.level]}';
-    return Semantics(
-      label: text,
-      liveRegion: true,
-      excludeSemantics: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: result.score,
-              minHeight: 4,
-              color: color,
-              backgroundColor: scheme.surfaceContainerHighest,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          container: true,
+          label: text,
+          liveRegion: true,
+          excludeSemantics: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: result.score,
+                  minHeight: 4,
+                  color: color,
+                  backgroundColor: scheme.surfaceContainerHighest,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                text,
+                style: theme.textTheme.bodySmall?.copyWith(color: color),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(text, style: theme.textTheme.bodySmall?.copyWith(color: color)),
-          if (showChecklist)
-            for (final rule in [...result.met, ...result.unmet])
-              Row(
+        ),
+        if (showChecklist)
+          for (final rule in [...result.met, ...result.unmet])
+            Semantics(
+              container: true,
+              label: rule.label,
+              checked: result.met.contains(rule),
+              excludeSemantics: true,
+              child: Row(
                 children: [
                   Icon(
                     result.met.contains(rule)
@@ -71,8 +86,8 @@ class SmartPasswordStrengthIndicator extends StatelessWidget {
                   ),
                 ],
               ),
-        ],
-      ),
+            ),
+      ],
     );
   }
 }

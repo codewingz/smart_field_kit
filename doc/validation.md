@@ -197,7 +197,7 @@ SmartField.password(
 )
 ```
 
-The indicator is optional, informational feedback (weak, fair, good, strong from the share of criteria met) with a polite live-region label such as `Password strength: Good`. It is separate from `policy`, `validationMode`, and validation; a password can be "strong" yet rejected by your policy and the reverse. Strength is computed locally from the field text on each change; nothing is logged, stored, or sent. `SmartPasswordStrength.evaluate()` runs without a widget.
+The indicator is optional, informational feedback (weak, fair, good, strong from the share of criteria met) with a polite live-region label such as `Password strength: Good`. With `showStrengthChecklist: true`, each rule is also exposed to screen readers as its own item, labelled with the rule's text and carrying a checked or not-checked state that follows the tick shown on screen; the platform reads that state in the user's language. A change of level is announced; a rule that changes without changing the level is not announced on its own and is read when the user moves to it. The password text is never part of these labels. It is separate from `policy`, `validationMode`, and validation; a password can be "strong" yet rejected by your policy and the reverse. Strength is computed locally from the field text on each change; nothing is logged, stored, or sent. `SmartPasswordStrength.evaluate()` runs without a widget.
 
 ## Changes to an async validator
 

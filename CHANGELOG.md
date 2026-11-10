@@ -52,6 +52,9 @@
 
 ### Fixed
 
+* Expose each password-strength checklist rule to screen readers with a checked or not-checked state.
+* Fix layout overflow in the phone field's country prefix at large text sizes and in date dropdowns on very narrow widths.
+* Wheel date picker: roll back to the nearest allowed date and disable confirmation when the wheels stop outside `minDate`, `maxDate`, or `restriction`.
 * Keep the selected phone country, a revealed password, pending searches, and other per-feature state when an unrelated feature such as `mask`, `serverError`, or `asyncValidation` is added or removed.
 * Stop amount display formatting on load, focus, and focus loss from calling `Form.onChanged` or triggering `AutovalidateMode.onUserInteraction`.
 * Remove text that a number, amount, username, mask, card, or OTP input rule rejects when a composing keyboard commits it, by returning to the text held before the composition.
