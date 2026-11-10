@@ -15,7 +15,7 @@ SmartField.amount(label: 'Amount', decimalLength: 2, useGrouping: true);
 SmartField.otp(length: 6, onCompleted: (value) {});
 ```
 
-> **Release status:** Version 0.0.1 is unreleased; the package has not been published to pub.dev. Requires Flutter 3.44.0 or later and Dart 3.12.0 or later. Tested platforms and known limits are listed in [Platform notes](docs/platform-notes.md).
+> **Release status:** Version 0.0.1 is unreleased; the package has not been published to pub.dev. Requires Flutter 3.44.0 or later and Dart 3.12.0 or later. Tested platforms and known limits are listed in [Platform notes](doc/platform-notes.md).
 
 **Why this package?** Use a single, familiar set of input widgets while keeping Flutter's `Form`, `TextEditingController`, `FocusNode`, `InputDecoration`, keyboard, theme, and validation conventions. Ordinary text stays unrestricted by default; special rules are opt-in or specific to a selected field type.
 
@@ -228,14 +228,14 @@ Explore the full, exact behavior of each constructor below. Examples show suppor
 
 | Page | What it covers |
 |---|---|
-| [Fields](docs/fields.md) | Plain, text, description, name, username, email, password, number, URL, search and OTP fields; options shared by every constructor |
-| [Validation](docs/validation.md) | Form validation, the four validation modes, legacy presets, confirm password, asynchronous validation and safe submission, server errors, standalone validators, password strength |
-| [Formatting and masks](docs/formatting-and-masks.md) | Amounts, currencies, percentages, raw and displayed values, decimal precision and rounding, input masks, privacy masking, word limits, state restoration |
-| [Phone numbers](docs/phone.md) | Phone policies, country selection, E.164 values, contact picker |
-| [Cards and dates](docs/cards-and-dates.md) | Credit-card fields, date, time and date-time modes |
-| [Customization and localization](docs/customization-and-localization.md) | Theme and fallback design, right-to-left layouts, accessible actions, label overrides |
-| [Security and privacy](docs/security-and-privacy.md) | What client-side validation does and does not protect, sensitive values |
-| [Platform notes](docs/platform-notes.md) | Supported Flutter and Dart versions, tested platforms, known limitations, troubleshooting |
+| [Fields](doc/fields.md) | Plain, text, description, name, username, email, password, number, URL, search and OTP fields; options shared by every constructor |
+| [Validation](doc/validation.md) | Form validation, the four validation modes, legacy presets, confirm password, asynchronous validation and safe submission, server errors, standalone validators, password strength |
+| [Formatting and masks](doc/formatting-and-masks.md) | Amounts, currencies, percentages, raw and displayed values, decimal precision and rounding, input masks, privacy masking, word limits, state restoration |
+| [Phone numbers](doc/phone.md) | Phone policies, country selection, E.164 values, contact picker |
+| [Cards and dates](doc/cards-and-dates.md) | Credit-card fields, date, time and date-time modes |
+| [Customization and localization](doc/customization-and-localization.md) | Theme and fallback design, right-to-left layouts, accessible actions, label overrides |
+| [Security and privacy](doc/security-and-privacy.md) | What client-side validation does and does not protect, sensitive values |
+| [Platform notes](doc/platform-notes.md) | Supported Flutter and Dart versions, tested platforms, known limitations, troubleshooting |
 
 ## Example application and development
 
