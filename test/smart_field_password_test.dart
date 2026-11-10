@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
@@ -136,43 +137,48 @@ void main() {
     expect(customCalls, 2);
   });
 
-  testWidgets('preserves text selection controller and focus when toggled', (
-    tester,
-  ) async {
-    final controller = TextEditingController(text: 'Abcdef1!');
-    final focusNode = FocusNode();
-    addTearDown(controller.dispose);
-    addTearDown(focusNode.dispose);
+  testWidgets(
+    'preserves text selection controller and focus when toggled',
+    skip: kIsWeb,
+    (tester) async {
+      final controller = TextEditingController(text: 'Abcdef1!');
+      final focusNode = FocusNode();
+      addTearDown(controller.dispose);
+      addTearDown(focusNode.dispose);
 
-    await tester.pumpWidget(
-      _app(SmartField.password(controller: controller, focusNode: focusNode)),
-    );
+      await tester.pumpWidget(
+        _app(SmartField.password(controller: controller, focusNode: focusNode)),
+      );
 
-    focusNode.requestFocus();
-    controller.selection = const TextSelection(baseOffset: 2, extentOffset: 6);
-    await tester.pump();
+      focusNode.requestFocus();
+      controller.selection = const TextSelection(
+        baseOffset: 2,
+        extentOffset: 6,
+      );
+      await tester.pump();
 
-    await tester.tap(find.byTooltip('Show password'));
-    await tester.pump();
+      await tester.tap(find.byTooltip('Show password'));
+      await tester.pump();
 
-    expect(controller.text, 'Abcdef1!');
-    expect(
-      controller.selection,
-      const TextSelection(baseOffset: 2, extentOffset: 6),
-    );
-    expect(focusNode.hasFocus, isTrue);
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).obscureText,
-      isFalse,
-    );
+      expect(controller.text, 'Abcdef1!');
+      expect(
+        controller.selection,
+        const TextSelection(baseOffset: 2, extentOffset: 6),
+      );
+      expect(focusNode.hasFocus, isTrue);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).obscureText,
+        isFalse,
+      );
 
-    await tester.tap(find.byTooltip('Hide password'));
-    await tester.pump();
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).obscureText,
-      isTrue,
-    );
-  });
+      await tester.tap(find.byTooltip('Hide password'));
+      await tester.pump();
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).obscureText,
+        isTrue,
+      );
+    },
+  );
 
   testWidgets('visibility control is accessible and can be disabled', (
     tester,

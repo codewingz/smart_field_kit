@@ -7,6 +7,10 @@ on:
       - main
       - 'feature/**'
       - 'refactor/**'
+      - 'fix/**'
+      - 'test/**'
+      - 'docs/**'
+      - 'verify/**'
 
 permissions:
   contents: read
@@ -60,3 +64,41 @@ jobs:
         run: flutter test
       - name: Build web
         run: flutter build web
+
+  web:
+    name: Chrome tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.8
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Test on Chrome
+        run: flutter test --platform chrome
+
+  desktop:
+    name: ${{ matrix.os }} tests
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.8
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: flutter test

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
@@ -306,14 +307,20 @@ void main() {
     expect(printed.where((line) => line.contains('482915')), isEmpty);
   });
 
-  test('O13 the package does not read SMS or WhatsApp', () {
-    final manifest = File('example/android/app/src/main/AndroidManifest.xml')
-        .readAsStringSync();
-    expect(manifest, isNot(contains('READ_SMS')));
-    expect(manifest, isNot(contains('RECEIVE_SMS')));
-    final pubspec = File('pubspec.yaml').readAsStringSync();
-    expect(pubspec, isNot(contains('sms_autofill')));
-    expect(pubspec, isNot(contains('telephony')));
-    expect(pubspec, isNot(contains('permission_handler')));
-  });
+  test(
+    'O13 the package does not read SMS or WhatsApp',
+    skip: kIsWeb
+        ? 'Reads project files through dart:io, which is unavailable in a browser.'
+        : null,
+    () {
+      final manifest = File('example/android/app/src/main/AndroidManifest.xml')
+          .readAsStringSync();
+      expect(manifest, isNot(contains('READ_SMS')));
+      expect(manifest, isNot(contains('RECEIVE_SMS')));
+      final pubspec = File('pubspec.yaml').readAsStringSync();
+      expect(pubspec, isNot(contains('sms_autofill')));
+      expect(pubspec, isNot(contains('telephony')));
+      expect(pubspec, isNot(contains('permission_handler')));
+    },
+  );
 }

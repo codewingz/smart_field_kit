@@ -337,32 +337,34 @@ void main() {
     expect(find.text('+92'), findsOneWidget);
   });
 
-  testWidgets('masked contact selection preserves international raw value', (
-    tester,
-  ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    final controller = TextEditingController();
-    addTearDown(controller.dispose);
+  testWidgets(
+    'masked contact selection preserves international raw value',
+    skip: kIsWeb,
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final controller = TextEditingController();
+      addTearDown(controller.dispose);
 
-    await tester.pumpWidget(
-      _app(
-        SmartField.phone(
-          controller: controller,
-          mask: true,
-          showCountryPicker: true,
-          showContactPicker: true,
-          contactPicker: () async => '+923001234567',
+      await tester.pumpWidget(
+        _app(
+          SmartField.phone(
+            controller: controller,
+            mask: true,
+            showCountryPicker: true,
+            showContactPicker: true,
+            contactPicker: () async => '+923001234567',
+          ),
         ),
-      ),
-    );
+      );
 
-    await tester.tap(find.byTooltip('Select phone number from contacts'));
-    await tester.pumpAndSettle();
-    expect(controller.text, '+923001234567');
-    expect(_textField(tester).decoration?.prefixText, '+********4567');
-    expect(find.text('+92'), findsOneWidget);
-    debugDefaultTargetPlatformOverride = null;
-  });
+      await tester.tap(find.byTooltip('Select phone number from contacts'));
+      await tester.pumpAndSettle();
+      expect(controller.text, '+923001234567');
+      expect(_textField(tester).decoration?.prefixText, '+********4567');
+      expect(find.text('+92'), findsOneWidget);
+      debugDefaultTargetPlatformOverride = null;
+    },
+  );
 
   testWidgets('masked amount preserves display raw callbacks and precision', (
     tester,

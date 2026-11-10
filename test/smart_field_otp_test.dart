@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
@@ -122,34 +123,40 @@ void main() {
     },
   );
 
-  testWidgets('supports selection and middle replacement without forcing end', (
-    tester,
-  ) async {
-    final controller = TextEditingController(text: '1234');
-    final focusNode = FocusNode();
-    addTearDown(controller.dispose);
-    addTearDown(focusNode.dispose);
-    await tester.pumpWidget(
-      _app(
-        SmartField.otp(length: 4, controller: controller, focusNode: focusNode),
-      ),
-    );
+  testWidgets(
+    'supports selection and middle replacement without forcing end',
+    skip: kIsWeb,
+    (tester) async {
+      final controller = TextEditingController(text: '1234');
+      final focusNode = FocusNode();
+      addTearDown(controller.dispose);
+      addTearDown(focusNode.dispose);
+      await tester.pumpWidget(
+        _app(
+          SmartField.otp(
+            length: 4,
+            controller: controller,
+            focusNode: focusNode,
+          ),
+        ),
+      );
 
-    await tester.tap(find.byType(AnimatedContainer).at(1));
-    await tester.pump();
-    expect(focusNode.hasFocus, isTrue);
-    expect(controller.selection, const TextSelection.collapsed(offset: 1));
+      await tester.tap(find.byType(AnimatedContainer).at(1));
+      await tester.pump();
+      expect(focusNode.hasFocus, isTrue);
+      expect(controller.selection, const TextSelection.collapsed(offset: 1));
 
-    tester.testTextInput.updateEditingValue(
-      const TextEditingValue(
-        text: '1934',
-        selection: TextSelection.collapsed(offset: 2),
-      ),
-    );
-    await tester.pump();
-    expect(controller.text, '1934');
-    expect(controller.selection, const TextSelection.collapsed(offset: 2));
-  });
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: '1934',
+          selection: TextSelection.collapsed(offset: 2),
+        ),
+      );
+      await tester.pump();
+      expect(controller.text, '1934');
+      expect(controller.selection, const TextSelection.collapsed(offset: 2));
+    },
+  );
 
   testWidgets('keeps programmatic callbacks silent by default and can notify', (
     tester,
@@ -284,32 +291,34 @@ void main() {
     expect(find.text('Incorrect verification code'), findsNothing);
   });
 
-  testWidgets('obscures only the visual value and preserves state', (
-    tester,
-  ) async {
-    final controller = TextEditingController(text: '123456')
-      ..selection = const TextSelection.collapsed(offset: 3);
-    final focusNode = FocusNode();
-    addTearDown(controller.dispose);
-    addTearDown(focusNode.dispose);
-    await tester.pumpWidget(
-      _app(
-        SmartField.otp(
-          controller: controller,
-          focusNode: focusNode,
-          obscureText: true,
+  testWidgets(
+    'obscures only the visual value and preserves state',
+    skip: kIsWeb,
+    (tester) async {
+      final controller = TextEditingController(text: '123456')
+        ..selection = const TextSelection.collapsed(offset: 3);
+      final focusNode = FocusNode();
+      addTearDown(controller.dispose);
+      addTearDown(focusNode.dispose);
+      await tester.pumpWidget(
+        _app(
+          SmartField.otp(
+            controller: controller,
+            focusNode: focusNode,
+            obscureText: true,
+          ),
         ),
-      ),
-    );
+      );
 
-    focusNode.requestFocus();
-    await tester.pump();
-    expect(find.text('•'), findsNWidgets(6));
-    expect(find.text('1'), findsNothing);
-    expect(controller.text, '123456');
-    expect(controller.selection, const TextSelection.collapsed(offset: 3));
-    expect(focusNode.hasFocus, isTrue);
-  });
+      focusNode.requestFocus();
+      await tester.pump();
+      expect(find.text('•'), findsNWidgets(6));
+      expect(find.text('1'), findsNothing);
+      expect(controller.text, '123456');
+      expect(controller.selection, const TextSelection.collapsed(offset: 3));
+      expect(focusNode.hasFocus, isTrue);
+    },
+  );
 
   testWidgets('supports enabled and read-only states', (tester) async {
     await tester.pumpWidget(_app(SmartField.otp(enabled: false)));
@@ -378,6 +387,7 @@ void main() {
 
   testWidgets(
     'changes visibility at runtime without changing completion state',
+    skip: kIsWeb,
     (tester) async {
       final controller = TextEditingController(text: '123456')
         ..selection = const TextSelection.collapsed(offset: 2);

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -1125,30 +1126,34 @@ void main() {
       expect(overrides.created, 0);
     });
 
-    test('source contains no network, logging, or storage code for cards', () {
-      for (final path in [
-        'lib/src/widgets/smart_credit_card_field.dart',
-        'lib/src/formatting/smart_card_utils.dart',
-      ]) {
-        final source = File(path).readAsStringSync();
-        for (final banned in [
-          'dart:io',
-          'package:http',
-          'HttpClient',
-          'print(',
-          'debugPrint',
-          'developer.log',
-          'SharedPreferences',
-          'restorationId',
+    test(
+      'source contains no network, logging, or storage code for cards',
+      skip: kIsWeb,
+      () {
+        for (final path in [
+          'lib/src/widgets/smart_credit_card_field.dart',
+          'lib/src/formatting/smart_card_utils.dart',
         ]) {
-          expect(
-            source.contains(banned),
-            isFalse,
-            reason: '$path contains $banned',
-          );
+          final source = File(path).readAsStringSync();
+          for (final banned in [
+            'dart:io',
+            'package:http',
+            'HttpClient',
+            'print(',
+            'debugPrint',
+            'developer.log',
+            'SharedPreferences',
+            'restorationId',
+          ]) {
+            expect(
+              source.contains(banned),
+              isFalse,
+              reason: '$path contains $banned',
+            );
+          }
         }
-      }
-    });
+      },
+    );
   });
 }
 
