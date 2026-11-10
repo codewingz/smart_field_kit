@@ -1465,22 +1465,43 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
     return key;
   }
 
-  List<_FieldFeature> _createFeatures() {
+  List<_FieldFeature> _createFeatures([
+    List<_FieldFeature> existing = const [],
+  ]) {
     final source = widget;
+    T keep<T extends _FieldFeature>(T Function() create) {
+      for (final feature in existing) {
+        if (feature is T) {
+          return feature;
+        }
+      }
+      return create();
+    }
+
     return [
-      if (source._percentageSuffix != null) _PercentageFeature(this),
-      if (source._maskConfig?.enabled ?? false) _MaskFeature(this),
+      if (source._percentageSuffix != null)
+        keep<_PercentageFeature>(() => _PercentageFeature(this)),
+      if (source._maskConfig?.enabled ?? false)
+        keep<_MaskFeature>(() => _MaskFeature(this)),
       if (source._asyncActive)
-        _AsyncFeature(this, observeExisting: _initialized),
-      if (source._isPassword) _PasswordFeature(this),
-      if (source._isPhone) _PhoneFeature(this),
-      if (source._isSearch) _SearchFeature(this),
-      if (source._isAmount) _AmountFeature(this),
-      if (source._core.showWordCount) _WordCountFeature(this),
-      if (source._core.strength != null) _StrengthFeature(this),
-      if (source._core.matchController != null) _MatchFeature(this),
+        keep<_AsyncFeature>(
+          () => _AsyncFeature(this, observeExisting: _initialized),
+        ),
+      if (source._isPassword)
+        keep<_PasswordFeature>(() => _PasswordFeature(this)),
+      if (source._isPhone) keep<_PhoneFeature>(() => _PhoneFeature(this)),
+      if (source._isSearch) keep<_SearchFeature>(() => _SearchFeature(this)),
+      if (source._isAmount) keep<_AmountFeature>(() => _AmountFeature(this)),
+      if (source._core.showWordCount)
+        keep<_WordCountFeature>(() => _WordCountFeature(this)),
+      if (source._core.strength != null)
+        keep<_StrengthFeature>(() => _StrengthFeature(this)),
+      if (source._core.matchController != null)
+        keep<_MatchFeature>(() => _MatchFeature(this)),
       if (source.serverError != null)
-        _RebuildFeature(this, () => widget.serverError),
+        keep<_RebuildFeature>(
+          () => _RebuildFeature(this, () => widget.serverError),
+        ),
     ];
   }
 
@@ -1637,14 +1658,15 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
         }
       });
     }
+    final previous = _features;
     if (_featureKey(oldWidget) != _featureKey(widget)) {
-      for (final feature in _features) {
-        feature.retire();
-      }
-      _features = _createFeatures();
-    } else {
-      for (final feature in _features) {
+      _features = _createFeatures(previous);
+    }
+    for (final feature in previous) {
+      if (_features.contains(feature)) {
         feature.didUpdate(oldWidget);
+      } else {
+        feature.retire();
       }
     }
     _bindFeatures();

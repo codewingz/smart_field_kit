@@ -588,15 +588,15 @@ final class SmartCardNumberFormatter extends TextInputFormatter {
       return newValue;
     }
     if (RegExp(r'[^0-9 \-]').hasMatch(newValue.text)) {
-      return oldValue;
+      return smartBeforeComposition(oldValue);
     }
     final digits = SmartCardUtils.digitsOnly(newValue.text);
     if (digits.length > SmartCardUtils.maxCardDigits) {
-      return oldValue;
+      return smartBeforeComposition(oldValue);
     }
     final brand = SmartCardUtils.detectBrand(digits);
     if (digits.length > brand.maxLength) {
-      return oldValue;
+      return smartBeforeComposition(oldValue);
     }
     int digitsBefore(int offset) {
       final clamped = offset.clamp(0, newValue.text.length);

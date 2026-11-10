@@ -14,6 +14,7 @@ Most field controls use Flutter's Material widgets. Some features depend on mobi
 | Android | The same integration tests pass on an Android API 36 emulator. The merged example manifest declares no contacts permission. The native contact picker, third-party keyboards, SMS code autofill, and TalkBack were not exercised |
 | macOS | The example builds and the integration tests pass on macOS desktop. The contact button is not shown on desktop |
 | Windows and Linux | Not tested locally. CI is configured to run the package tests on Windows; no hosted run has been verified yet |
+| Keyboards that compose text (IME) | Text is not changed while the keyboard is still composing. When the composed text is committed and the field's input rule rejects it, the field returns to the text it held before that composition, with the caret where the composition began. This is covered by simulated composition tests; hardware and third-party keyboards were not tested |
 | Contact picker | Depends on the native system picker and requires available platform behavior |
 | OTP autofill | Keyboard/platform hints may assist autofill; this package does not itself read SMS or WhatsApp |
 | Date-time | Local/timezone-naive date-time at minute precision; the consuming app owns timezone conversion and DST policy |

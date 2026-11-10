@@ -7,12 +7,13 @@ final class SmartAmountDisplay {
   void handleFocus(
     SmartAmountFormatter formatter,
     TextEditingController? controller,
-    FocusNode? focusNode,
-  ) {
+    FocusNode? focusNode, {
+    ValueChanged<String>? beforeWrite,
+  }) {
     if (focusNode?.hasFocus ?? false) {
-      _apply(controller, formatter.toEditableValue);
+      _apply(controller, formatter.toEditableValue, beforeWrite);
     } else {
-      _apply(controller, formatter.toDisplayValue);
+      _apply(controller, formatter.toDisplayValue, beforeWrite);
     }
   }
 
@@ -29,15 +30,17 @@ final class SmartAmountDisplay {
 
   void showDisplay(
     SmartAmountFormatter formatter,
-    TextEditingController? controller,
-  ) {
-    _apply(controller, formatter.toDisplayValue);
+    TextEditingController? controller, {
+    ValueChanged<String>? beforeWrite,
+  }) {
+    _apply(controller, formatter.toDisplayValue, beforeWrite);
   }
 
   void _apply(
     TextEditingController? controller,
-    TextEditingValue Function(TextEditingValue value) convert,
-  ) {
+    TextEditingValue Function(TextEditingValue value) convert, [
+    ValueChanged<String>? beforeWrite,
+  ]) {
     if (controller == null) {
       return;
     }
@@ -47,6 +50,7 @@ final class SmartAmountDisplay {
     }
     _updating = true;
     try {
+      beforeWrite?.call(value.text);
       controller.value = value;
     } finally {
       _updating = false;

@@ -112,7 +112,7 @@ final class SmartUsernameFormatter extends TextInputFormatter {
     TextEditingValue newValue,
   ) {
     if (!smartIsComposing(newValue) && !allows(newValue.text)) {
-      return oldValue;
+      return smartBeforeComposition(oldValue);
     }
     return _transform(
       newValue,
