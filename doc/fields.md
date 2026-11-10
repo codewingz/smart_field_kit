@@ -328,7 +328,7 @@ SmartField.search(
 )
 ```
 
-`onChanged` receives user edits immediately. `onSearch` is an optional debounce event: when it is provided, its default quiet period is 300 milliseconds. Set `debounceDuration: Duration.zero` for an immediate event. Blank and whitespace-only queries do not emit `onSearch`, but their original text remains unchanged and is delivered to `onChanged`. Focus loss does not cancel a pending debounce; clear, submit, disposal, disabled updates, callback changes, controller replacement, and Form reset do.
+`onChanged` receives user edits immediately. `onSearch` is an optional debounce event: when it is provided, its default quiet period is 300 milliseconds. Set `debounceDuration: Duration.zero` for an immediate event. Blank and whitespace-only queries do not emit `onSearch`, but their original text remains unchanged and is delivered to `onChanged`. Focus loss, caret movement, and parent rebuilds do not cancel a pending debounce, so `onSearch` may be written inline in `build`; when the quiet period ends, the `onSearch` from the latest build is called once with the current text. A text change restarts the wait. Clear, submit, disposal, disabled or read-only updates, a changed `debounceDuration`, controller replacement, removing `onSearch`, and Form reset cancel it.
 
 ```dart
 SmartField.search(

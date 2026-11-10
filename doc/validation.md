@@ -146,9 +146,9 @@ Status values: `idle`, `pending`, `valid`, `invalid`, `unavailable`.
 
 - The checker receives the raw value: the typed text, the normalized number for `.amount()` and `.percentage()` (no grouping, currency symbol, or `%`), and the unmasked text for masked fields. Phone fields pass the entered text.
 
-- Any edit, clear, reset, controller replacement, or disabling discards the previous result and ignores late completions. Replacing the `validator` function restarts a check that is still pending; a result that has already completed is kept until the value changes or you call `validateAsync(force: true)`, so keep the validator function stable and re-run it yourself when the rule changes. `validateAsync()` returns `false` if the value changed while it ran.
+- Any edit, clear, reset, controller replacement, or disabling discards the previous result and ignores late completions. A parent rebuild never discards a result or restarts a check, whether the `validator` is written inline or kept in a variable: a pending check finishes with the function it started with, and a completed result is kept until the value changes or you call `validateAsync(force: true)`. `validateAsync()` returns `false` if the value changed while it ran.
 
-- A thrown error or timeout gives `unavailable` and the unavailable message; it never counts as valid. Calling `validateAsync()` again retries. A rejected value is cached until it changes; use `force: true` to ask again.
+- A thrown error or timeout gives `unavailable` and the unavailable message; it never counts as valid. Calling `validateAsync()` again retries. An accepted or rejected value is cached until it changes; use `force: true` to ask again.
 
 - `FormState.validate()` stays synchronous. It fails for a rejected or unavailable result of the current value and does not wait for a pending check, so await `validateAsync()` before submitting.
 
@@ -201,9 +201,25 @@ The indicator is optional, informational feedback (weak, fair, good, strong from
 
 ## Changes to an async validator
 
-When the `validator` function of a field is replaced by a different function, a completed result from the old function is discarded at once: the status returns to `idle` and its error is removed. No request is made by that replacement alone; the new function runs on the next trigger (a value change, focus loss, or `validateAsync()`). A check that is still pending is restarted with the new function for the `onChanged` trigger.
+The `validator` may be written inline in `build`. The package does not compare validator functions, so a rebuild with a new closure keeps the current result and makes no request. One typed value produces one call.
 
-A closure written inline in `build` is a new function on every rebuild, so its completed result is discarded on every rebuild. Keep the validator in a field, a `final` variable, or a top-level function.
+```dart
+SmartField.username(
+  asyncValidation: SmartAsyncValidation(
+    controller: usernameAsync,
+    validator: (value) => api.isUsernameFree(value, tenant: tenant),
+  ),
+)
+```
+
+The package cannot tell that your rule changed (for example `tenant` above). When it does, ask again yourself:
+
+```dart
+setState(() => tenant = next);
+await usernameAsync.validateAsync(force: true);
+```
+
+`validateAsync(force: true)` always makes one new request for the current value with the validator from the latest build. It replaces a completed result and a check that is still pending; the reply of the replaced check is ignored and its `validateAsync()` future completes with `false`. Until you call it, the previous result stays in place. If you pass a different validator function instead of changing what one function reads, call `validateAsync(force: true)` after the rebuild that supplies it, for example in `WidgetsBinding.instance.addPostFrameCallback`. With the `manual` and `onUnfocus` triggers a plain `validateAsync()` returns the cached result for an unchanged value, so use `force: true` there as well.
 
 ## Length rules and whitespace
 

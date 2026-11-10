@@ -39,7 +39,8 @@
 * Credit card: UnionPay is now exempt from the Luhn checksum by default because its numbers are not required to pass it; pass `luhnExemptBrands: const {}` to enforce Luhn, and every other brand still requires it. Strength indicator is skipped while a mask is shown, as before the feature refactor.
 * Group the card number, expiry, and security-code fields for platform autofill.
 * Lower the Dart SDK constraint to `^3.12.0` after verifying analysis, tests, and the example build on Flutter 3.44.0.
-* Discard a completed asynchronous result when the validator function is replaced, without making a request.
+* Asynchronous validation no longer compares validator functions: a parent rebuild keeps the pending check and the completed result, and `validateAsync(force: true)` applies a changed rule with one new request, also while a check is pending.
+* Search: a parent rebuild no longer cancels a pending debounced `onSearch`; the callback from the latest build is called.
 * Call date `onRawChanged` with an empty string when a valid value is cleared or becomes invalid.
 * Return the same normalised text from amount `onRawSaved` whether or not the field has focus.
 * Apply `maxLength` to whitespace-only text and count grapheme clusters in `SmartPasswordCriterion.minLength`.

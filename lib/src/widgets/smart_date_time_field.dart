@@ -484,11 +484,6 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       syncError: (_) => _syncPartsError(),
       isActive: () => mounted && _interactive,
       onUpdate: _asyncUpdated,
-      onResultDropped: () {
-        if (mounted) {
-          _dropdownKey.currentState?.validate();
-        }
-      },
     );
     engine.configure(config);
   }

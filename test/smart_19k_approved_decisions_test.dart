@@ -9,49 +9,58 @@ Widget _app(Widget child) => MaterialApp(
 
 void main() {
   group('19K async result after a validator change', () {
-    testWidgets('a completed result is dropped and no request is made', (
-      tester,
-    ) async {
-      final controller = SmartFieldAsyncController();
-      final text = TextEditingController(text: 'alice');
-      addTearDown(controller.dispose);
-      addTearDown(text.dispose);
-      var oldCalls = 0;
-      var newCalls = 0;
-      Future<String?> oldRule(String value) async {
-        oldCalls++;
-        return 'Old rule';
-      }
+    testWidgets(
+      'a completed result is kept until a forced check applies the rule',
+      (tester) async {
+        final controller = SmartFieldAsyncController();
+        final text = TextEditingController(text: 'alice');
+        addTearDown(controller.dispose);
+        addTearDown(text.dispose);
+        var oldCalls = 0;
+        var newCalls = 0;
+        Future<String?> oldRule(String value) async {
+          oldCalls++;
+          return 'Old rule';
+        }
 
-      Future<String?> newRule(String value) async {
-        newCalls++;
-        return null;
-      }
+        Future<String?> newRule(String value) async {
+          newCalls++;
+          return null;
+        }
 
-      Widget build(SmartAsyncValidator validator) => _app(
-        SmartField(
-          controller: text,
-          asyncValidation: SmartAsyncValidation(
-            controller: controller,
-            trigger: SmartAsyncValidationTrigger.manual,
-            validator: validator,
+        Widget build(SmartAsyncValidator validator) => _app(
+          SmartField(
+            controller: text,
+            asyncValidation: SmartAsyncValidation(
+              controller: controller,
+              trigger: SmartAsyncValidationTrigger.manual,
+              validator: validator,
+            ),
           ),
-        ),
-      );
-      await tester.pumpWidget(build(oldRule));
-      expect(await tester.runAsync(controller.validateAsync), isFalse);
-      await tester.pump();
-      expect(controller.errorText, 'Old rule');
-      await tester.pumpWidget(build(newRule));
-      await tester.pump();
-      expect(controller.errorText, isNull);
-      expect(controller.status, SmartAsyncValidationStatus.idle);
-      expect(find.text('Old rule'), findsNothing);
-      expect(newCalls, 0);
-      expect(await tester.runAsync(controller.validateAsync), isTrue);
-      expect(oldCalls, 1);
-      expect(newCalls, 1);
-    });
+        );
+        await tester.pumpWidget(build(oldRule));
+        expect(await tester.runAsync(controller.validateAsync), isFalse);
+        await tester.pump();
+        expect(controller.errorText, 'Old rule');
+        await tester.pumpWidget(build(newRule));
+        await tester.pump();
+        expect(controller.errorText, 'Old rule');
+        expect(controller.status, SmartAsyncValidationStatus.invalid);
+        expect(find.text('Old rule'), findsOneWidget);
+        expect(newCalls, 0);
+        expect(await tester.runAsync(controller.validateAsync), isFalse);
+        expect(newCalls, 0);
+        expect(
+          await tester.runAsync(() => controller.validateAsync(force: true)),
+          isTrue,
+        );
+        await tester.pump();
+        expect(oldCalls, 1);
+        expect(newCalls, 1);
+        expect(controller.errorText, isNull);
+        expect(find.text('Old rule'), findsNothing);
+      },
+    );
 
     testWidgets('the same validator keeps its completed result', (
       tester,
