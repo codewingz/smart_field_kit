@@ -40,7 +40,7 @@ The package ships English defaults and has no translation system. Pass your own 
 | Credit card | `numberLabel`, `expiryLabel`, `cvvLabel`, `showCvvLabel`, `hideCvvLabel`, the hint and error texts, and `numberStatusBuilder` |
 | Async validation | `unavailableErrorText`, `loadingSemanticsLabel` |
 
-Every user-facing string now has an override. The English defaults are unchanged.
+The strings in this table have overrides, and the English defaults are unchanged. One piece of text cannot be changed: the `AM` and `PM` markers in 12-hour time text and in the time wheel are fixed.
 
 - The OTP Paste menu and the wheel-picker buttons use Flutter's `MaterialLocalizations`, so they follow your app's locale.
 
