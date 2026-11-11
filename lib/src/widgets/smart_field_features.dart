@@ -17,6 +17,7 @@ abstract interface class _FieldHost {
   bool get pickerInteractive;
   TextEditingValue? get currentEditingValue;
   TextEditingController? get currentEditingController;
+  RenderBox? get editableBox;
 }
 
 abstract class _FieldFeature {
@@ -411,47 +412,41 @@ final class _MaskFeature extends _FieldFeature {
     }
     final rtl = Directionality.of(host.context) == TextDirection.rtl;
     final masked = rtl ? smartIsolateLtr(maskedText) : maskedText;
+    final theme = Theme.of(host.context);
+    final base = theme.textTheme.bodyLarge?.merge(host.field.style);
     final style =
-        decoration.prefixStyle ?? Theme.of(host.context).textTheme.bodyLarge;
-    if (decoration.prefixText != null || decoration.prefix != null) {
+        decoration.prefixStyle ??
+        (host.isEnabled
+            ? base
+            : base?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.38),
+              ));
+    final text = SmartMaskedText(
+      room: () => host.editableBox,
+      child: Text(masked, maxLines: 1, softWrap: false, style: style),
+    );
+    final prefix = decoration.prefix;
+    if (prefix != null) {
       return decoration.copyWith(
-        prefixText: '${decoration.prefixText ?? ''}$masked',
-        prefixStyle: style,
+        prefix: Row(mainAxisSize: MainAxisSize.min, children: [prefix, text]),
       );
     }
-    final prefixIcon = decoration.prefixIcon;
-    final suffixIcon = decoration.suffixIcon;
-    _widths
-      ..container = null
-      ..prefixIcon = null
-      ..suffixIcon = null;
+    if (decoration.prefixText == null) {
+      return decoration.copyWith(prefix: text, prefixStyle: style);
+    }
+    final suffix = decoration.suffix;
+    if (suffix != null) {
+      return decoration.copyWith(
+        suffix: Row(mainAxisSize: MainAxisSize.min, children: [text, suffix]),
+      );
+    }
+    if (decoration.suffixText == null) {
+      return decoration.copyWith(suffix: text);
+    }
     return decoration.copyWith(
-      prefixIcon: prefixIcon == null
-          ? null
-          : SmartWidthProbe(onLayout: _prefixIconLaidOut, child: prefixIcon),
-      suffixIcon: suffixIcon == null
-          ? null
-          : SmartWidthProbe(onLayout: _suffixIconLaidOut, child: suffixIcon),
-      prefix: SmartScaleToFit(
-        availableWidth: _widths.available,
-        child: Text(masked, maxLines: 1, softWrap: false),
-      ),
+      prefixText: '${decoration.prefixText}$masked',
       prefixStyle: style,
     );
-  }
-
-  final SmartAffixWidths _widths = SmartAffixWidths();
-
-  void _prefixIconLaidOut(double width, double maxWidth) {
-    _widths
-      ..prefixIcon = width
-      ..container = maxWidth;
-  }
-
-  void _suffixIconLaidOut(double width, double maxWidth) {
-    _widths
-      ..suffixIcon = width
-      ..container = maxWidth;
   }
 
   String? _textOf(Widget? widget) => widget is Text ? widget.data : null;
@@ -714,11 +709,11 @@ final class _AsyncFeature extends _FieldFeature {
       });
     }
     if (_lastController != null && !identical(_lastController, controller)) {
-      engine.reset();
+      engine.resetDuringBuild();
     }
     _lastController = controller;
     if (!host.isEnabled) {
-      engine.reset();
+      engine.resetDuringBuild();
     }
     if (hadError &&
         !_isOtp &&

@@ -375,7 +375,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     super.initState();
     _syncBindings();
     _scheduleInitialSeed();
-    _loadPartsFromController();
+    _loadPartsFromController(seedWhenEmpty: true);
     _resetBaseline = _composeDate();
     final initialText = _controller.text.isEmpty
         ? _initialText()
@@ -411,7 +411,9 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     if (seeded == null || target == null) {
       return;
     }
+    _seedResetPending = true;
     scheduleMicrotask(() {
+      _seedResetPending = false;
       if (mounted &&
           identical(widget.source.controller, target) &&
           target.text.isEmpty) {
@@ -419,6 +421,8 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       }
     });
   }
+
+  bool _seedResetPending = false;
 
   bool get _interactive => _enabled && !widget.source.readOnly;
 
@@ -457,14 +461,14 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
               oldWidget.source.controller,
               widget.source.controller,
             ))) {
-      _loadPartsFromController();
+      _loadPartsFromController(seedWhenEmpty: true);
       _resetBaseline = _composeDate();
       final status = _engine?.status;
       final hadError =
           status == SmartAsyncValidationStatus.invalid ||
           status == SmartAsyncValidationStatus.unavailable;
       if (wasDropdown) {
-        _engine?.reset();
+        _engine?.resetDuringBuild();
         if (hadError) {
           _dropdownKey.currentState?.validate();
         }
@@ -498,7 +502,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     }
     final engine = _engine ??= SmartAsyncValidationEngine(
       readText: _dropdownText,
-      toRaw: _config.serialize,
+      toRaw: (text) => _config.serialize(text),
       syncError: (_) => _syncPartsError(),
       isActive: () => mounted && _interactive,
       onUpdate: _asyncUpdated,
@@ -554,10 +558,11 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     }
   }
 
-  void _loadPartsFromController() {
+  void _loadPartsFromController({bool seedWhenEmpty = false}) {
     final text = _controller.text;
     final parsed = _config.dateFormat.tryParse(text);
-    if (parsed == null &&
+    if (seedWhenEmpty &&
+        parsed == null &&
         text.isEmpty &&
         _config.kind == SmartDateTimeKind.date &&
         widget.source.controller != null) {
@@ -641,7 +646,14 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     });
   }
 
-  void _onTextChanged(String text) {
+  void _onTextChanged(String typed) {
+    var text = typed;
+    final seeded = _seededText;
+    if (_seedResetPending && text.isEmpty && seeded != null) {
+      _seedResetPending = false;
+      _writeController(seeded);
+      text = seeded;
+    }
     widget.source.onChanged?.call(text);
     _config.notifyTyped(text);
     _emitRaw(_config.serialize(text));

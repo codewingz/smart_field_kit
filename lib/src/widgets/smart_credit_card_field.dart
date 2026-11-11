@@ -342,11 +342,14 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       setState(() {});
     }
     final count = assessment.digitCount;
+    final brand = assessment.brand;
+    final checksumVerified =
+        _config.validateLuhn && !_config.luhnExemptBrands.contains(brand);
     if (_config.autoAdvance &&
         _numberFocus.hasFocus &&
         assessment.isLocallyValid &&
-        (count == assessment.brand.primaryLength ||
-            count == assessment.brand.maxLength)) {
+        (count == brand.maxLength ||
+            (count == brand.primaryLength && checksumVerified))) {
       _expiryFocus.requestFocus();
     }
     _notify();
@@ -535,7 +538,10 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       onSaved: (_) => _config.onSaved?.call(_value()),
       builder: (_) {
         return SmartLtrContentScope(
-          child: AutofillGroup(child: _layout(number, expiry, cvv)),
+          child: AutofillGroup(
+            onDisposeAction: AutofillContextAction.cancel,
+            child: _layout(number, expiry, cvv),
+          ),
         );
       },
     );

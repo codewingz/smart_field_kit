@@ -108,6 +108,7 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
         _initialValue = _controller.text;
         _lastText = _controller.text;
         _wasComplete = _isComplete(_controller.text);
+        SmartFormFieldValue.set(_formFieldKey.currentState, _controller.text);
       }
       _controllerBinding.bind(_controller);
       _focusBinding.bind(_focusNode);
@@ -534,7 +535,15 @@ class _SmartOtpInputFormatter extends TextInputFormatter {
     final wasOversized = oldValue.text.length > length;
     final reducesOversizedValue =
         wasOversized && result.text.length < oldValue.text.length;
-    if (result.text.length > length && !reducesOversizedValue) {
+    final pastedCode = result.text.length > length && !reducesOversizedValue
+        ? _insertedFullCode(oldValue.text, result.text)
+        : null;
+    if (pastedCode != null) {
+      result = TextEditingValue(
+        text: pastedCode,
+        selection: TextSelection.collapsed(offset: length),
+      );
+    } else if (result.text.length > length && !reducesOversizedValue) {
       final caret = oldValue.selection.isValid && oldValue.selection.isCollapsed
           ? oldValue.selection.baseOffset
           : -1;
@@ -569,5 +578,25 @@ class _SmartOtpInputFormatter extends TextInputFormatter {
       onAccepted();
     }
     return result;
+  }
+
+  String? _insertedFullCode(String before, String after) {
+    if (after.length - before.length != length || length < 2) {
+      return null;
+    }
+    var prefix = 0;
+    while (prefix < before.length && before[prefix] == after[prefix]) {
+      prefix++;
+    }
+    var suffix = 0;
+    while (suffix < before.length - prefix &&
+        before[before.length - 1 - suffix] ==
+            after[after.length - 1 - suffix]) {
+      suffix++;
+    }
+    if (prefix + suffix != before.length) {
+      return null;
+    }
+    return after.substring(prefix, after.length - suffix);
   }
 }

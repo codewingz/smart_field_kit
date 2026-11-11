@@ -152,65 +152,16 @@ abstract class SmartFormFieldValue extends FormFieldState<String> {
   }
 }
 
-final class SmartAffixWidths {
-  double? container;
-  double? prefixIcon;
-  double? suffixIcon;
-
-  double available(double contentWidth) {
-    final total = container;
-    if (total == null || (prefixIcon == null && suffixIcon == null)) {
-      return contentWidth;
-    }
-    final side = (total - contentWidth) / 2;
-    final room = total - (prefixIcon ?? side) - (suffixIcon ?? side);
-    return room < 0 ? 0 : room;
-  }
-}
-
-class SmartWidthProbe extends SingleChildRenderObjectWidget {
-  const SmartWidthProbe({super.key, required this.onLayout, super.child});
-
-  final void Function(double width, double maxWidth) onLayout;
-
-  @override
-  RenderSmartWidthProbe createRenderObject(BuildContext context) {
-    return RenderSmartWidthProbe(onLayout);
-  }
-
-  @override
-  void updateRenderObject(
-    BuildContext context,
-    RenderSmartWidthProbe renderObject,
-  ) {
-    renderObject.onLayout = onLayout;
-  }
-}
-
-class RenderSmartWidthProbe extends RenderProxyBox {
-  RenderSmartWidthProbe(this.onLayout);
-
-  void Function(double width, double maxWidth) onLayout;
-
-  @override
-  void performLayout() {
-    super.performLayout();
-    onLayout(size.width, constraints.maxWidth);
-  }
-}
-
 class SmartScaleToFit extends SingleChildRenderObjectWidget {
   const SmartScaleToFit({
     super.key,
     this.minChildWidth,
     this.maxWidthFactor = 1,
-    this.availableWidth,
     super.child,
   });
 
   final double? minChildWidth;
   final double maxWidthFactor;
-  final double Function(double maxWidth)? availableWidth;
 
   @override
   RenderSmartScaleToFit createRenderObject(BuildContext context) {
@@ -218,7 +169,7 @@ class SmartScaleToFit extends SingleChildRenderObjectWidget {
       minChildWidth,
       maxWidthFactor,
       Directionality.of(context),
-    )..availableWidth = availableWidth;
+    );
   }
 
   @override
@@ -229,7 +180,6 @@ class SmartScaleToFit extends SingleChildRenderObjectWidget {
     renderObject
       ..minChildWidth = minChildWidth
       ..maxWidthFactor = maxWidthFactor
-      ..availableWidth = availableWidth
       ..textDirection = Directionality.of(context);
   }
 }
@@ -268,20 +218,7 @@ class RenderSmartScaleToFit extends RenderProxyBox {
     }
   }
 
-  double Function(double maxWidth)? _availableWidth;
-
-  set availableWidth(double Function(double maxWidth)? value) {
-    if (!identical(_availableWidth, value)) {
-      _availableWidth = value;
-      markNeedsLayout();
-    }
-  }
-
   double _available(BoxConstraints constraints) {
-    final custom = _availableWidth;
-    if (custom != null && constraints.maxWidth.isFinite) {
-      return custom(constraints.maxWidth);
-    }
     return constraints.maxWidth * _maxWidthFactor;
   }
 
@@ -404,5 +341,172 @@ class RenderSmartScaleToFit extends RenderProxyBox {
   @override
   void applyPaintTransform(RenderBox child, Matrix4 transform) {
     transform.multiply(_transform);
+  }
+}
+
+class SmartMaskedText extends SingleChildRenderObjectWidget {
+  const SmartMaskedText({super.key, required this.room, super.child});
+
+  final RenderBox? Function() room;
+
+  @override
+  RenderSmartMaskedText createRenderObject(BuildContext context) {
+    return RenderSmartMaskedText(room, Directionality.of(context));
+  }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    RenderSmartMaskedText renderObject,
+  ) {
+    renderObject
+      ..room = room
+      ..textDirection = Directionality.of(context);
+  }
+}
+
+class RenderSmartMaskedText extends RenderProxyBox {
+  RenderSmartMaskedText(this._room, this._textDirection);
+
+  static const double minimumScale = 0.6;
+
+  RenderBox? Function() _room;
+  TextDirection _textDirection;
+  final LayerHandle<ClipRectLayer> _clipLayer = LayerHandle<ClipRectLayer>();
+  final LayerHandle<TransformLayer> _transformLayer =
+      LayerHandle<TransformLayer>();
+
+  set room(RenderBox? Function() value) {
+    _room = value;
+    markNeedsPaint();
+  }
+
+  set textDirection(TextDirection value) {
+    if (_textDirection != value) {
+      _textDirection = value;
+      markNeedsPaint();
+    }
+  }
+
+  @override
+  double computeMinIntrinsicWidth(double height) => 0;
+
+  @override
+  double computeMaxIntrinsicWidth(double height) => 0;
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) {
+    final child = this.child;
+    if (child == null) {
+      return constraints.smallest;
+    }
+    final height = child.getDryLayout(const BoxConstraints()).height;
+    return constraints.constrain(Size(0, height));
+  }
+
+  @override
+  double? computeDryBaseline(
+    BoxConstraints constraints,
+    TextBaseline baseline,
+  ) {
+    return child?.getDryBaseline(const BoxConstraints(), baseline);
+  }
+
+  @override
+  void performLayout() {
+    final child = this.child;
+    if (child == null) {
+      size = constraints.smallest;
+      return;
+    }
+    child.layout(const BoxConstraints(), parentUsesSize: true);
+    _baseline =
+        child.getDistanceToBaseline(TextBaseline.alphabetic, onlyReal: true) ??
+        child.size.height / 2;
+    size = constraints.constrain(Size(0, child.size.height));
+  }
+
+  double _baseline = 0;
+
+  ({Matrix4 transform, Rect? clip}) _placement() {
+    final child = this.child!;
+    final width = child.size.width;
+    final box = _room();
+    if (box == null || !box.attached || !box.hasSize || width <= 0) {
+      return (transform: Matrix4.identity(), clip: null);
+    }
+    final left = MatrixUtils.transformPoint(
+      box.getTransformTo(this),
+      Offset.zero,
+    ).dx;
+    final room = box.size.width;
+    var scale = width <= room ? 1.0 : room / width;
+    final fits = scale >= minimumScale;
+    if (!fits) {
+      scale = minimumScale;
+    }
+    final drawn = width * scale;
+    final alignEnd = !fits || _textDirection == TextDirection.rtl;
+    final dx = alignEnd ? left + room - drawn : left;
+    final dy = _baseline * (1 - scale);
+    return (
+      transform: Matrix4.diagonal3Values(scale, scale, 1)
+        ..setTranslationRaw(dx, dy, 0),
+      clip: fits ? null : Rect.fromLTWH(left, 0, room, size.height),
+    );
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    final child = this.child;
+    if (child == null) {
+      _clipLayer.layer = null;
+      _transformLayer.layer = null;
+      return;
+    }
+    final placement = _placement();
+    void paintScaled(PaintingContext context, Offset offset) {
+      _transformLayer.layer = context.pushTransform(
+        needsCompositing,
+        offset,
+        placement.transform,
+        (context, offset) => context.paintChild(child, offset),
+        oldLayer: _transformLayer.layer,
+      );
+    }
+
+    final clip = placement.clip;
+    if (clip == null) {
+      _clipLayer.layer = null;
+      paintScaled(context, offset);
+      return;
+    }
+    _clipLayer.layer = context.pushClipRect(
+      needsCompositing,
+      offset,
+      clip,
+      paintScaled,
+      oldLayer: _clipLayer.layer,
+    );
+  }
+
+  @override
+  void dispose() {
+    _clipLayer.layer = null;
+    _transformLayer.layer = null;
+    super.dispose();
+  }
+
+  @override
+  bool hitTestSelf(Offset position) => false;
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    return false;
+  }
+
+  @override
+  void applyPaintTransform(RenderBox child, Matrix4 transform) {
+    transform.multiply(_placement().transform);
   }
 }

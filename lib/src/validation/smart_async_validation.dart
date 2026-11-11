@@ -367,6 +367,28 @@ class SmartAsyncValidationEngine {
     _invalidate();
   }
 
+  void resetDuringBuild() {
+    _lastRaw = null;
+    final changed = _status != SmartAsyncValidationStatus.idle;
+    _timer?.cancel();
+    _timer = null;
+    _generation++;
+    _pendingRaw = null;
+    _pendingFuture = null;
+    _resultRaw = null;
+    _message = null;
+    _status = SmartAsyncValidationStatus.idle;
+    if (!changed) {
+      return;
+    }
+    scheduleMicrotask(() {
+      if (!_disposed) {
+        _controller?._publish();
+        onUpdate();
+      }
+    });
+  }
+
   void _setStatus(SmartAsyncValidationStatus status) {
     _status = status;
     _controller?._publish();

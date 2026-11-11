@@ -59,6 +59,15 @@
 
 ### Fixed
 
+* Fix masked phone, number, and amount text overlapping icons or leaving the field after a rebuild; it is now placed from the field's live layout, scaled to no less than 60%, and keeps its last digits visible.
+* Fix masked fields throwing when the decoration has a `prefix` widget, and apply the field `style` and disabled colour to masked text.
+* Fix `FormState.reset()` followed by `save()` returning the previously typed value for date, time, date-time, masked, and other fields that own their controller.
+* Fix a date, time, or date-time field with an external controller saving an empty value when `save()` is called immediately after `reset()`.
+* Fix the OTP field keeping the old value for `save()` and `validate()` after its controller is replaced.
+* Fix dropdown dates reloading `initialDate` when an external controller is cleared, and asynchronous validation using an outdated date format.
+* Fix an error raised when an asynchronous-validation status listener rebuilds a parent while the field is disabled or its controller is replaced.
+* Credit card: do not move focus to the expiry before a checksum-exempt number, such as a 19-digit UnionPay number, reaches its longest length, and do not ask the platform to save the card when the field is removed.
+* OTP: a full code inserted into a partly filled field replaces the existing digits instead of producing a truncated code.
 * Fix masked phone, number, and amount text being cut off on narrow screens with large text; it is now drawn smaller to fit.
 * Remove a dropped asynchronous error within the same frame instead of one frame later.
 * Remove a displayed asynchronous validation error when its result is dropped because the text controller was replaced or the field was disabled; the field then shows the validation state of its current value.

@@ -1729,6 +1729,9 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
       textController ?? _innerEditable()?.widget.controller;
 
   @override
+  RenderBox? get editableBox => _innerEditable()?.renderEditable;
+
+  @override
   bool get showsMask => _feature<_MaskFeature>()?.shows ?? false;
 
   @override
@@ -1984,6 +1987,11 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
   }
 
   void _handleChanged(String value) {
+    final controller = textController;
+    final state = _fieldKey.currentState;
+    if (controller != null && state != null && state.value != controller.text) {
+      SmartFormFieldValue.set(state, controller.text);
+    }
     widget.onChanged?.call(value);
     widget.serverError?.notifyFieldChanged();
     for (final feature in _features) {

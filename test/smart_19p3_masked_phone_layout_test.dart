@@ -83,18 +83,34 @@ void main() {
               final masked = find.textContaining('*');
               expect(masked, findsOneWidget, reason: reason);
               final bounds = tester.getRect(find.byType(TextFormField));
+              final room = tester.getRect(find.byType(EditableText));
               final painted = _painted(tester, masked);
+              final visible = painted.intersect(room);
               expect(
-                painted.left,
+                room.left,
                 greaterThanOrEqualTo(bounds.left - 0.5),
                 reason: reason,
               );
               expect(
-                painted.right,
+                room.right,
                 lessThanOrEqualTo(bounds.right + 0.5),
                 reason: reason,
               );
-              expect(painted.width, greaterThan(0), reason: reason);
+              expect(
+                painted.right,
+                lessThanOrEqualTo(room.right + 0.5),
+                reason: reason,
+              );
+              if (painted.left < room.left - 0.5) {
+                expect(
+                  painted.height / tester.getSize(masked).height,
+                  moreOrLessEquals(0.6, epsilon: 0.001),
+                  reason: reason,
+                );
+              }
+              if (room.width >= 1) {
+                expect(visible.width, greaterThan(0), reason: reason);
+              }
               await tester.pumpWidget(const SizedBox());
             }
           }
@@ -157,7 +173,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('a developer prefixText is still combined with the mask', (
+    testWidgets('a developer prefixText is still shown with the mask', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -173,7 +189,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('ID ****5678'), findsOneWidget);
+      expect(find.text('ID '), findsOneWidget);
+      expect(find.text('****5678'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

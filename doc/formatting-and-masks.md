@@ -48,7 +48,7 @@ SmartField.amount(
 
 ## Displayed and raw amount values
 
-- The controller, `onChanged`, custom `validator`, and `onSaved` preserve Flutter's display-text behavior.
+- The controller, `onChanged`, custom `validator`, and `onSaved` preserve Flutter's display-text behavior. `onSaved` therefore receives the text shown at that moment: ungrouped while the field has focus (`1234.5`) and formatted after focus leaves (`$1,234.50`). Use `onRawSaved` for a value that does not depend on focus.
 
 - While focused, the display text is ungrouped and has no configured currency text.
 
@@ -164,6 +164,8 @@ Pattern formatting is not privacy masking: it never hides characters. Use `mask:
 ## Visual privacy masking
 
 `SmartField.phone()`, `SmartField.number()`, and `SmartField.amount()` support opt-in visual masking. Masking is disabled by default and does not change validation or formatting rules.
+
+The masked text is drawn in the space the field's text normally uses, between any prefix and suffix icons, and follows the field's `style` and disabled colour. When it is wider than that space it is drawn smaller, down to 60% of its size. If it still does not fit, its start is cut off so the visible last digits stay on screen. A developer `prefix` widget or `prefixText` is kept and shown before it.
 
 ```dart
 SmartField.phone(
