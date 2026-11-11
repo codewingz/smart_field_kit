@@ -62,7 +62,7 @@ abstract final class SmartDecimalUtils {
       throw ArgumentError.value(decimalPlaces, 'decimalPlaces');
     }
     if (!_numberExpression.hasMatch(value) || value == '-' || value == '.') {
-      throw FormatException('Not a plain decimal number', value);
+      throw const FormatException('Not a plain decimal number');
     }
     final negative = value.startsWith('-');
     final unsigned = negative ? value.substring(1) : value;
@@ -227,12 +227,31 @@ final class SmartAmountFormatter extends TextInputFormatter {
     final text = value.text;
     if (!acceptDotAsDecimal ||
         decimalSeparator == '.' ||
-        groupingSeparator == '.' ||
-        text.contains(decimalSeparator) ||
-        '.'.allMatches(text).length != 1) {
+        groupingSeparator == '.') {
       return value;
     }
-    return value.copyWith(text: text.replaceFirst('.', decimalSeparator));
+    final symbol = currencySymbol;
+    var start = 0;
+    var end = text.length;
+    if (symbol != null && text.length >= symbol.length) {
+      if (currencyPosition == SmartCurrencyPosition.prefix &&
+          text.startsWith(symbol)) {
+        start = symbol.length;
+      } else if (currencyPosition == SmartCurrencyPosition.suffix &&
+          text.endsWith(symbol)) {
+        end -= symbol.length;
+      }
+    }
+    final body = text.substring(start, end);
+    if (body.contains(decimalSeparator) || '.'.allMatches(body).length != 1) {
+      return value;
+    }
+    return value.copyWith(
+      text:
+          text.substring(0, start) +
+          body.replaceFirst('.', decimalSeparator) +
+          text.substring(end),
+    );
   }
 
   /// The raw value of display or editable text, or `null` when the text is

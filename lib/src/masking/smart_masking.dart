@@ -103,13 +103,18 @@ String maskAmount(
       (parts.prefix.trim().isNotEmpty || parts.suffix.trim().isNotEmpty)) {
     throw FormatException('The amount already contains a currency value.');
   }
-  final formatter = SmartAmountFormatter(
-    useGrouping: true,
-    groupingSeparator: groupingSeparator,
-    decimalSeparator: decimalSeparator,
-    allowNegative: true,
+  final isValid = SmartGroupingStyle.values.any(
+    (style) =>
+        SmartAmountFormatter(
+          useGrouping: true,
+          groupingStyle: style,
+          groupingSeparator: groupingSeparator,
+          decimalSeparator: decimalSeparator,
+          allowNegative: true,
+        ).normalize(parts.numeric) !=
+        null,
   );
-  if (formatter.normalize(parts.numeric) == null) {
+  if (!isValid) {
     throw FormatException('Invalid amount value.');
   }
 
@@ -118,7 +123,9 @@ String maskAmount(
     for (var index = 0; index < numericGraphemes.length; index++)
       if (_isAsciiDigit(numericGraphemes[index])) index,
   ];
-  final visibleCount = visibleSuffixDigits.clamp(0, digitIndexes.length);
+  final visibleCount = visibleSuffixDigits >= digitIndexes.length
+      ? 0
+      : visibleSuffixDigits;
   final visibleIndexes = digitIndexes
       .skip(digitIndexes.length - visibleCount)
       .toSet();
@@ -184,16 +191,19 @@ String? formatNumber(
   final prefix = graphemes.take(numericStart).join();
   final numeric = graphemes.sublist(numericStart, lastDigit + 1).join();
   final suffix = graphemes.skip(lastDigit + 1).join();
-  for (final outside in [prefix, suffix]) {
+  final leadingSign =
+      prefix.startsWith('-') && !numeric.startsWith('-') && prefix.length > 1;
+  final currencyPrefix = leadingSign ? prefix.substring(1) : prefix;
+  for (final outside in [currencyPrefix, suffix]) {
     if (outside.contains(groupingSeparator) ||
         outside.contains(decimalSeparator) ||
         outside.contains('-') ||
         outside.contains('+') ||
-        outside.characters.any(_isAsciiDigit)) {
+        _anyDigit.hasMatch(outside)) {
       throw FormatException('Invalid amount value.');
     }
   }
-  if (prefix.trim().isNotEmpty && suffix.trim().isNotEmpty) {
+  if (currencyPrefix.trim().isNotEmpty && suffix.trim().isNotEmpty) {
     throw FormatException(
       'Currency text must appear on one side of the amount.',
     );
@@ -235,6 +245,8 @@ int _visibleSuffixCount(
   }
   return requestedCount.clamp(0, sensitiveCount);
 }
+
+final RegExp _anyDigit = RegExp(r'\p{Nd}', unicode: true);
 
 bool _isAsciiDigit(String grapheme) {
   return grapheme.length == 1 &&

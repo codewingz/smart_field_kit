@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
+import 'support/web_skips.dart';
 
 Widget _app(Widget child) => MaterialApp(
   home: Scaffold(body: SingleChildScrollView(child: child)),
@@ -32,44 +33,48 @@ void main() {
         );
       });
 
-      testWidgets('phone actions are disabled ($variant)', skip: kIsWeb, (
-        tester,
-      ) async {
-        debugDefaultTargetPlatformOverride = TargetPlatform.android;
-        try {
-          var picks = 0;
-          final controller = TextEditingController(text: '+923001234567');
-          addTearDown(controller.dispose);
-          await tester.pumpWidget(
-            _app(
-              SmartField.phone(
-                controller: controller,
-                showContactPicker: true,
-                showClearButton: true,
-                contactPicker: () async {
-                  picks++;
-                  return '+16502530000';
-                },
-                enabled: disabled ? false : null,
-                decoration: disabled ? const InputDecoration() : _viaDecoration,
+      testWidgets(
+        'phone actions are disabled ($variant)',
+        skip: skipContactPickerOnWeb,
+        (tester) async {
+          debugDefaultTargetPlatformOverride = TargetPlatform.android;
+          try {
+            var picks = 0;
+            final controller = TextEditingController(text: '+923001234567');
+            addTearDown(controller.dispose);
+            await tester.pumpWidget(
+              _app(
+                SmartField.phone(
+                  controller: controller,
+                  showContactPicker: true,
+                  showClearButton: true,
+                  contactPicker: () async {
+                    picks++;
+                    return '+16502530000';
+                  },
+                  enabled: disabled ? false : null,
+                  decoration: disabled
+                      ? const InputDecoration()
+                      : _viaDecoration,
+                ),
               ),
-            ),
-          );
-          await tester.tap(
-            find.byTooltip('Select phone number from contacts'),
-            warnIfMissed: false,
-          );
-          await tester.tap(
-            find.byTooltip('Clear phone number'),
-            warnIfMissed: false,
-          );
-          await tester.pump();
-          expect(picks, 0);
-          expect(controller.text, '+923001234567');
-        } finally {
-          debugDefaultTargetPlatformOverride = null;
-        }
-      });
+            );
+            await tester.tap(
+              find.byTooltip('Select phone number from contacts'),
+              warnIfMissed: false,
+            );
+            await tester.tap(
+              find.byTooltip('Clear phone number'),
+              warnIfMissed: false,
+            );
+            await tester.pump();
+            expect(picks, 0);
+            expect(controller.text, '+923001234567');
+          } finally {
+            debugDefaultTargetPlatformOverride = null;
+          }
+        },
+      );
 
       testWidgets('async validation does not start ($variant)', (tester) async {
         var calls = 0;

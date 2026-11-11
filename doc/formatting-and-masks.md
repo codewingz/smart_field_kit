@@ -44,7 +44,9 @@ SmartField.amount(
 )
 ```
 
-`acceptDotAsDecimal` is off by default. When it is on and `decimalSeparator` is not `.`, one typed or pasted `.` is taken as the decimal separator and shown as the configured character, so `12.5` becomes `12,5`. The raw value is still `12.5`. Nothing is reinterpreted when the grouping separator is `.`, when the text already contains the decimal separator, or when it contains more than one dot.
+`acceptDotAsDecimal` is off by default. When it is on and `decimalSeparator` is not `.`, one typed or pasted `.` is taken as the decimal separator and shown as the configured character, so `12.5` becomes `12,5`. The raw value is still `12.5`. Nothing is reinterpreted when the grouping separator is `.`, when the text already contains the decimal separator, or when it contains more than one dot. A dot that belongs to the currency symbol, as in `Rs.`, is left alone.
+
+When a parent rebuild changes the amount settings (currency symbol or position, grouping, separators, or decimal places), text that was valid under the previous settings is shown again in the new format, and the form value follows it without calling `onChanged`. Decimal places are only removed when they are zeros; `12.55` is never cut to fit `decimalPlaces: 0` and is reported by validation instead.
 
 ## Displayed and raw amount values
 
@@ -188,7 +190,7 @@ SmartField.amount(
 
 An enabled editable masked field displays its masked value while unfocused and reveals its unmasked value when deliberately focused. It returns to the masked display when focus leaves. Read-only and disabled fields remain masked. Set `revealMaskOnFocus: false` to keep the presentation masked while focused; that state is read-only until the application changes its configuration.
 
-`maskVisibleSuffixDigits` defaults to four for phone and number fields and zero for amounts. `maskCharacter` must contain exactly one Unicode grapheme. Negative suffix counts and empty or multi-grapheme mask characters throw `ArgumentError`. The controller, selection, validation, `onChanged`, `onSaved`, phone parsing, amount display formatting, `onRawChanged`, and `onRawSaved` never receive mask characters. Masked mode disables interactive selection and must not expose raw sensitive characters through accessibility semantics while the value remains concealed.
+`maskVisibleSuffixDigits` defaults to four for phone and number fields and zero for amounts. `maskCharacter` must contain exactly one Unicode grapheme. Negative suffix counts and empty or multi-grapheme mask characters throw `ArgumentError`. The controller, selection, validation, `onChanged`, `onSaved`, phone parsing, amount display formatting, `onRawChanged`, and `onRawSaved` never receive mask characters. Masked mode disables interactive selection. While the value is concealed, the text field is reported to assistive technology as an obscured field, the same way a password is, and a separate node carries the masked text, so a screen reader announces `******2671` and never the raw value. The field keeps its label, focus, and tap action; focusing a field with `revealMaskOnFocus` reveals and announces the real text. A masked amount field keeps its currency symbol in the masked text.
 
 The independent utilities return masked copies and never mutate their input:
 
@@ -207,7 +209,7 @@ These values are `*****4567`, `******5678`, `**,***.** PKR`, and `50,000.00`. `f
 
 `maskMobile` treats ASCII `0`–`9` as revealable phone digits, preserves `+`, whitespace, hyphens, and parentheses, and masks every other grapheme so unexpected letters or non-ASCII digits are not disclosed. `maskAccountNumber` treats every non-separator grapheme, including letters and Unicode clusters, as sensitive and preserves spaces and hyphens by default. Both utilities mask all sensitive content in one-to-four-character short values unless `revealShortValues: true` is explicitly selected.
 
-`maskAmount` accepts a structurally valid ASCII-digit amount display, preserves its sign, grouping, decimal separator, whitespace, and one-sided currency text, and masks all digits by default. Custom separators, a visible trailing-digit count, a one-grapheme mask, and an explicitly positioned `currencySymbol` are optional. Malformed numeric displays throw `FormatException` rather than being sanitized into a valid amount.
+`maskAmount` accepts a structurally valid ASCII-digit amount display, preserves its sign, grouping, decimal separator, whitespace, and one-sided currency text, and masks all digits by default. A leading minus sign may come before the currency text, as in `-$1,234.50`. When `visibleSuffixDigits` is equal to or greater than the number of digits, every digit is masked, as `maskMobile` and `maskAccountNumber` do for short values; `maskAmount('12.50', visibleSuffixDigits: 4)` is `**.**`. Digits from other scripts are never passed through: a value that contains one throws `FormatException`. Custom separators, a visible trailing-digit count, a one-grapheme mask, and an explicitly positioned `currencySymbol` are optional. Malformed numeric displays throw `FormatException` rather than being sanitized into a valid amount.
 
 Masking is a presentation-level privacy aid, not encryption, secure storage, log redaction, authorization, account verification, or backend protection. The owning application retains the raw value and remains responsible for access control, storage, logging, clipboard policy, and server-side security.
 

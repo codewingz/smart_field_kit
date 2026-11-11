@@ -102,7 +102,9 @@ class _SecurePageState extends State<SecurePage> {
                   isRequired: true,
                 ),
                 const SizedBox(height: fieldGap),
-                Row(
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
                     FilledButton(
                       onPressed: () => setState(
@@ -112,7 +114,6 @@ class _SecurePageState extends State<SecurePage> {
                       ),
                       child: const Text('Validate'),
                     ),
-                    const SizedBox(width: 12),
                     OutlinedButton(
                       onPressed: () {
                         _formKey.currentState!.reset();

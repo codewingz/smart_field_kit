@@ -184,6 +184,7 @@ class SmartAsyncValidationEngine {
     _timer?.cancel();
     _timer = null;
     final generation = ++_generation;
+    _cancelRun();
     _pendingRaw = null;
     _pendingFuture = null;
     _resultRaw = null;
@@ -302,6 +303,7 @@ class SmartAsyncValidationEngine {
   Future<bool> _run(String raw) {
     final config = _config!;
     final generation = ++_generation;
+    _cancelRun();
     _pendingRaw = raw;
     _resultRaw = null;
     _message = null;
@@ -316,21 +318,42 @@ class SmartAsyncValidationEngine {
     String raw,
     int generation,
   ) async {
-    String? error;
-    var unavailable = false;
-    try {
-      var future = config.validator(raw);
-      final timeout = config.timeout;
-      if (timeout != null) {
-        future = future.timeout(timeout);
+    final outcome = Completer<({String? error, bool unavailable})?>();
+    void finish(String? error, bool unavailable) {
+      if (!outcome.isCompleted) {
+        outcome.complete((error: error, unavailable: unavailable));
       }
-      error = await future;
-    } catch (_) {
-      unavailable = true;
     }
-    if (_disposed || generation != _generation || toRaw(readText()) != raw) {
+
+    _activeRun = outcome;
+    try {
+      config
+          .validator(raw)
+          .then(
+            (value) => finish(value, false),
+            onError: (Object _) => finish(null, true),
+          );
+    } catch (_) {
+      finish(null, true);
+    }
+    final timeout = config.timeout;
+    if (timeout != null && !outcome.isCompleted) {
+      _timeoutTimer = Timer(timeout, () => finish(null, true));
+    }
+    final result = await outcome.future;
+    if (identical(_activeRun, outcome)) {
+      _timeoutTimer?.cancel();
+      _timeoutTimer = null;
+      _activeRun = null;
+    }
+    if (result == null ||
+        _disposed ||
+        generation != _generation ||
+        toRaw(readText()) != raw) {
       return false;
     }
+    final error = result.error;
+    final unavailable = result.unavailable;
     _pendingRaw = null;
     _pendingFuture = null;
     _resultRaw = raw;
@@ -349,10 +372,24 @@ class SmartAsyncValidationEngine {
     return true;
   }
 
+  Completer<({String? error, bool unavailable})?>? _activeRun;
+  Timer? _timeoutTimer;
+
+  void _cancelRun() {
+    _timeoutTimer?.cancel();
+    _timeoutTimer = null;
+    final run = _activeRun;
+    _activeRun = null;
+    if (run != null && !run.isCompleted) {
+      run.complete(null);
+    }
+  }
+
   void _invalidate() {
     _timer?.cancel();
     _timer = null;
     _generation++;
+    _cancelRun();
     _pendingRaw = null;
     _pendingFuture = null;
     _resultRaw = null;
@@ -373,6 +410,7 @@ class SmartAsyncValidationEngine {
     _timer?.cancel();
     _timer = null;
     _generation++;
+    _cancelRun();
     _pendingRaw = null;
     _pendingFuture = null;
     _resultRaw = null;
@@ -400,6 +438,12 @@ class SmartAsyncValidationEngine {
     _timer?.cancel();
     _timer = null;
     _generation++;
+    _cancelRun();
+    _pendingRaw = null;
+    _pendingFuture = null;
+    _resultRaw = null;
+    _message = null;
+    _status = SmartAsyncValidationStatus.idle;
     final controller = _controller;
     if (controller != null && identical(controller._engine, this)) {
       controller._engine = null;

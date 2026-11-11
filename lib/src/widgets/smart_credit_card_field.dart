@@ -538,9 +538,11 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       onSaved: (_) => _config.onSaved?.call(_value()),
       builder: (_) {
         return SmartLtrContentScope(
-          child: AutofillGroup(
-            onDisposeAction: AutofillContextAction.cancel,
-            child: _layout(number, expiry, cvv),
+          child: SmartSensitiveInputScope(
+            child: AutofillGroup(
+              onDisposeAction: AutofillContextAction.cancel,
+              child: _layout(number, expiry, cvv),
+            ),
           ),
         );
       },

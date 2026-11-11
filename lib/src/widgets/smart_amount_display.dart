@@ -36,6 +36,14 @@ final class SmartAmountDisplay {
     _apply(controller, formatter.toDisplayValue, beforeWrite);
   }
 
+  void write(
+    TextEditingController controller,
+    TextEditingValue value, {
+    ValueChanged<String>? beforeWrite,
+  }) {
+    _apply(controller, (_) => value, beforeWrite);
+  }
+
   void _apply(
     TextEditingController? controller,
     TextEditingValue Function(TextEditingValue value) convert, [

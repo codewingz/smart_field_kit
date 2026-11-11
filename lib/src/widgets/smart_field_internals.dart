@@ -408,13 +408,27 @@ final class _SmartMaskConfig {
         );
       case _SmartMaskKind.amount:
         final formatter = amountFormatter!;
+        final symbol = formatter.currencySymbol;
+        final isPrefix =
+            formatter.currencyPosition == SmartCurrencyPosition.prefix;
+        final hasSymbol =
+            symbol != null &&
+            value.length > symbol.length &&
+            (isPrefix ? value.startsWith(symbol) : value.endsWith(symbol));
+        final numeric = !hasSymbol
+            ? value
+            : isPrefix
+            ? value.substring(symbol.length)
+            : value.substring(0, value.length - symbol.length);
         try {
           return maskAmount(
-            value,
+            numeric,
             visibleSuffixDigits: visibleSuffixDigits,
             maskCharacter: maskCharacter,
             groupingSeparator: formatter.groupingSeparator,
             decimalSeparator: formatter.decimalSeparator,
+            currencySymbol: hasSymbol ? symbol : null,
+            currencyPosition: formatter.currencyPosition,
           );
         } on FormatException {
           return maskAccountNumber(

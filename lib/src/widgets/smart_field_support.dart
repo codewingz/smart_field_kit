@@ -113,6 +113,18 @@ class SmartLtrContentScope extends InheritedWidget {
   bool updateShouldNotify(SmartLtrContentScope oldWidget) => false;
 }
 
+class SmartSensitiveInputScope extends InheritedWidget {
+  const SmartSensitiveInputScope({super.key, required super.child});
+
+  static bool isActive(BuildContext context) {
+    return context.getInheritedWidgetOfExactType<SmartSensitiveInputScope>() !=
+        null;
+  }
+
+  @override
+  bool updateShouldNotify(SmartSensitiveInputScope oldWidget) => false;
+}
+
 String smartIsolateLtr(String text) {
   return text.isEmpty ? text : '\u2066$text\u2069';
 }

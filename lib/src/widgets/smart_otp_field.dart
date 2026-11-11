@@ -117,6 +117,27 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
         oldWidget.validator != widget.validator) {
       _wasComplete = _isComplete(_controller.text);
     }
+    if (widget.configuration.length < oldWidget.configuration.length) {
+      _scheduleTrim();
+    }
+  }
+
+  void _scheduleTrim() {
+    final controller = _controller;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final length = widget.configuration.length;
+      if (!mounted ||
+          !identical(_controller, controller) ||
+          controller.text.characters.length <= length) {
+        return;
+      }
+      final text = controller.text.characters.take(length).toString();
+      SmartFormFieldValue.set(_formFieldKey.currentState, text);
+      controller.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    });
   }
 
   void _handleFocusChange() {
@@ -370,6 +391,7 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
                   focusNode: _focusNode,
                   readOnly: widget.source.readOnly || !_enabled,
                   obscureText: widget.configuration.obscureText,
+                  enableIMEPersonalizedLearning: false,
                   autocorrect: false,
                   enableSuggestions: false,
                   autofocus: widget.source.autofocus,
@@ -477,29 +499,33 @@ class _SmartOtpFieldState extends State<SmartOtpField> {
               ? '•'
               : text[index]
         : '';
-    return AnimatedContainer(
-      duration: duration,
-      curve: style.animationCurve,
+    return SizedBox(
       width: width,
       height: style.boxHeight,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: fillColor,
-        borderRadius: style.borderRadius,
-        border: Border.all(
-          color: borderColor,
-          width: isFocused ? style.focusedBorderWidth : style.borderWidth,
+      child: AnimatedContainer(
+        duration: duration,
+        curve: style.animationCurve,
+        width: width,
+        height: style.boxHeight,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: fillColor,
+          borderRadius: style.borderRadius,
+          border: Border.all(
+            color: borderColor,
+            width: isFocused ? style.focusedBorderWidth : style.borderWidth,
+          ),
         ),
-      ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: value.isEmpty && isFocused && !widget.source.readOnly
-            ? Container(
-                width: 2,
-                height: (textStyle.fontSize ?? 20) * 1.15,
-                color: style.cursorColor ?? colors.primary,
-              )
-            : Text(value, style: textStyle),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: value.isEmpty && isFocused && !widget.source.readOnly
+              ? Container(
+                  width: 2,
+                  height: (textStyle.fontSize ?? 20) * 1.15,
+                  color: style.cursorColor ?? colors.primary,
+                )
+              : Text(value, style: textStyle),
+        ),
       ),
     );
   }
@@ -511,7 +537,9 @@ class _SmartOtpInputFormatter extends TextInputFormatter {
   final int length;
   final VoidCallback onAccepted;
 
-  static final RegExp _separators = RegExp(r'[ \-\u00a0]');
+  static final RegExp _separators = RegExp(
+    r'[\s\-\u200b-\u200f\u202a-\u202e\u2060-\u2069]',
+  );
   static final RegExp _digits = RegExp(r'^[0-9]*$');
 
   @override

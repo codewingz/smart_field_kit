@@ -654,17 +654,30 @@ abstract final class SmartValidators {
     return _standardEmailExpression.hasMatch(value);
   }
 
+  static final RegExp _decimalExpression = RegExp(
+    r'^-?(?:\d+(?:\.\d*)?|\.\d+)$',
+  );
+
   static String? _normalizeDecimal(String value) {
-    if (!RegExp(r'^-?(?:\d+(?:\.\d*)?|\.\d+)$').hasMatch(value)) {
+    if (!_decimalExpression.hasMatch(value)) {
       return null;
     }
     final negative = value.startsWith('-');
     final unsigned = negative ? value.substring(1) : value;
     final parts = unsigned.split('.');
     var integer = parts.first.isEmpty ? '0' : parts.first;
-    integer = integer.replaceFirst(RegExp(r'^0+(?=\d)'), '');
+    var leading = 0;
+    while (leading < integer.length - 1 &&
+        integer.codeUnitAt(leading) == 0x30) {
+      leading++;
+    }
+    integer = integer.substring(leading);
     var fraction = parts.length == 2 ? parts.last : '';
-    fraction = fraction.replaceFirst(RegExp(r'0+$'), '');
+    var end = fraction.length;
+    while (end > 0 && fraction.codeUnitAt(end - 1) == 0x30) {
+      end--;
+    }
+    fraction = fraction.substring(0, end);
     final isZero = integer == '0' && fraction.isEmpty;
     final normalized = fraction.isEmpty ? integer : '$integer.$fraction';
     return negative && !isZero ? '-$normalized' : normalized;

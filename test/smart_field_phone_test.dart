@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
+import 'support/web_skips.dart';
 
 Widget _app(
   Widget child, {
@@ -258,7 +259,7 @@ void main() {
 
   testWidgets(
     'native contact selection updates once and infers unique country',
-    skip: kIsWeb,
+    skip: skipContactPickerOnWeb,
     (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       final controller = TextEditingController(text: 'old');
@@ -292,7 +293,7 @@ void main() {
 
   testWidgets(
     'contact cancel and invalid values preserve existing text',
-    skip: kIsWeb,
+    skip: skipContactPickerOnWeb,
     (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       final controller = TextEditingController(text: '03001234567');
@@ -328,7 +329,7 @@ void main() {
 
   testWidgets(
     'contact selection rejects a uniquely disallowed country',
-    skip: kIsWeb,
+    skip: skipContactPickerOnWeb,
     (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       final controller = TextEditingController(text: 'unchanged');
@@ -355,38 +356,40 @@ void main() {
     },
   );
 
-  testWidgets('shared dialing code does not guess a country', skip: kIsWeb, (
-    tester,
-  ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    final controller = TextEditingController();
-    addTearDown(controller.dispose);
-    final countries = <SmartPhoneCountry?>[];
-    SmartPhoneValue? value;
+  testWidgets(
+    'shared dialing code does not guess a country',
+    skip: skipContactPickerOnWeb,
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final controller = TextEditingController();
+      addTearDown(controller.dispose);
+      final countries = <SmartPhoneCountry?>[];
+      SmartPhoneValue? value;
 
-    await tester.pumpWidget(
-      _app(
-        SmartField.phone(
-          controller: controller,
-          showCountryPicker: true,
-          showContactPicker: true,
-          allowedCountryCodes: const ['US', 'CA'],
-          contactPicker: () async => '+12025550123',
-          onCountryChanged: countries.add,
-          onPhoneChanged: (phone) => value = phone,
+      await tester.pumpWidget(
+        _app(
+          SmartField.phone(
+            controller: controller,
+            showCountryPicker: true,
+            showContactPicker: true,
+            allowedCountryCodes: const ['US', 'CA'],
+            contactPicker: () async => '+12025550123',
+            onCountryChanged: countries.add,
+            onPhoneChanged: (phone) => value = phone,
+          ),
         ),
-      ),
-    );
+      );
 
-    await tester.tap(find.byTooltip('Select phone number from contacts'));
-    await tester.pumpAndSettle();
-    debugDefaultTargetPlatformOverride = null;
-    expect(controller.text, '+12025550123');
-    expect(countries, isEmpty);
-    expect(find.byIcon(Icons.public), findsOneWidget);
-    expect(value?.country, isNull);
-    expect(value?.e164, '+12025550123');
-  });
+      await tester.tap(find.byTooltip('Select phone number from contacts'));
+      await tester.pumpAndSettle();
+      debugDefaultTargetPlatformOverride = null;
+      expect(controller.text, '+12025550123');
+      expect(countries, isEmpty);
+      expect(find.byIcon(Icons.public), findsOneWidget);
+      expect(value?.country, isNull);
+      expect(value?.e164, '+12025550123');
+    },
+  );
 
   testWidgets('contact action is hidden on unsupported platforms', (
     tester,
@@ -399,7 +402,7 @@ void main() {
 
   testWidgets(
     'contact platform errors are reported without text exposure',
-    skip: kIsWeb,
+    skip: skipContactPickerOnWeb,
     (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       final controller = TextEditingController(text: 'unchanged');
@@ -425,28 +428,30 @@ void main() {
     },
   );
 
-  testWidgets('async contact result is ignored after disposal', skip: kIsWeb, (
-    tester,
-  ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    final completer = Completer<String?>();
+  testWidgets(
+    'async contact result is ignored after disposal',
+    skip: skipContactPickerOnWeb,
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final completer = Completer<String?>();
 
-    await tester.pumpWidget(
-      _app(
-        SmartField.phone(
-          showContactPicker: true,
-          contactPicker: () => completer.future,
+      await tester.pumpWidget(
+        _app(
+          SmartField.phone(
+            showContactPicker: true,
+            contactPicker: () => completer.future,
+          ),
         ),
-      ),
-    );
-    await tester.tap(find.byTooltip('Select phone number from contacts'));
-    await tester.pump();
-    await tester.pumpWidget(_app(const SizedBox()));
-    completer.complete('+442079460018');
-    await tester.pump();
-    debugDefaultTargetPlatformOverride = null;
-    expect(tester.takeException(), isNull);
-  });
+      );
+      await tester.tap(find.byTooltip('Select phone number from contacts'));
+      await tester.pump();
+      await tester.pumpWidget(_app(const SizedBox()));
+      completer.complete('+442079460018');
+      await tester.pump();
+      debugDefaultTargetPlatformOverride = null;
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('preserves middle edits selection reset and legacy behavior', (
     tester,

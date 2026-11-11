@@ -35,7 +35,9 @@ SmartField.phone(
 )
 ```
 
-The controller, `onChanged`, custom validator, and `onSaved` always use the exact text in the phone field. Selecting a country never inserts a prefix or rewrites that text. `SmartPhoneValue` separately exposes the selected country, parsed national number, and E.164 value. Its `e164` is `null` when input is invalid or cannot be parsed safely. Shared dialing codes do not cause an arbitrary country selection.
+The controller, `onChanged`, custom validator, and `onSaved` always use the exact text in the phone field. Selecting a country never inserts a prefix or rewrites that text. `SmartPhoneValue` separately exposes the selected country, parsed national number, and E.164 value. Its `e164` is `null` when input is invalid or cannot be parsed safely. Shared dialing codes do not cause an arbitrary country selection. When a country is selected and a contact's number belongs to another allowed country, including one that shares its dialing code (a Canadian `+1` number with the United States selected, or a `+44` number with any other country selected), the number is accepted and the country picker moves to the country the phone parser reports. Without a selected country nothing is guessed. A country outside `allowedCountryCodes` is still refused.
+
+Under `SmartPhonePolicy.auto`, a number typed without a selected country and without a `+` prefix is checked for syntax only. The form can then be valid while `SmartPhoneValue.isValid` is `false` and `e164` is `null`, because no country is known to parse it against. Read `e164` only when it is not `null`.
 
 Phone policies are:
 

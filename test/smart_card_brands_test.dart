@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
+import 'support/web_skips.dart';
 
 String _complete(String prefix, int length) {
   final body = prefix.padRight(length - 1, '0').substring(0, length - 1);
@@ -1129,7 +1130,7 @@ void main() {
 
     test(
       'source contains no network, logging, or storage code for cards',
-      skip: kIsWeb,
+      skip: kIsWeb ? sourceReadWebSkipReason : false,
       () {
         for (final path in [
           'lib/src/widgets/smart_credit_card_field.dart',

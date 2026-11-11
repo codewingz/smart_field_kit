@@ -1281,6 +1281,10 @@ class SmartField extends _SmartFieldBase {
     String monthLabel = 'Month',
     String yearLabel = 'Year',
   }) : assert((firstYear == null) == (lastYear == null)),
+       assert(
+         firstYear == null || lastYear == null || firstYear <= lastYear,
+         'firstYear must not be after lastYear.',
+       ),
        super(
          _SmartFieldCore(
            dateTimeConfig: SmartDateTimeConfig(
@@ -1305,7 +1309,11 @@ class SmartField extends _SmartFieldBase {
              onDateChanged: onDateChanged,
              onRawChanged: onRawChanged,
              onRawSaved: onRawSaved,
-             yearRange: firstYear == null ? null : (firstYear, lastYear!),
+             yearRange: firstYear == null
+                 ? null
+                 : firstYear <= lastYear!
+                 ? (firstYear, lastYear)
+                 : (lastYear, firstYear),
              clearLabel: clearLabel,
              pickerTooltip: pickerLabel,
              dayLabel: dayLabel,
@@ -2094,9 +2102,12 @@ class _SmartFieldState extends State<SmartField> implements _FieldHost {
           widget.textAlign ??
           (ltrContent && ambientRtl ? TextAlign.right : TextAlign.start),
       obscuringCharacter: widget.obscuringCharacter,
+      enableIMEPersonalizedLearning:
+          !widget._isPassword && !SmartSensitiveInputScope.isActive(context),
       onEditingComplete: widget.onEditingComplete,
       onTapOutside: widget.onTapOutside,
-      obscureText: _feature<_PasswordFeature>()?.obscure ?? false,
+      obscureText:
+          showsMask || (_feature<_PasswordFeature>()?.obscure ?? false),
       style: showsMask
           ? const TextStyle(color: Colors.transparent)
           : widget.style,

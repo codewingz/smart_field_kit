@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
+import 'support/web_skips.dart';
 
 Widget _app(Widget child, {ThemeData? theme}) {
   return MaterialApp(
@@ -24,7 +25,7 @@ void main() {
     Future<void> Function(WidgetTester tester) body, {
     TargetPlatform platform = TargetPlatform.android,
   }) {
-    testWidgets(name, skip: kIsWeb, (tester) async {
+    testWidgets(name, skip: skipContactPickerOnWeb, (tester) async {
       debugDefaultTargetPlatformOverride = platform;
       try {
         await body(tester);

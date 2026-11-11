@@ -55,6 +55,20 @@
 * OTP: remove spaces and hyphens from pasted text, drop extra digits, let a typed digit replace a filled box, and report each distinct completed code.
 * Phone: ignore non-breaking spaces, dots, and invisible direction marks during validation and parsing.
 * Email: ignore surrounding spaces during validation and pass the trimmed address to `onSaved`.
+* Masked phone, number, and amount fields are reported to assistive technology as obscured fields with a separate masked value, so a screen reader no longer reads the raw value.
+* `maskAmount` masks every digit when `visibleSuffixDigits` covers the whole amount, accepts a minus sign before the currency text, accepts Indian grouping, and rejects digits from other scripts. A masked amount field keeps its currency symbol.
+* Amount: after a rebuild with different currency, grouping, separator, or decimal settings, valid text is shown in the new format.
+* Amount: `acceptDotAsDecimal` leaves a dot inside the currency symbol alone.
+* OTP: remove any whitespace and invisible formatting characters from pasted codes, and trim the text when `length` becomes shorter.
+* Phone: a contact number from another allowed country, including one that shares the selected country's dialing code, is accepted and selects that country.
+* URL: reject invisible and direction-changing characters.
+* Password rules: spaces, control characters, and invisible characters no longer count as special characters. Legacy policies are unchanged.
+* Date: `pastOnly` and `futureOnly` picker limits use calendar days; `minDateTime` is compared to the minute; a reversed `firstYear`/`lastYear` pair is asserted.
+* Card and OTP fields turn off keyboard personalized learning.
+* Asynchronous validation: removing `asyncValidation` clears its error at once, and a finished or dropped check leaves no timeout timer running.
+* `minValue` and `maxValue` compare very long values in linear time.
+* `SmartDecimalUtils.round` no longer includes the rejected text in its exception.
+* The wheel picker header and the OTP boxes no longer overflow on narrow screens with large text.
 * Credit card: label the security-code toggle `Show security code` / `Hide security code`, and apply decoration labels and icons to the number field only.
 
 ### Fixed

@@ -1,4 +1,6 @@
 import 'package:example/main.dart';
+import 'package:example/src/app_shell.dart';
+import 'package:example/src/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -44,6 +46,60 @@ void main() {
       }
     });
   }
+
+  testWidgets('every page renders on a small right-to-left large-text phone', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 560);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final settings = ShowcaseSettings();
+    addTearDown(settings.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(2)),
+            child: child!,
+          ),
+        ),
+        home: AppShell(settings: settings),
+      ),
+    );
+    await tester.pumpAndSettle();
+    for (final page in _pages) {
+      await tester.tap(find.byTooltip('Open navigation menu'));
+      await tester.pumpAndSettle();
+      final entry = find.widgetWithText(ListTile, page);
+      await tester.scrollUntilVisible(
+        entry,
+        80,
+        scrollable: find.descendant(
+          of: find.byType(Drawer),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(entry);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: page);
+      final scrollable = find.byType(Scrollable);
+      if (scrollable.evaluate().isNotEmpty) {
+        for (var step = 0; step < 12; step++) {
+          await tester.drag(
+            scrollable.first,
+            const Offset(0, -400),
+            warnIfMissed: false,
+          );
+          await tester.pump();
+          expect(tester.takeException(), isNull, reason: '$page scroll $step');
+        }
+      }
+    }
+  });
 
   testWidgets('amount shows grouped display and raw value', (tester) async {
     tester.view.physicalSize = const Size(1200, 1600);

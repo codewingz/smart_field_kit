@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
 import 'support/masked_prefix.dart';
+import 'support/web_skips.dart';
 
 Widget _app(
   Widget child, {
@@ -297,7 +298,24 @@ void main() {
     );
 
     final node = tester.getSemantics(find.bySemanticsLabel('Phone number'));
-    expect(node.value, '*******4567');
+    expect(node.value, '\u2022' * 11);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics && widget.properties.value == '*******4567',
+      ),
+      findsOneWidget,
+    );
+    final tree = tester
+        .binding
+        .renderViews
+        .first
+        .owner!
+        .semanticsOwner!
+        .rootSemanticsNode!
+        .toStringDeep();
+    expect(tree, contains('*******4567'));
+    expect(tree, isNot(contains('03001234567')));
     expect(find.bySemanticsLabel(RegExp('03001234567')), findsNothing);
     expect(controller.text, '03001234567');
     semantics.dispose();
@@ -340,7 +358,7 @@ void main() {
 
   testWidgets(
     'masked contact selection preserves international raw value',
-    skip: kIsWeb,
+    skip: skipContactPickerOnWeb,
     (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       final controller = TextEditingController();

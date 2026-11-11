@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
+import 'support/web_skips.dart';
 
 Widget _app(Widget child) => MaterialApp(
   home: Scaffold(body: SingleChildScrollView(child: child)),
@@ -10,31 +11,33 @@ Widget _app(Widget child) => MaterialApp(
 void main() {
   const secret = '+923001234567';
 
-  testWidgets('a picker failure shows only its generic message', skip: kIsWeb, (
-    tester,
-  ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    try {
-      await tester.pumpWidget(
-        _app(
-          SmartField.phone(
-            showContactPicker: true,
-            contactPicker: () async => throw StateError('failed for $secret'),
+  testWidgets(
+    'a picker failure shows only its generic message',
+    skip: skipContactPickerOnWeb,
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await tester.pumpWidget(
+          _app(
+            SmartField.phone(
+              showContactPicker: true,
+              contactPicker: () async => throw StateError('failed for $secret'),
+            ),
           ),
-        ),
-      );
-      await tester.tap(find.byTooltip('Select phone number from contacts'));
-      await tester.pumpAndSettle();
-      expect(find.text('Unable to open the contact picker.'), findsOneWidget);
-      expect(find.textContaining(secret), findsNothing);
-    } finally {
-      debugDefaultTargetPlatformOverride = null;
-    }
-  });
+        );
+        await tester.tap(find.byTooltip('Select phone number from contacts'));
+        await tester.pumpAndSettle();
+        expect(find.text('Unable to open the contact picker.'), findsOneWidget);
+        expect(find.textContaining(secret), findsNothing);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
 
   testWidgets(
     'the error callback keeps the original cause object',
-    skip: kIsWeb,
+    skip: skipContactPickerOnWeb,
     (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {

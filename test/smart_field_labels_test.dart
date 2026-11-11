@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
+import 'support/web_skips.dart';
 
 Widget _app(
   Widget child, {
@@ -158,7 +159,9 @@ void main() {
   });
 
   group('phone labels', () {
-    testWidgets('English defaults', skip: kIsWeb, (tester) async {
+    testWidgets('English defaults', skip: skipContactPickerOnWeb, (
+      tester,
+    ) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {
         final handle = tester.ensureSemantics();
@@ -186,7 +189,7 @@ void main() {
 
     testWidgets(
       'developer strings replace every first-party label',
-      skip: kIsWeb,
+      skip: skipContactPickerOnWeb,
       (tester) async {
         debugDefaultTargetPlatformOverride = TargetPlatform.android;
         try {

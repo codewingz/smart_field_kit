@@ -324,6 +324,78 @@ final class _AmountFeature extends _FieldFeature {
   }
 
   @override
+  void didUpdate(SmartField previous) {
+    final before = previous._amountFormatter;
+    final after = host.field._amountFormatter;
+    final controller = host.textController;
+    if (before == null ||
+        after == null ||
+        controller == null ||
+        identical(before, after) ||
+        controller.text.isEmpty ||
+        smartIsComposing(controller.value)) {
+      return;
+    }
+    final focused = host.focusNode?.hasFocus ?? false;
+    final text = controller.text;
+    if (after.normalize(text, allowPartial: focused) != null) {
+      return;
+    }
+    final raw = before.normalize(text);
+    if (raw == null) {
+      return;
+    }
+    final migrated = _migrate(raw, after, focused: focused);
+    if (migrated == null || migrated == text) {
+      return;
+    }
+    final generation = ++_displayGeneration;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!host.mounted ||
+          generation != _displayGeneration ||
+          !identical(host.textController, controller) ||
+          !identical(host.field._amountFormatter, after) ||
+          controller.text != text) {
+        return;
+      }
+      _display.write(
+        controller,
+        TextEditingValue(
+          text: migrated,
+          selection: TextSelection.collapsed(offset: migrated.length),
+        ),
+        beforeWrite: _syncFormValue,
+      );
+    });
+  }
+
+  String? _migrate(
+    String raw,
+    SmartAmountFormatter formatter, {
+    required bool focused,
+  }) {
+    var value = raw;
+    final places = formatter.decimalPlaces;
+    final dot = value.indexOf('.');
+    if (places != null && dot >= 0 && value.length - dot - 1 > places) {
+      final excess = value.substring(dot + 1 + places);
+      if (excess.replaceAll('0', '').isEmpty) {
+        value = places == 0
+            ? value.substring(0, dot)
+            : value.substring(0, dot + 1 + places);
+      }
+    }
+    final editable = formatter.decimalSeparator == '.'
+        ? value
+        : value.replaceFirst('.', formatter.decimalSeparator);
+    final display = formatter.format(editable);
+    if (display == null) {
+      return null;
+    }
+    return focused ? editable : display;
+  }
+
+  @override
   void bind() {
     _controllerBinding.bind(host.textController);
     _focusBinding.bind(host.focusNode);
@@ -421,9 +493,11 @@ final class _MaskFeature extends _FieldFeature {
             : base?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.38),
               ));
-    final text = SmartMaskedText(
-      room: () => host.editableBox,
-      child: Text(masked, maxLines: 1, softWrap: false, style: style),
+    final text = ExcludeSemantics(
+      child: SmartMaskedText(
+        room: () => host.editableBox,
+        child: Text(masked, maxLines: 1, softWrap: false, style: style),
+      ),
     );
     final prefix = decoration.prefix;
     if (prefix != null) {
@@ -449,42 +523,21 @@ final class _MaskFeature extends _FieldFeature {
     );
   }
 
-  String? _textOf(Widget? widget) => widget is Text ? widget.data : null;
-
   @override
   Widget wrap(Widget child) {
     if (!shows) {
       return child;
     }
-    final field = host.field;
-    final decoration = field.decoration;
-    final enabled = host.isEnabled;
-    final canReveal = host.isInteractive && config.revealOnFocus;
-    final label =
-        decoration.labelText ?? _textOf(decoration.label) ?? field.label;
-    final hint =
-        decoration.hintText ?? _textOf(decoration.hint) ?? field.hintText;
-    final error =
-        field.serverError?.errorText ??
-        decoration.errorText ??
-        host.fieldKey.currentState?.errorText;
-    final details = [
-      ?hint,
-      ?decoration.helperText,
-      ?error,
-    ].where((part) => part.isNotEmpty).join('. ');
-    return Semantics(
-      container: true,
-      excludeSemantics: true,
-      textField: true,
-      enabled: enabled,
-      readOnly: !canReveal,
-      liveRegion: error != null && error.isNotEmpty,
-      label: label,
-      hint: details.isEmpty ? null : details,
-      value: maskedText,
-      onTap: canReveal ? () => host.focusNode?.requestFocus() : null,
-      child: child,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Semantics(container: true, value: maskedText),
+          ),
+        ),
+        child,
+      ],
     );
   }
 }
@@ -743,9 +796,20 @@ final class _AsyncFeature extends _FieldFeature {
 
   @override
   void retire() {
+    final hadError =
+        engine.status == SmartAsyncValidationStatus.invalid ||
+        engine.status == SmartAsyncValidationStatus.unavailable;
     _binding.dispose();
     engine.dispose();
     _releaseOwnedController();
+    if (hadError && !_isOtp) {
+      host.fieldKey.currentState?.validate();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (host.mounted) {
+          host.fieldKey.currentState?.validate();
+        }
+      });
+    }
   }
 
   void _releaseOwnedController() {

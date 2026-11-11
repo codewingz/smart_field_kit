@@ -237,8 +237,18 @@ final class SmartDateTimeConfig {
           current.hour,
           current.minute,
         );
-        if (minDate != null && dateTime.isBefore(minDate!)) {
-          return minErrorText ?? 'Choose ${formatDateTime(minDate!)} or later.';
+        final lower = minDate;
+        if (lower != null &&
+            dateTime.isBefore(
+              DateTime(
+                lower.year,
+                lower.month,
+                lower.day,
+                lower.hour,
+                lower.minute,
+              ),
+            )) {
+          return minErrorText ?? 'Choose ${formatDateTime(lower)} or later.';
         }
         if (maxDate != null && dateTime.isAfter(maxDate!)) {
           return maxErrorText ??
@@ -496,8 +506,13 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
   void _syncAsync() {
     final config = _isDropdown ? widget.source.asyncValidation : null;
     if (config == null) {
+      final status = _engine?.status;
       _engine?.dispose();
       _engine = null;
+      if (status == SmartAsyncValidationStatus.invalid ||
+          status == SmartAsyncValidationStatus.unavailable) {
+        _dropdownKey.currentState?.validate();
+      }
       return;
     }
     final engine = _engine ??= SmartAsyncValidationEngine(
@@ -717,7 +732,7 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
     if (_config.restriction == SmartDateRestriction.pastOnly) {
       final limit = includesToday
           ? today
-          : today.subtract(const Duration(days: 1));
+          : DateTime(today.year, today.month, today.day - 1);
       if (limit.isBefore(last)) {
         last = limit;
       }
@@ -1313,13 +1328,23 @@ class _SheetFrame extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              TextButton(
-                onPressed: onCancel,
-                child: Text(localizations.cancelButtonLabel),
+              Flexible(
+                child: TextButton(
+                  onPressed: onCancel,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(localizations.cancelButtonLabel),
+                  ),
+                ),
               ),
-              TextButton(
-                onPressed: onDone,
-                child: Text(localizations.okButtonLabel),
+              Flexible(
+                child: TextButton(
+                  onPressed: onDone,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(localizations.okButtonLabel),
+                  ),
+                ),
               ),
             ],
           ),

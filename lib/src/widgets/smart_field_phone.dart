@@ -388,6 +388,15 @@ final class _PhoneFeature extends _FieldFeature {
         .where((country) => country.phoneCode.length == longest)
         .toList();
     final selected = selectedCountry;
+    if (selected != null && parsedIsoCode != null) {
+      final parsed = _resolveCountry(parsedIsoCode);
+      if (parsed != null) {
+        return (
+          country: parsed.isoCode == selected.isoCode ? selected : parsed,
+          disallowed: false,
+        );
+      }
+    }
     if (selected != null &&
         candidates.any((country) => country.countryCode == selected.isoCode)) {
       return (country: selected, disallowed: false);

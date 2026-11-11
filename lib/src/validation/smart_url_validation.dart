@@ -10,6 +10,9 @@ final class SmartUrlValidation {
   static final RegExp _unsafeExpression = RegExp(
     r'[\u0000- \u007f-   -     　<>"\\]',
   );
+  static final RegExp _invisibleExpression = RegExp(
+    r'[\u00ad\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]',
+  );
   static final RegExp _badPercentExpression = RegExp(r'%(?![0-9A-Fa-f]{2})');
   static final RegExp _portExpression = RegExp(r'^[0-9]{1,5}$');
   static final RegExp _ipv4Expression = RegExp(r'^[0-9]+(\.[0-9]+){3}$');
@@ -26,6 +29,7 @@ final class SmartUrlValidation {
   }) {
     if (value.isEmpty ||
         _unsafeExpression.hasMatch(value) ||
+        _invisibleExpression.hasMatch(value) ||
         _badPercentExpression.hasMatch(value)) {
       return false;
     }

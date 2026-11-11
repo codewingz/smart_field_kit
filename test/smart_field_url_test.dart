@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
+import 'support/web_skips.dart';
 
 Widget _app(Widget child, {TextDirection direction = TextDirection.ltr}) {
   return MaterialApp(
@@ -330,7 +330,9 @@ void main() {
       expect(controller.value.composing, const TextRange(start: 8, end: 9));
     });
 
-    testWidgets('undo and redo restore raw text', skip: kIsWeb, (tester) async {
+    testWidgets('undo and redo restore raw text', skip: skipNativeUndoOnWeb, (
+      tester,
+    ) async {
       final controller = TextEditingController();
       addTearDown(controller.dispose);
       await tester.pumpWidget(_app(SmartField.url(controller: controller)));

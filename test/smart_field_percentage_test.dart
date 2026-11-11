@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
+import 'support/web_skips.dart';
 
 Widget _app(Widget child, {TextDirection direction = TextDirection.ltr}) {
   return MaterialApp(
@@ -457,7 +457,7 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
     await tester.pump();
     expect(controller.text, '12.5');
-  }, skip: kIsWeb);
+  }, skip: skipNativeUndoOnWeb);
 
   testWidgets('undo and redo intents restore raw text on every platform', (
     tester,

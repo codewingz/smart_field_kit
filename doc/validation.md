@@ -42,7 +42,7 @@ Every constructor accepts `validationMode` and `builtInChecks`:
 
 - `SmartValidationMode.selected`: only the checks listed in `builtInChecks`, plus your `validator`.
 
-Selectable checks: `fieldFormat` (the field's own format rule: email, URL, phone, number, amount, percentage, OTP, or the password policy) and the password rules `passwordUppercase`, `passwordLowercase`, `passwordDigit`, `passwordSpecialCharacter`, `passwordNoWhitespace`.
+Selectable checks: `fieldFormat` (the field's own format rule: email, URL, phone, number, amount, percentage, OTP, or the password policy) and the password rules `passwordUppercase`, `passwordLowercase`, `passwordDigit`, `passwordSpecialCharacter`, `passwordNoWhitespace`. A special character is a visible symbol or punctuation mark; spaces, control characters, and invisible formatting characters such as a zero-width space do not count. The legacy password policies are unchanged.
 
 Required, `minLength`/`maxLength`, value limits, and word limits are opt-in parameters and apply in every mode. Order: required, built-in rules, length, value range, word limits, password match, your validator, then async validation (still explicit; await `validateAsync()` before submitting). Async checks never run when a synchronous check fails.
 
