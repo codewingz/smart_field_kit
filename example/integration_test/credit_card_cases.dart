@@ -30,13 +30,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Visa · 8 more digits'), findsOneWidget);
 
+    bool focused(int index) => tester
+        .widget<EditableText>(find.byType(EditableText).at(index))
+        .focusNode
+        .hasFocus;
+
     await tester.enterText(number, '4111111111111112');
     await tester.pumpAndSettle();
+    expect(find.text('Check the card number.'), findsNothing);
+    expect(
+      find.text('Visa \u00b7 Check the number or enter 2 more digits'),
+      findsOneWidget,
+    );
+
+    await tester.enterText(number, '4111111111111111');
+    await tester.pumpAndSettle();
+    expect(focused(0), isTrue);
+    expect(focused(1), isFalse);
+
+    await tester.enterText(number, '5555555555554445');
+    await tester.pumpAndSettle();
     expect(find.text('Check the card number.'), findsOneWidget);
+    expect(focused(0), isTrue);
 
     await tester.enterText(number, '378282246310005');
     await tester.pumpAndSettle();
     expect(find.text('American Express'), findsWidgets);
+    expect(focused(1), isTrue);
     expect(
       tester
           .widget<EditableText>(find.byType(EditableText).at(0))
