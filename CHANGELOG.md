@@ -2,6 +2,7 @@
 
 ### Added
 
+* Add `SmartCardBrandMatch.detection` (`identified`, `ambiguous`, `unknown`), `SmartCardBrand.securityCodeName`, and `SmartCardNumberAssessment.canBeLonger` and `isFinal`.
 * Add `SmartAsyncValidation.revalidationKey` to drop results and re-check when the validation rule changes.
 * Add opt-in `normalizeDigits` on number, amount, percentage, phone, OTP, card, date, time, and date-time fields, with `SmartDigitNormalizationFormatter` and `SmartTextUtils.normalizeDigits`, for Arabic-Indic, Persian, and fullwidth digits.
 * Add opt-in `acceptDotAsDecimal` on `SmartField.amount` and `SmartAmountFormatter`.
@@ -67,6 +68,11 @@
 * Card and OTP fields turn off keyboard personalized learning.
 * Asynchronous validation: removing `asyncValidation` clears its error at once, and a finished or dropped check leaves no timeout timer running.
 * `minValue` and `maxValue` compare very long values in linear time.
+* Credit card: focus moves to the expiry only when the brand is identified, the number is valid, and the brand has no longer length. A valid 16-digit or 18-digit Visa number no longer moves focus; Mastercard and American Express still do. Discover, JCB, Maestro, Mir, Diners Club, Verve, and UnionPay move at 19 digits.
+* Credit card: a checksum that fails at a length shorter than the brand's longest is `incomplete` with `issue: failsChecksum` instead of `invalid`, and the field shows guidance instead of an error until the form is validated. This affects 16-digit Visa, Discover, JCB, UnionPay, Maestro, Mir, Diners Club, Verve, and unknown-brand numbers.
+* Credit card: with `acceptedBrands`, the brand error appears as soon as no accepted brand can match the typed digits.
+* Credit card: the security-code hint shows the identified brand's code name unless `cvvHint` is set.
+* Credit card: brand detection, number assessment, the checksum, and the formatter no longer create regular expressions or intermediate maps per call. Detection results are unchanged.
 * `SmartDecimalUtils.round` no longer includes the rejected text in its exception.
 * The wheel picker header and the OTP boxes no longer overflow on narrow screens with large text.
 * Credit card: label the security-code toggle `Show security code` / `Hide security code`, and apply decoration labels and icons to the number field only.

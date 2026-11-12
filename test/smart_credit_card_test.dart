@@ -500,7 +500,7 @@ void main() {
       );
       number.requestFocus();
       await tester.pump();
-      await tester.enterText(find.byType(TextFormField).at(0), _visa);
+      await tester.enterText(find.byType(TextFormField).at(0), _mastercard);
       await tester.pump();
       expect(expiry.hasFocus, isTrue);
       await tester.enterText(find.byType(TextFormField).at(1), '122030');

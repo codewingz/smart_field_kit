@@ -158,6 +158,8 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
   );
   String? _cvvBrandError;
   String _lastNumberText = '';
+  String? _assessedText;
+  SmartCardNumberAssessment? _assessment;
 
   SmartCreditCardConfig get _config => widget.config;
 
@@ -168,7 +170,7 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
   FocusNode get _expiryFocus => _expiryInput.focusNode;
   FocusNode get _cvvFocus => _cvvInput.focusNode;
 
-  SmartCardBrand get _brand => SmartCardUtils.detectBrand(_number.text);
+  SmartCardBrand get _brand => _assess().brand;
 
   @override
   void initState() {
@@ -180,6 +182,7 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
   @override
   void didUpdateWidget(covariant SmartCreditCardField oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _assessment = null;
     final numberRebound = _syncInputs();
     _refreshNumberDisplay();
     final cvvPolicyChanged = !setEquals(
@@ -229,8 +232,14 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
   void _handleCvvServerChange() => _refreshCvvDisplay();
 
   SmartCardNumberAssessment _assess() {
-    return SmartCardUtils.assessNumber(
-      _number.text,
+    final text = _number.text;
+    final cached = _assessment;
+    if (cached != null && text == _assessedText) {
+      return cached;
+    }
+    _assessedText = text;
+    return _assessment = SmartCardUtils.assessNumber(
+      text,
       acceptedBrands: _config.acceptedBrands,
       validateLuhn: _config.validateLuhn,
       luhnExemptBrands: _config.luhnExemptBrands,
@@ -296,7 +305,11 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
         if (remaining == null || !assessment.match.isCertain) {
           return null;
         }
-        return '$brandName$remaining more ${remaining == 1 ? 'digit' : 'digits'}';
+        final more = '$remaining more ${remaining == 1 ? 'digit' : 'digits'}';
+        if (assessment.issue == SmartCardNumberIssue.failsChecksum) {
+          return '${brandName}Check the number or enter $more';
+        }
+        return '$brandName$more';
       case SmartCardNumberStatus.valid:
         return '${brandName}Number format looks valid';
     }
@@ -318,11 +331,11 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       _expiry.text,
       format: _config.expiryFormat,
     );
-    final digits = SmartCardUtils.digitsOnly(_number.text);
+    final assessment = _assess();
     return SmartCreditCardValue(
-      number: digits,
-      brand: SmartCardUtils.detectBrand(digits),
-      numberStatus: _assess().status,
+      number: SmartCardUtils.digitsOnly(_number.text),
+      brand: assessment.brand,
+      numberStatus: assessment.status,
       expiryMonth: expiry?.month,
       expiryYear: expiry?.year,
       cvv: _cvv.text,
@@ -341,15 +354,7 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
     if (mounted) {
       setState(() {});
     }
-    final count = assessment.digitCount;
-    final brand = assessment.brand;
-    final checksumVerified =
-        _config.validateLuhn && !_config.luhnExemptBrands.contains(brand);
-    if (_config.autoAdvance &&
-        _numberFocus.hasFocus &&
-        assessment.isLocallyValid &&
-        (count == brand.maxLength ||
-            (count == brand.primaryLength && checksumVerified))) {
+    if (_config.autoAdvance && _numberFocus.hasFocus && assessment.isFinal) {
       _expiryFocus.requestFocus();
     }
     _notify();
@@ -383,8 +388,8 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       widget.source.enabled,
       widget.source.decoration,
     );
-    final brand = _brand;
     final assessment = _assess();
+    final brand = assessment.brand;
     final numberDecoration = widget.source.decoration.copyWith(
       suffixText: _config.showBrand && brand != SmartCardBrand.unknown
           ? brand.displayName
@@ -486,6 +491,9 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       allowedLengths: _config.cvvLengths,
       message: _config.cvvErrorText,
     );
+    final cvvHint =
+        _config.cvvHint ??
+        (assessment.match.isCertain ? brand.securityCodeName : null);
     final cvvFormatters = <TextInputFormatter>[
       ...digitFormatters,
       FilteringTextInputFormatter.digitsOnly,
@@ -494,7 +502,7 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
     final cvv = _config.concealCvv
         ? smartConcealedSecurityCodeField(
             label: _config.cvvLabel,
-            hintText: _config.cvvHint,
+            hintText: cvvHint,
             controller: _cvv,
             focusNode: _cvvFocus,
             enabled: enabled,
@@ -514,7 +522,7 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
           )
         : SmartField(
             label: _config.cvvLabel,
-            hintText: _config.cvvHint,
+            hintText: cvvHint,
             controller: _cvv,
             focusNode: _cvvFocus,
             enabled: enabled,

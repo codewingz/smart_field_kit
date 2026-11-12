@@ -239,7 +239,7 @@ void main() {
       );
       expect(
         SmartCardUtils.assessNumber(
-          '6200000000000000',
+          '6200000000000000001',
           luhnExemptBrands: const {},
         ).status,
         SmartCardNumberStatus.invalid,

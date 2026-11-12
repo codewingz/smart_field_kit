@@ -20,23 +20,63 @@ SmartField.creditCard(
 )
 ```
 
-- **Brands** (data derived from maintained Braintree card-brand metadata, reviewed on 2026-11-09): Visa, Mastercard (51-55 and 2221-2720), American Express, Diners Club, Discover, JCB, UnionPay, Maestro, Troy, Elo, Mir, Hiper, Hipercard, Naranja, Verve. Each has its own prefix ranges, accepted lengths, display grouping, and security-code size (`SmartCardBrand.lengths`, `gaps`, `cvvLength`). Supported lengths follow the implemented verified metadata. The legacy 13-digit Visa format is not accepted by default; other length differences are handled according to the maintained card-brand table. **RuPay is not supported:** the only source found lists very broad prefixes (60, 65, 81, 82, 508) that overlap Discover, UnionPay, and Maestro with no verifiable narrower ranges, so those numbers are handled as the matching brand or as unknown.
+- **One engine, offline.** Brand detection, lengths, grouping, the checksum, and the security-code size all come from one table in `SmartCardUtils`. It is pure Dart, makes no network request, reads no file, and gives the same result for the same text on Android, iOS, web, and desktop, however fast the text was typed or pasted. The table cannot be replaced or extended by the application.
 
-- **Detection never forces a brand early.** `SmartCardUtils.matchBrand()` returns the candidate brands. While a prefix can still become another network (for example `4` could be Visa, Elo, or Naranja) the brand is `unknown` and `likelyBrand` shows the best guess; the brand is set as soon as the prefix is unambiguous (`4111`, `401178`, `34`). The most specific verified range wins (Troy over Discover `65`, Verve and Elo over Maestro). Detection says nothing about credit versus debit. Unknown brands accept 12 to 19 digits and a 3- or 4-digit code.
+- **Brands** (prefix ranges, lengths, grouping, and security codes follow Braintree `credit-card-type` 10.3.1, compared again on 2026-11-12):
 
-- **Instant status.** `SmartCardUtils.assessNumber()` and `SmartCreditCardValue.numberStatus` report `empty`, `incomplete`, `valid`, or `invalid` on every keystroke, paste, programmatic change, clear, and reset. Incomplete numbers show neutral guidance (`Visa · 8 more digits`), never an error. When a valid length is reached the Luhn checksum is checked and a failure is shown immediately. For brands with several valid lengths a failing number is flagged at the main length (16, 15, or 14) or the longest, and stays neutral at the other lengths while the user may still be typing. Strict `FormState.validate()` always requires a complete valid number. `numberStatusBuilder` customizes the guidance text, and `showNumberStatus: false` hides it.
+  | Brand | Number lengths | Grouping | Security code |
+  |---|---|---|---|
+  | Visa | 16, 18, 19 | 4-4-4-4, then fours | CVV, 3 digits |
+  | Mastercard (51-55, 2221-2720) | 16 | 4-4-4-4 | CVC, 3 |
+  | American Express (34, 37) | 15 | 4-6-5 | CID, 4 |
+  | Diners Club | 14, 16, 19 | 4-6-4 | CVV, 3 |
+  | Discover | 16 to 19 | 4-4-4-4, then fours | CID, 3 |
+  | JCB | 16 to 19 | 4-4-4-4, then fours | CVV, 3 |
+  | UnionPay | 14 to 19 | 4-4-4-4, then fours | CVN, 3 |
+  | Maestro | 12 to 19 | 4-4-4-4, then fours | CVC, 3 |
+  | Mir | 16 to 19 | 4-4-4-4, then fours | CVP2, 3 |
+  | Troy, Elo, Hiper, Hipercard, Naranja | 16 | 4-4-4-4 | CVV, CVE, CVC, CVC, CVV; 3 |
+  | Verve | 16, 18, 19 | 4-4-4-4, then fours | CVV, 3 |
+  | Unknown brand | 12 to 19 | 4-4-4-4, then fours | 3 or 4 |
 
-- **Luhn** applies to every brand except UnionPay by default. UnionPay is exempt because its numbers are not required to pass the Luhn checksum (the maintained Braintree `card-validator` skips Luhn for UnionPay unless asked, checked 2026-11-09). Pass `luhnExemptBrands: const {}` to enforce Luhn on UnionPay too, or `validateLuhn: false` to disable the checksum for every brand; length and prefix checks still apply to UnionPay.
+  The same data is on `SmartCardBrand` (`lengths`, `gaps`, `cvvLength`, `securityCodeName`). Discover accepts 17 and 18 digits here; the Braintree table lists only 16 and 19. The legacy 13-digit Visa format is not accepted. **RuPay is not supported:** the only source found lists very broad prefixes (60, 65, 81, 82, 508) that overlap Discover, UnionPay, and Maestro, so those numbers are handled as the matching brand or as unknown. Detection says nothing about the issuing bank, or about credit versus debit.
 
-- **Grouping** follows each brand: `4111 1111 1111 1111`, `3782 822463 10005`, Diners `3056 930902 5904`. Numbers beyond 16 digits continue in groups of four. Pasted spaces and dashes are accepted; letters are rejected; digits are never changed.
+- **Detection has three states.** `SmartCardUtils.matchBrand(text).detection` is `identified`, `ambiguous`, or `unknown`. A brand is identified as soon as the typed digits rule out every other brand, which can take one digit or six: `41` is Visa, `34` is American Express, but `4` could still be Visa, Elo, or Naranja, and `4011` is settled only at the sixth digit (`401178` is Elo, `401170` is Visa). While the prefix is ambiguous the brand is `unknown`, `candidates` lists the possible brands, and `likelyBrand` holds the best match so far. The most specific range wins (Troy over Discover `65`, Verve and Elo over Maestro). A prefix that matches no brand is `unknown` and is checked as a generic 12 to 19 digit card.
+
+- **Number status.** `SmartCardUtils.assessNumber()` and `SmartCreditCardValue.numberStatus` report one of four states on every keystroke, paste, programmatic change, clear, and reset:
+
+  | Status | Meaning |
+  |---|---|
+  | `empty` | No text |
+  | `incomplete` | More digits can still make the number valid. Shown as neutral guidance (`Visa · 8 more digits`), never as an error |
+  | `valid` | The length is one the brand allows and the checksum passes. `canBeLonger` says whether the brand also has a longer length |
+  | `invalid` | The number cannot become valid: a character other than a digit, space, or hyphen; too many digits; no accepted brand can match; or the checksum fails at the brand's longest length |
+
+  A checksum that fails at a shorter length the brand allows is `incomplete` with `issue: failsChecksum`, because more digits may follow. A 16-digit Visa number with a wrong digit therefore shows `Visa · Check the number or enter 2 more digits` while typing, and `Check the card number.` when the form is validated. A Mastercard or American Express number has one length, so its checksum error appears at once. `FormState.validate()` always requires a `valid` number. With `acceptedBrands`, the brand error appears as soon as none of the possible brands is accepted. `numberStatusBuilder` customizes the guidance text, and `showNumberStatus: false` hides it.
+
+- **Luhn** applies to every brand except UnionPay. UnionPay is exempt because its numbers are not required to pass the checksum (Braintree `card-validator` 10.0.4 skips it for UnionPay unless asked, compared on 2026-11-12); its length and prefix are still checked. A number made only of zeros is invalid. Two older options change this rule and remain for compatibility: `luhnExemptBrands: const {}` enforces Luhn on UnionPay, and `validateLuhn: false` turns the checksum off for every brand. With `validateLuhn: false` the field accepts numbers that a payment provider will reject; do not use it for real payments.
+
+- **Grouping** follows the brand: `4111 1111 1111 1111`, `3782 822463 10005`, Diners `3056 930902 5904`, and a 19-digit number as `4-4-4-4-3`. Pasted spaces and hyphens are accepted and regrouped. Letters and other characters are rejected, and so is an edit that would exceed the brand's longest length; the text is never shortened and digits are never changed.
+
+- **Moving to the expiry.** With `autoAdvance` (on by default), focus moves from the number to the expiry only when the brand is identified, the number is valid, and the brand has no longer length:
+
+  | Number | Result |
+  |---|---|
+  | Valid 16-digit Mastercard, valid 15-digit American Express | Moves to the expiry |
+  | Valid 16-digit or 18-digit Visa | Stays, because a 19-digit Visa number is possible. Press Next or Tab, or tap the expiry |
+  | Valid 19-digit Visa | Moves to the expiry |
+  | UnionPay, Discover, JCB, Maestro, Mir, Diners Club, Verve | Moves only at 19 digits |
+  | Wrong checksum, unknown brand | Never moves |
+
+  Typing and pasting follow the same rule. Focus never returns to the number by itself, and a rebuild or a replaced controller does not move it. `autoAdvance: false` turns the behavior off; it cannot be set per brand.
 
 - **Expiry:** `MM/YY` or `MM/YYYY`; months 01-12; valid through the last moment of the expiry month (leap years, December to January included); two-digit years mean 2000-2099. Pass `now:` for deterministic tests.
 
-- **Security code:** 4 digits for American Express, 3 for the other supported brands, or any lengths from `cvvLengths`. Changing the number to a brand with a different code length re-checks an already entered code immediately. It is concealed by default (`concealCvv: true`). Local checks cannot confirm the code with the bank.
+- **Security code:** 4 digits for American Express and 3 for the other brands. Once the brand is identified its code name (`CVC`, `CID`, `CVV`, `CVN`, `CVE`, `CVP2`) is shown as the hint of the security-code field unless you pass `cvvHint`; the label stays `cvvLabel`. `cvvLengths` replaces the brand's size with your own lengths and remains for compatibility. Changing the number to a brand with a different code length re-checks an already entered code immediately. It is concealed by default (`concealCvv: true`). Local checks cannot confirm the code with the bank.
 
 - Server messages: `numberServerError`, `expiryServerError`, `cvvServerError` take priority and clear on edit.
 
-- **Security:** card data is never persisted, restored (`restorationId` is not used), logged, or sent. `SmartCreditCardValue`, assessments, and package-owned controllers print redacted text. An application-supplied controller or other application code can still expose sensitive values in its own diagnostics. `onChanged`/`onSaved` hand the full values to your code: treat them as sensitive and never log them. Platform autofill hints are set, so the platform can fill the three inputs. When the card field is removed it tells the platform not to save what was typed (`AutofillContextAction.cancel`); the effect of this on a real device's "save card" prompt has not been verified. With `autoAdvance`, focus moves from the number to the expiry when the number is valid at the brand's usual length and its checksum was verified, or when it reaches the brand's longest length. A brand that is exempt from the checksum, such as UnionPay by default, advances only at its longest length, so 17 to 19 digit numbers can be typed in full. **SmartField does not make an app PCI compliant;** for real payments use processor-hosted or tokenized fields, never store security codes after authorization, and use only synthetic test cards (such as `4111 1111 1111 1111`) in tests and demos.
+- **Security:** card data is never persisted, restored (`restorationId` is not used), logged, or sent. `SmartCreditCardValue`, assessments, and package-owned controllers print redacted text. An application-supplied controller or other application code can still expose sensitive values in its own diagnostics. `onChanged`/`onSaved` hand the full values to your code: treat them as sensitive and never log them. Platform autofill hints are set, so the platform can fill the three inputs. When the card field is removed it tells the platform not to save what was typed (`AutofillContextAction.cancel`); the effect of this on a real device's "save card" prompt has not been verified. **SmartField does not make an app PCI compliant,** and a number that passes these checks is not proof that a card exists, is active, or will be authorized. Authorization must be done by a payment provider. For real payments use processor-hosted or tokenized fields, never store security codes after authorization, and use only synthetic test cards (such as `4111 1111 1111 1111`) in tests and demos.
 
 ## Dates, times, and date-times
 

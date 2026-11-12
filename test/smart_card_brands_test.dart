@@ -390,9 +390,13 @@ void main() {
         SmartCardUtils.assessNumber('4111 1111 1111 1111').status,
         SmartCardNumberStatus.valid,
       );
-      final bad = SmartCardUtils.assessNumber('4111 1111 1111 1112');
+      final bad = SmartCardUtils.assessNumber('5555 5555 5555 4445');
       expect(bad.status, SmartCardNumberStatus.invalid);
       expect(bad.issue, SmartCardNumberIssue.failsChecksum);
+      final longer = SmartCardUtils.assessNumber('4111 1111 1111 1112');
+      expect(longer.status, SmartCardNumberStatus.incomplete);
+      expect(longer.issue, SmartCardNumberIssue.failsChecksum);
+      expect(longer.remainingDigits, 2);
       expect(
         SmartCardUtils.assessNumber('4111x').issue,
         SmartCardNumberIssue.invalidCharacters,
@@ -426,31 +430,39 @@ void main() {
       }
     });
 
-    test(
-      'multi-length brands only flag failures at the primary or maximum length',
-      () {
-        final failing16 =
-            _complete('4111', 16).replaceRange(15, 16, '0') ==
-                _complete('4111', 16)
-            ? _complete('4111', 16).replaceRange(15, 16, '1')
-            : _complete('4111', 16).replaceRange(15, 16, '0');
-        expect(
-          SmartCardUtils.assessNumber(failing16).status,
-          SmartCardNumberStatus.invalid,
-        );
-        final maestro13 = _complete('6759', 13);
-        final bad13 = maestro13.replaceRange(
-          12,
-          13,
-          maestro13[12] == '0' ? '1' : '0',
-        );
-        expect(
-          SmartCardUtils.assessNumber(bad13).status,
-          SmartCardNumberStatus.incomplete,
-        );
-        expect(SmartValidators.cardNumber()(bad13), isNotNull);
-      },
-    );
+    test('multi-length brands only flag failures at the longest length', () {
+      final failing16 =
+          _complete('4111', 16).replaceRange(15, 16, '0') ==
+              _complete('4111', 16)
+          ? _complete('4111', 16).replaceRange(15, 16, '1')
+          : _complete('4111', 16).replaceRange(15, 16, '0');
+      expect(
+        SmartCardUtils.assessNumber(failing16).status,
+        SmartCardNumberStatus.incomplete,
+      );
+      expect(SmartValidators.cardNumber()(failing16), isNotNull);
+      final visa19 = _complete('4111', 19);
+      final failing19 = visa19.replaceRange(
+        18,
+        19,
+        visa19[18] == '0' ? '1' : '0',
+      );
+      expect(
+        SmartCardUtils.assessNumber(failing19).status,
+        SmartCardNumberStatus.invalid,
+      );
+      final maestro13 = _complete('6759', 13);
+      final bad13 = maestro13.replaceRange(
+        12,
+        13,
+        maestro13[12] == '0' ? '1' : '0',
+      );
+      expect(
+        SmartCardUtils.assessNumber(bad13).status,
+        SmartCardNumberStatus.incomplete,
+      );
+      expect(SmartValidators.cardNumber()(bad13), isNotNull);
+    });
 
     test('Luhn can be disabled or exempted per brand', () {
       final bad =
@@ -463,9 +475,15 @@ void main() {
         SmartCardNumberStatus.valid,
       );
       expect(SmartValidators.cardNumber()(bad), isNull);
+      final enforced = SmartCardUtils.assessNumber(
+        bad,
+        luhnExemptBrands: const {},
+      );
+      expect(enforced.status, SmartCardNumberStatus.incomplete);
+      expect(enforced.issue, SmartCardNumberIssue.failsChecksum);
       expect(
-        SmartCardUtils.assessNumber(bad, luhnExemptBrands: const {}).status,
-        SmartCardNumberStatus.invalid,
+        SmartValidators.cardNumber(luhnExemptBrands: const {})(bad),
+        isNotNull,
       );
       expect(
         SmartValidators.cardNumber(luhnExemptBrands: const {})(bad),
@@ -767,7 +785,7 @@ void main() {
         expect(find.text('Check the card number.'), findsNothing);
         await tester.enterText(
           find.byType(TextFormField).at(0),
-          '4111 1111 1111 1112',
+          '5555 5555 5555 4445',
         );
         await tester.pump();
         expect(find.text('Check the card number.'), findsOneWidget);
@@ -812,7 +830,7 @@ void main() {
       await tester.pump();
       expect(find.textContaining('format looks valid'), findsOneWidget);
       expect(values.last.numberStatus, SmartCardNumberStatus.valid);
-      number.text = '4111 1111 1111 1112';
+      number.text = '5555 5555 5555 4445';
       await tester.pump();
       expect(find.text('Check the card number.'), findsOneWidget);
       expect(values.last.numberStatus, SmartCardNumberStatus.invalid);
@@ -891,7 +909,7 @@ void main() {
       expect(find.text('Looks fine'), findsOneWidget);
       await tester.enterText(
         find.byType(TextFormField).at(0),
-        '4111111111111112',
+        '5555555555554445',
       );
       await tester.pump();
       expect(find.text('Digits look wrong'), findsOneWidget);
@@ -981,7 +999,7 @@ void main() {
       );
       await tester.enterText(
         find.byType(TextFormField).at(0),
-        '4111111111111112',
+        '5555555555554445',
       );
       await tester.enterText(
         find.byType(TextFormField).at(3),
@@ -990,7 +1008,7 @@ void main() {
       await tester.pump();
       expect(find.text('Check the card number.'), findsOneWidget);
       expect(find.text('American Express'), findsWidgets);
-      expect(_fieldText(tester, 0), '4111 1111 1111 1112');
+      expect(_fieldText(tester, 0), '5555 5555 5555 4445');
       expect(_fieldText(tester, 3), '3782 822463 10005');
     });
 

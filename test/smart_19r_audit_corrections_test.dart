@@ -1106,10 +1106,8 @@ void main() {
       expect(focused(tester, 1), isTrue);
     });
 
-    testWidgets('checksum brands still advance at their usual length', (
-      tester,
-    ) async {
-      for (final number in ['4111111111111111', '378282246310005']) {
+    testWidgets('single-length brands advance at their length', (tester) async {
+      for (final number in ['5555555555554444', '378282246310005']) {
         await tester.pumpWidget(_page(SmartField.creditCard(), width: 420));
         await tester.showKeyboard(find.byType(EditableText).first);
         await typeDigits(tester, number);

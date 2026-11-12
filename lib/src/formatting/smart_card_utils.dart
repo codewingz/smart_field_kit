@@ -5,22 +5,29 @@ import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
 
 /// A card network with its number lengths and security-code length.
 enum SmartCardBrand {
-  visa('Visa', {16, 18, 19}, 3, 16, [4, 8, 12]),
-  mastercard('Mastercard', {16}, 3, 16, [4, 8, 12]),
-  amex('American Express', {15}, 4, 15, [4, 10]),
-  dinersClub('Diners Club', {14, 16, 19}, 3, 14, [4, 10]),
-  discover('Discover', {16, 17, 18, 19}, 3, 16, [4, 8, 12]),
-  jcb('JCB', {16, 17, 18, 19}, 3, 16, [4, 8, 12]),
-  unionPay('UnionPay', {14, 15, 16, 17, 18, 19}, 3, 16, [4, 8, 12]),
-  maestro('Maestro', {12, 13, 14, 15, 16, 17, 18, 19}, 3, 16, [4, 8, 12]),
-  troy('Troy', {16}, 3, 16, [4, 8, 12]),
-  elo('Elo', {16}, 3, 16, [4, 8, 12]),
-  mir('Mir', {16, 17, 18, 19}, 3, 16, [4, 8, 12]),
-  hiper('Hiper', {16}, 3, 16, [4, 8, 12]),
-  hipercard('Hipercard', {16}, 3, 16, [4, 8, 12]),
-  naranja('Naranja', {16}, 3, 16, [4, 8, 12]),
-  verve('Verve', {16, 18, 19}, 3, 16, [4, 8, 12]),
-  unknown('Card', {12, 13, 14, 15, 16, 17, 18, 19}, 3, 16, [4, 8, 12]);
+  visa('Visa', {16, 18, 19}, 3, 16, [4, 8, 12], 'CVV'),
+  mastercard('Mastercard', {16}, 3, 16, [4, 8, 12], 'CVC'),
+  amex('American Express', {15}, 4, 15, [4, 10], 'CID'),
+  dinersClub('Diners Club', {14, 16, 19}, 3, 14, [4, 10], 'CVV'),
+  discover('Discover', {16, 17, 18, 19}, 3, 16, [4, 8, 12], 'CID'),
+  jcb('JCB', {16, 17, 18, 19}, 3, 16, [4, 8, 12], 'CVV'),
+  unionPay('UnionPay', {14, 15, 16, 17, 18, 19}, 3, 16, [4, 8, 12], 'CVN'),
+  maestro(
+    'Maestro',
+    {12, 13, 14, 15, 16, 17, 18, 19},
+    3,
+    16,
+    [4, 8, 12],
+    'CVC',
+  ),
+  troy('Troy', {16}, 3, 16, [4, 8, 12], 'CVV'),
+  elo('Elo', {16}, 3, 16, [4, 8, 12], 'CVE'),
+  mir('Mir', {16, 17, 18, 19}, 3, 16, [4, 8, 12], 'CVP2'),
+  hiper('Hiper', {16}, 3, 16, [4, 8, 12], 'CVC'),
+  hipercard('Hipercard', {16}, 3, 16, [4, 8, 12], 'CVC'),
+  naranja('Naranja', {16}, 3, 16, [4, 8, 12], 'CVV'),
+  verve('Verve', {16, 18, 19}, 3, 16, [4, 8, 12], 'CVV'),
+  unknown('Card', {12, 13, 14, 15, 16, 17, 18, 19}, 3, 16, [4, 8, 12], 'CVV');
 
   const SmartCardBrand(
     this.displayName,
@@ -28,6 +35,7 @@ enum SmartCardBrand {
     this.cvvLength,
     this.primaryLength,
     this.gaps,
+    this.securityCodeName,
   );
 
   final String displayName;
@@ -35,6 +43,9 @@ enum SmartCardBrand {
   final int cvvLength;
   final int primaryLength;
   final List<int> gaps;
+
+  /// The name the network prints for its security code, such as `CVC`.
+  final String securityCodeName;
 
   int get maxLength => lengths.reduce((a, b) => a > b ? a : b);
 
@@ -56,6 +67,9 @@ enum SmartCardNumberIssue {
   failsChecksum,
 }
 
+/// How far the leading digits identify a card brand.
+enum SmartCardBrandDetection { unknown, ambiguous, identified }
+
 /// The brand detected from the leading digits of a card number.
 final class SmartCardBrandMatch {
   const SmartCardBrandMatch({
@@ -69,6 +83,17 @@ final class SmartCardBrandMatch {
   final List<SmartCardBrand> candidates;
 
   bool get isCertain => brand != SmartCardBrand.unknown;
+
+  /// `identified` when one brand is left, `ambiguous` while more digits
+  /// are needed to settle the brand, and `unknown` when no brand matches.
+  SmartCardBrandDetection get detection {
+    if (isCertain) {
+      return SmartCardBrandDetection.identified;
+    }
+    return candidates.isEmpty
+        ? SmartCardBrandDetection.unknown
+        : SmartCardBrandDetection.ambiguous;
+  }
 }
 
 /// The result of [SmartCardUtils.assessNumber].
@@ -91,6 +116,13 @@ final class SmartCardNumberAssessment {
 
   bool get isLocallyValid => status == SmartCardNumberStatus.valid;
 
+  /// Whether the brand also has a longer valid number length.
+  bool get canBeLonger => digitCount < brand.maxLength;
+
+  /// Whether the number is valid, its brand is identified and no longer
+  /// length exists, so nothing more can be typed.
+  bool get isFinal => isLocallyValid && match.isCertain && !canBeLonger;
+
   @override
   String toString() {
     return 'SmartCardNumberAssessment(status: ${status.name}, '
@@ -106,9 +138,26 @@ final class _Pattern {
   final int length;
 }
 
-_Pattern _p(int value) => _Pattern(value, value, value.toString().length);
+final class _BrandPattern {
+  const _BrandPattern(this.slot, this.low, this.high, this.length);
 
-_Pattern _r(int low, int high) => _Pattern(low, high, low.toString().length);
+  final int slot;
+  final int low;
+  final int high;
+  final int length;
+}
+
+int _digitCount(int value) {
+  var count = 1;
+  for (var rest = value; rest >= 10; rest ~/= 10) {
+    count++;
+  }
+  return count;
+}
+
+_Pattern _p(int value) => _Pattern(value, value, _digitCount(value));
+
+_Pattern _r(int low, int high) => _Pattern(low, high, _digitCount(low));
 
 final Map<SmartCardBrand, List<_Pattern>> _brandPatterns = {
   SmartCardBrand.visa: [_p(4)],
@@ -280,6 +329,26 @@ final Map<SmartCardBrand, List<_Pattern>> _brandPatterns = {
   ],
 };
 
+final List<SmartCardBrand> _patternBrands = List.unmodifiable(
+  _brandPatterns.keys,
+);
+
+final List<_BrandPattern> _patternTable = List.unmodifiable([
+  for (var slot = 0; slot < _patternBrands.length; slot++)
+    for (final pattern in _brandPatterns[_patternBrands[slot]]!)
+      _BrandPattern(slot, pattern.low, pattern.high, pattern.length),
+]);
+
+const int _maxPatternDigits = 8;
+
+const SmartCardBrandMatch _noBrandMatch = SmartCardBrandMatch(
+  brand: SmartCardBrand.unknown,
+  likelyBrand: null,
+  candidates: [],
+);
+
+bool _isDigit(int unit) => unit >= 0x30 && unit <= 0x39;
+
 const List<int> _powersOfTen = [
   1,
   10,
@@ -311,174 +380,238 @@ final class SmartCardExpiry {
 abstract final class SmartCardUtils {
   static const int maxCardDigits = 19;
 
-  static final RegExp _nonDigit = RegExp(r'\D');
-
   /// Removes every character that is not an ASCII digit.
-  static String digitsOnly(String value) => value.replaceAll(_nonDigit, '');
-
-  static SmartCardBrandMatch matchBrand(String value) {
-    final digits = digitsOnly(value);
-    if (digits.isEmpty) {
-      return const SmartCardBrandMatch(
-        brand: SmartCardBrand.unknown,
-        likelyBrand: null,
-        candidates: [],
-      );
+  static String digitsOnly(String value) {
+    final length = value.length;
+    var index = 0;
+    while (index < length && _isDigit(value.codeUnitAt(index))) {
+      index++;
     }
-    final strength = <SmartCardBrand, int>{};
-    final partial = <SmartCardBrand>{};
-    final typed = digits.length > 8 ? digits.substring(0, 8) : digits;
-    for (final entry in _brandPatterns.entries) {
-      for (final pattern in entry.value) {
-        if (typed.length >= pattern.length) {
-          final prefix = int.parse(typed.substring(0, pattern.length));
-          if (prefix >= pattern.low && prefix <= pattern.high) {
-            final score =
-                pattern.length * 1000000000 - (pattern.high - pattern.low);
-            final current = strength[entry.key] ?? 0;
-            if (score > current) {
-              strength[entry.key] = score;
-            }
+    if (index == length) {
+      return value;
+    }
+    final buffer = StringBuffer(value.substring(0, index));
+    for (index++; index < length; index++) {
+      final unit = value.codeUnitAt(index);
+      if (_isDigit(unit)) {
+        buffer.writeCharCode(unit);
+      }
+    }
+    return buffer.toString();
+  }
+
+  static bool _hasOnlyCardCharacters(String value) {
+    for (var index = 0; index < value.length; index++) {
+      final unit = value.codeUnitAt(index);
+      if (!_isDigit(unit) && unit != 0x20 && unit != 0x2d) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// Finds the brands the leading digits can belong to. The brand is set
+  /// only when no other brand is still possible.
+  static SmartCardBrandMatch matchBrand(String value) {
+    return _matchDigits(digitsOnly(value));
+  }
+
+  static SmartCardBrandMatch _matchDigits(String digits) {
+    if (digits.isEmpty) {
+      return _noBrandMatch;
+    }
+    final typedLength = digits.length > _maxPatternDigits
+        ? _maxPatternDigits
+        : digits.length;
+    var typed = 0;
+    for (var index = 0; index < typedLength; index++) {
+      typed = typed * 10 + digits.codeUnitAt(index) - 0x30;
+    }
+    final brandCount = _patternBrands.length;
+    final strength = List<int>.filled(brandCount, 0);
+    var partial = 0;
+    for (final pattern in _patternTable) {
+      final gap = typedLength - pattern.length;
+      if (gap >= 0) {
+        final prefix = typed ~/ _powersOfTen[gap];
+        if (prefix >= pattern.low && prefix <= pattern.high) {
+          final score =
+              pattern.length * 1000000000 - (pattern.high - pattern.low);
+          if (score > strength[pattern.slot]) {
+            strength[pattern.slot] = score;
           }
-        } else {
-          final scale = _powersOfTen[pattern.length - typed.length];
-          final low = int.parse(typed) * scale;
-          final high = low + scale - 1;
-          if (low <= pattern.high && high >= pattern.low) {
-            partial.add(entry.key);
-          }
+        }
+      } else {
+        final scale = _powersOfTen[-gap];
+        final low = typed * scale;
+        if (low <= pattern.high && low + scale - 1 >= pattern.low) {
+          partial |= 1 << pattern.slot;
         }
       }
     }
-    final best = strength.values.isEmpty
-        ? 0
-        : strength.values.reduce((a, b) => a > b ? a : b);
-    final strongest = [
-      for (final entry in strength.entries)
-        if (entry.value == best) entry.key,
-    ];
-    final likely = strongest.length == 1 ? strongest.single : null;
-    final ordered = <SmartCardBrand>[
-      ...(strength.entries.toList()..sort((a, b) => b.value.compareTo(a.value)))
-          .map((entry) => entry.key),
-      ...partial.where((brand) => !strength.containsKey(brand)),
-    ];
-    final others = partial.where((brand) => brand != likely);
-    final certain = likely != null && others.isEmpty;
+    var best = 0;
+    var strongest = 0;
+    var likelySlot = -1;
+    var matched = 0;
+    for (var slot = 0; slot < brandCount; slot++) {
+      final score = strength[slot];
+      if (score == 0) {
+        continue;
+      }
+      matched++;
+      if (score > best) {
+        best = score;
+        strongest = 1;
+        likelySlot = slot;
+      } else if (score == best) {
+        strongest++;
+      }
+    }
+    if (matched == 0 && partial == 0) {
+      return _noBrandMatch;
+    }
+    final likely = strongest == 1 ? _patternBrands[likelySlot] : null;
+    final candidates = <SmartCardBrand>[];
+    for (var taken = 0; taken < matched; taken++) {
+      var next = -1;
+      for (var slot = 0; slot < brandCount; slot++) {
+        if (strength[slot] > 0 &&
+            (next < 0 || strength[slot] > strength[next])) {
+          next = slot;
+        }
+      }
+      candidates.add(_patternBrands[next]);
+      strength[next] = -1;
+    }
+    var others = false;
+    for (var slot = 0; slot < brandCount; slot++) {
+      if (partial & (1 << slot) == 0) {
+        continue;
+      }
+      if (strength[slot] == 0) {
+        candidates.add(_patternBrands[slot]);
+      }
+      if (likely == null || slot != likelySlot) {
+        others = true;
+      }
+    }
+    final certain = likely != null && !others;
     return SmartCardBrandMatch(
       brand: certain ? likely : SmartCardBrand.unknown,
       likelyBrand: likely,
-      candidates: ordered,
+      candidates: candidates,
     );
   }
 
   /// The brand of a number, or `unknown`.
   static SmartCardBrand detectBrand(String value) => matchBrand(value).brand;
 
-  /// Assesses length, accepted brands and the Luhn checksum. UnionPay is
-  /// exempt from the checksum unless [luhnExemptBrands] says otherwise.
+  /// Assesses characters, brand, length and the Luhn checksum. A number
+  /// that can still become valid with more digits is `incomplete`; when
+  /// its checksum fails at a length the brand allows but a longer length
+  /// exists, the issue is `failsChecksum`. UnionPay is exempt from the
+  /// checksum unless [luhnExemptBrands] says otherwise.
   static SmartCardNumberAssessment assessNumber(
     String value, {
     Set<SmartCardBrand>? acceptedBrands,
     bool validateLuhn = true,
     Set<SmartCardBrand> luhnExemptBrands = const {SmartCardBrand.unionPay},
   }) {
-    final match = matchBrand(value);
+    if (value.isEmpty) {
+      return const SmartCardNumberAssessment(
+        status: SmartCardNumberStatus.empty,
+        issue: SmartCardNumberIssue.none,
+        match: _noBrandMatch,
+        digitCount: 0,
+        remainingDigits: null,
+      );
+    }
+    final digits = digitsOnly(value);
+    final match = _matchDigits(digits);
+    final count = digits.length;
     SmartCardNumberAssessment result(
       SmartCardNumberStatus status, {
       SmartCardNumberIssue issue = SmartCardNumberIssue.none,
       int? remaining,
-      int digits = 0,
     }) {
       return SmartCardNumberAssessment(
         status: status,
         issue: issue,
         match: match,
-        digitCount: digits,
+        digitCount: count,
         remainingDigits: remaining,
       );
     }
 
-    if (value.isEmpty) {
-      return result(SmartCardNumberStatus.empty);
-    }
-    final digits = digitsOnly(value);
-    if (!RegExp(r'^[0-9 \-]+$').hasMatch(value) || digits.isEmpty) {
+    if (count == 0 || !_hasOnlyCardCharacters(value)) {
       return result(
         SmartCardNumberStatus.invalid,
         issue: SmartCardNumberIssue.invalidCharacters,
-        digits: digits.length,
       );
     }
     final brand = match.brand;
     if (acceptedBrands != null &&
-        match.isCertain &&
-        !acceptedBrands.contains(brand)) {
+        (match.isCertain
+            ? !acceptedBrands.contains(brand)
+            : !match.candidates.any(acceptedBrands.contains))) {
       return result(
         SmartCardNumberStatus.invalid,
         issue: SmartCardNumberIssue.brandNotAccepted,
-        digits: digits.length,
       );
     }
     final lengths = brand.lengths;
-    final count = digits.length;
     if (count > brand.maxLength) {
       return result(
         SmartCardNumberStatus.invalid,
         issue: SmartCardNumberIssue.wrongLength,
-        digits: count,
       );
+    }
+    int? remaining;
+    for (final length in lengths) {
+      if (length > count && (remaining == null || length - count < remaining)) {
+        remaining = length - count;
+      }
     }
     if (!lengths.contains(count)) {
-      final next = lengths.where((length) => length > count).toList()..sort();
-      return result(
-        SmartCardNumberStatus.incomplete,
-        remaining: next.isEmpty ? null : next.first - count,
-        digits: count,
-      );
+      return result(SmartCardNumberStatus.incomplete, remaining: remaining);
     }
-    if (!digits.contains(RegExp(r'[1-9]'))) {
+    var onlyZeros = true;
+    for (var index = 0; index < count && onlyZeros; index++) {
+      onlyZeros = digits.codeUnitAt(index) == 0x30;
+    }
+    if (onlyZeros) {
       return result(
         SmartCardNumberStatus.invalid,
         issue: SmartCardNumberIssue.failsChecksum,
-        digits: count,
       );
     }
     final checksum =
-        !validateLuhn || luhnExemptBrands.contains(brand) || passesLuhn(digits);
+        !validateLuhn ||
+        luhnExemptBrands.contains(brand) ||
+        _luhnOfDigits(digits);
     if (checksum) {
       if (acceptedBrands != null && !match.isCertain) {
         return result(
           SmartCardNumberStatus.invalid,
           issue: SmartCardNumberIssue.brandNotAccepted,
-          digits: count,
         );
       }
-      return result(SmartCardNumberStatus.valid, digits: count);
+      return result(SmartCardNumberStatus.valid);
     }
-    final eager = count == brand.primaryLength || count == brand.maxLength;
-    if (eager) {
+    if (remaining == null) {
       return result(
         SmartCardNumberStatus.invalid,
         issue: SmartCardNumberIssue.failsChecksum,
-        digits: count,
       );
     }
-    final next = lengths.where((length) => length > count).toList()..sort();
     return result(
       SmartCardNumberStatus.incomplete,
-      remaining: next.isEmpty ? null : next.first - count,
-      digits: count,
+      issue: SmartCardNumberIssue.failsChecksum,
+      remaining: remaining,
     );
   }
 
-  /// Whether the digits pass the Luhn checksum.
-  static bool passesLuhn(String value) {
-    final digits = digitsOnly(value);
-    if (digits.length < 2 ||
-        digits.length != value.replaceAll(RegExp(r'[ \-]'), '').length) {
-      return false;
-    }
+  static bool _luhnOfDigits(String digits) {
     var sum = 0;
     var doubleIt = false;
     for (var index = digits.length - 1; index >= 0; index--) {
@@ -493,6 +626,16 @@ abstract final class SmartCardUtils {
       doubleIt = !doubleIt;
     }
     return sum % 10 == 0;
+  }
+
+  /// Whether the digits pass the Luhn checksum. Spaces and hyphens are
+  /// ignored; any other character fails.
+  static bool passesLuhn(String value) {
+    if (!_hasOnlyCardCharacters(value)) {
+      return false;
+    }
+    final digits = digitsOnly(value);
+    return digits.length >= 2 && _luhnOfDigits(digits);
   }
 
   static List<int> groupSizes(SmartCardBrand brand, int length) {
@@ -579,8 +722,13 @@ abstract final class SmartCardUtils {
     SmartCardBrand brand, {
     Set<int>? allowedLengths,
   }) {
-    if (!RegExp(r'^[0-9]+$').hasMatch(cvv)) {
+    if (cvv.isEmpty) {
       return false;
+    }
+    for (var index = 0; index < cvv.length; index++) {
+      if (!_isDigit(cvv.codeUnitAt(index))) {
+        return false;
+      }
     }
     if (allowedLengths != null) {
       return allowedLengths.contains(cvv.length);
@@ -604,7 +752,7 @@ final class SmartCardNumberFormatter extends TextInputFormatter {
     if (smartIsComposing(newValue)) {
       return newValue;
     }
-    if (RegExp(r'[^0-9 \-]').hasMatch(newValue.text)) {
+    if (!SmartCardUtils._hasOnlyCardCharacters(newValue.text)) {
       return smartBeforeComposition(oldValue);
     }
     final digits = SmartCardUtils.digitsOnly(newValue.text);

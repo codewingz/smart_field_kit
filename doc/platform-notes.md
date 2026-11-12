@@ -25,6 +25,7 @@ Most field controls use Flutter's Material widgets. Some features depend on mobi
 | State restoration | Password and OTP are intentionally excluded; fields with owned or app-supplied controllers have documented limits |
 | RuPay | No specific RuPay card-brand mapping has been claimed; uncertain prefixes remain unknown or match other supported brands |
 | Luhn exceptions | UnionPay exempt by default; developer can override |
+| Card auto-advance | Only at the identified brand's longest valid length; a 16-digit Visa number waits for Next or Tab |
 | Date-time picker modes | `dateTime()` supports manual and picker, not a date-time wheel mode |
 | Accessibility | RTL and text scaling are designed into the UI, but full TalkBack/VoiceOver platform checks are still required |
 
