@@ -249,7 +249,10 @@ class SmartAsyncValidationEngine {
     }
     _timer = Timer(config.debounceDuration, () {
       _timer = null;
-      if (_disposed || !isActive() || isComposing()) {
+      if (_disposed ||
+          _config?.trigger != SmartAsyncValidationTrigger.onChanged ||
+          !isActive() ||
+          isComposing()) {
         return;
       }
       final current = readText();

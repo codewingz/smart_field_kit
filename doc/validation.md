@@ -130,7 +130,7 @@ Create and dispose the `SmartFieldAsyncController` in your own state. Attach one
 
 - `validator`: `Future<String?> Function(String raw)`; return `null` when valid or an error message.
 
-- `trigger`: `onChanged` (default; debounced), `onUnfocus` (when focus leaves), or `manual` (only `validateAsync()`).
+- `trigger`: `onChanged` (default; debounced), `onUnfocus` (when focus leaves), or `manual` (only `validateAsync()`). When a rebuild changes `trigger` away from `onChanged` while a debounce is waiting, that check does not start.
 
 - `debounceDuration`: default 400 ms; `Duration.zero` checks immediately. Each edit restarts the wait.
 

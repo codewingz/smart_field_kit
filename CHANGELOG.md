@@ -73,6 +73,7 @@
 * Credit card: with `acceptedBrands`, the brand error appears as soon as no accepted brand can match the typed digits.
 * Credit card: the security-code hint shows the identified brand's code name unless `cvvHint` is set.
 * Credit card: brand detection, number assessment, the checksum, and the formatter no longer create regular expressions or intermediate maps per call. Detection results are unchanged.
+* Asynchronous validation: a debounce that is waiting when `trigger` changes away from `onChanged` no longer starts a check.
 * `SmartDecimalUtils.round` no longer includes the rejected text in its exception.
 * The wheel picker header and the OTP boxes no longer overflow on narrow screens with large text.
 * Credit card: label the security-code toggle `Show security code` / `Hide security code`, and apply decoration labels and icons to the number field only.
