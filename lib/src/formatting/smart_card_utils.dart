@@ -660,17 +660,26 @@ abstract final class SmartCardUtils {
     return gaps;
   }
 
+  static bool _startsGroup(SmartCardBrand brand, int index) {
+    final gaps = brand.gaps;
+    for (final gap in gaps) {
+      if (gap == index) {
+        return true;
+      }
+    }
+    return gaps.length == 3 && gaps.last == 12 && index >= 16 && index % 4 == 0;
+  }
+
   /// Groups the digits of a number the way its brand prints them.
   static String format(String value, {SmartCardBrand? brand}) {
     final digits = digitsOnly(value);
-    final resolved = brand ?? detectBrand(digits);
-    final gaps = _effectiveGaps(resolved, digits.length);
+    final resolved = brand ?? _matchDigits(digits).brand;
     final buffer = StringBuffer();
     for (var index = 0; index < digits.length; index++) {
-      if (index > 0 && gaps.contains(index)) {
-        buffer.write(' ');
+      if (index > 0 && _startsGroup(resolved, index)) {
+        buffer.writeCharCode(0x20);
       }
-      buffer.write(digits[index]);
+      buffer.writeCharCode(digits.codeUnitAt(index));
     }
     return buffer.toString();
   }
@@ -681,15 +690,18 @@ abstract final class SmartCardUtils {
     if (digits.length <= 4) {
       return digits;
     }
-    final brand = detectBrand(digits);
-    final gaps = _effectiveGaps(brand, digits.length);
+    final brand = _matchDigits(digits).brand;
     final visibleFrom = digits.length - 4;
     final buffer = StringBuffer();
     for (var index = 0; index < digits.length; index++) {
-      if (index > 0 && gaps.contains(index)) {
-        buffer.write(' ');
+      if (index > 0 && _startsGroup(brand, index)) {
+        buffer.writeCharCode(0x20);
       }
-      buffer.write(index >= visibleFrom ? digits[index] : maskCharacter);
+      if (index >= visibleFrom) {
+        buffer.writeCharCode(digits.codeUnitAt(index));
+      } else {
+        buffer.write(maskCharacter);
+      }
     }
     return buffer.toString();
   }

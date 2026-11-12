@@ -510,6 +510,24 @@ void main() {
       ]);
     });
 
+    test('a very long digit string is grouped in linear time', () {
+      final digits = '4' * 100000;
+      final watch = Stopwatch()..start();
+      final shown = SmartCardUtils.format(digits);
+      final masked = SmartCardUtils.maskedNumber(digits);
+      watch.stop();
+      expect(watch.elapsedMilliseconds, lessThan(2000));
+      expect(shown.length, 124999);
+      expect(shown.replaceAll(' ', ''), digits);
+      expect(masked.length, shown.length);
+      expect(masked.endsWith('4444'), isTrue);
+      expect(SmartCardUtils.format('4' * 23), '4444 4444 4444 4444 4444 444');
+      expect(
+        SmartCardUtils.maskedNumber('4111111111111111'),
+        '\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 1111',
+      );
+    });
+
     test('typing one digit at a time keeps the caret at the end', () {
       var value = TextEditingValue.empty;
       for (final digit in _visa19.split('')) {
