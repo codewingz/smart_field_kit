@@ -4,7 +4,7 @@
 
 [![Flutter package](https://img.shields.io/badge/Flutter-package-02569B?logo=flutter&logoColor=white)](https://flutter.dev/)
 [![Dart](https://img.shields.io/badge/Dart-null--safe-0175C2?logo=dart&logoColor=white)](https://dart.dev/)
-![Release status](https://img.shields.io/badge/release-pre--publication-orange)
+[![pub package](https://img.shields.io/pub/v/smart_field_kit.svg)](https://pub.dev/packages/smart_field_kit)
 
 Build anything from a plain text field to a country-aware phone input, exact-decimal amount, OTP entry, credit-card form, or date picker using the same `SmartField` family.
 

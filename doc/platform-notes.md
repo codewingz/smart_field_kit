@@ -13,7 +13,7 @@ Most field controls use Flutter's Material widgets. Some features depend on mobi
 | iOS | The example integration tests (card entry, amount formatting, RTL digit order, calendar and country pickers, dropdown dates, password toggle, masking) pass on an iPhone 17 simulator. The native contact picker, the system keyboard, SMS code autofill, and VoiceOver were not exercised |
 | Android | The same integration tests pass on an Android API 36 emulator. The merged example manifest declares no contacts permission. The native contact picker, third-party keyboards, SMS code autofill, and TalkBack were not exercised |
 | macOS | The example builds and the integration tests pass on macOS desktop with `flutter test integration_test -d macos`. Run them from an interactive desktop session; in an unattended session the run has sometimes stalled before the first test. The contact button is not shown on desktop |
-| Windows and Linux | Not tested locally. CI is configured to run the package tests on Windows; no hosted run has been verified yet |
+| Windows and Linux | The package analysis and tests pass on a hosted GitHub Actions Windows runner (commit 55ef287). Windows is not declared as a supported platform and no Windows or Linux app was run. Linux is untested |
 | Keyboards that compose text (IME) | Text is not changed while the keyboard is still composing. When the composed text is committed and the field's input rule rejects it, the field returns to the text it held before that composition, with the caret where the composition began. This is covered by simulated composition tests; hardware and third-party keyboards were not tested |
 | Digits | By default number, amount, percentage, OTP, card, date, and time fields accept ASCII digits `0`-`9` only: Arabic-Indic (`١٢٣`), Persian (`۱۲۳`), and fullwidth digits are not entered and no message is shown, and a phone field keeps them and reports the number as invalid. Set `normalizeDigits: true` on those fields, or on a phone field, to replace these three digit sets with ASCII digits as they are typed or pasted, before any rule runs. Other numerals, and the Arabic decimal and thousands separators, are not converted. Text set through a controller is not rewritten |
 | Decimal separator | With `decimalSeparator: ','` the comma is the only decimal key by default; a typed `.` is not treated as the decimal, so a keypad that offers only `.` cannot enter the decimal part. Set `acceptDotAsDecimal: true` on `SmartField.amount` to accept one typed `.` as the decimal. It has no effect when the grouping separator is `.` |
@@ -35,7 +35,6 @@ Most field controls use Flutter's Material widgets. Some features depend on mobi
 
 | Symptom | What to check |
 |---|---|
-| `flutter pub add smart_field_kit` cannot find the package | The package is pre-publication; use the local `path:` dependency until it is released |
 | Validation doesn't reject an empty value | Empty is optional by default; add `isRequired: true` |
 | An email or URL is valid locally but cannot be used | Syntax validation cannot verify inbox/site existence or safety |
 | `FormState.validate()` finishes before async validation | Await each `SmartFieldAsyncController.validateAsync()` in your submit workflow |
