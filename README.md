@@ -15,7 +15,7 @@ SmartField.amount(label: 'Amount', decimalLength: 2, useGrouping: true);
 SmartField.otp(length: 6, onCompleted: (value) {});
 ```
 
-> **Requirements:** Flutter 3.47.0 or later and Dart 3.13.0 or later. Version 0.1.0 builds on [`material_ui`](https://pub.dev/packages/material_ui), Flutter's standalone Material package; see [Moving from 0.0.1](#moving-from-001). Tested platforms and known limits are listed in [Platform notes](#platform-notes).
+> **Requirements:** Flutter 3.47.0 or later and Dart 3.13.0 or later. Version 0.0.2 builds on [`material_ui`](https://pub.dev/packages/material_ui), Flutter's standalone Material package; see [Moving from 0.0.1](#moving-from-001). Tested platforms and known limits are listed in [Platform notes](#platform-notes).
 
 **Why this package?** Use a single, familiar set of input widgets while keeping Flutter's `Form`, `TextEditingController`, `FocusNode`, `InputDecoration`, keyboard, theme, and validation conventions. Ordinary text stays unrestricted by default; special rules are opt-in or specific to a selected field type.
 
@@ -87,7 +87,7 @@ Or add it to `pubspec.yaml` and run `flutter pub get`:
 
 ```yaml
 dependencies:
-  smart_field_kit: ^0.1.0
+  smart_field_kit: ^0.0.2
 ```
 
 ### From a local clone
@@ -1570,7 +1570,7 @@ The folder holds one test entry file, `all_test.dart`, which runs every case in 
 
 ### Moving from 0.0.1
 
-Version 0.1.0 uses `package:material_ui` instead of `package:flutter/material.dart`, which Flutter 3.50 deprecates. This is a breaking change for apps that still use the in-framework Material library:
+Version 0.0.2 uses `package:material_ui` instead of `package:flutter/material.dart`, which Flutter 3.50 deprecates. This is a breaking change for apps that still use the in-framework Material library:
 
 - Flutter 3.47.0 or later is required (0.0.1 accepted 3.44).
 - Public parameters that take Material types, such as `InputDecoration`, now take the `material_ui` versions. In your app, change `import 'package:flutter/material.dart';` to `import 'package:material_ui/material_ui.dart';`, or run `dart fix --apply --code=migrate_design_widgets`.

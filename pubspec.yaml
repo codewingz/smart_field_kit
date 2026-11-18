@@ -1,6 +1,6 @@
 name: smart_field_kit
 description: "Flutter form fields on native Material behavior: validation, formatting, masking, phone, OTP, amount, card, and date inputs in one API."
-version: 0.1.0
+version: 0.0.2
 homepage: https://github.com/codewingz/smart_field_kit
 repository: https://github.com/codewingz/smart_field_kit
 issue_tracker: https://github.com/codewingz/smart_field_kit/issues

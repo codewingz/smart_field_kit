@@ -1,6 +1,8 @@
-## 0.1.0
+## 0.0.2
 
 ### Changed
+
+This release contains breaking changes. While the version is 0.0.x, `^0.0.1` does not select it automatically; update the constraint to `^0.0.2` when you are ready to migrate.
 
 * **Breaking:** use `package:material_ui` (Flutter's standalone Material package) instead of the in-framework `package:flutter/material.dart`, which Flutter 3.50 deprecates. Public parameters that take Material types now take the `material_ui` types. Migrate your app with `dart fix --apply --code=migrate_design_widgets`.
 * **Breaking:** require Flutter 3.47.0 or later and Dart 3.13.0 or later (0.0.1 required Flutter 3.44.0).
