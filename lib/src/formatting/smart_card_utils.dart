@@ -1,0 +1,821 @@
+import 'package:flutter/services.dart';
+import 'package:smart_field_kit/src/formatting/smart_composing.dart';
+import 'package:smart_field_kit/src/formatting/smart_separator_deletion.dart';
+import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
+
+/// A card network with its number lengths and security-code length.
+enum SmartCardBrand {
+  visa('Visa', {16, 18, 19}, 3, 16, [4, 8, 12], 'CVV'),
+  mastercard('Mastercard', {16}, 3, 16, [4, 8, 12], 'CVC'),
+  amex('American Express', {15}, 4, 15, [4, 10], 'CID'),
+  dinersClub('Diners Club', {14, 16, 19}, 3, 14, [4, 10], 'CVV'),
+  discover('Discover', {16, 17, 18, 19}, 3, 16, [4, 8, 12], 'CID'),
+  jcb('JCB', {16, 17, 18, 19}, 3, 16, [4, 8, 12], 'CVV'),
+  unionPay('UnionPay', {14, 15, 16, 17, 18, 19}, 3, 16, [4, 8, 12], 'CVN'),
+  maestro(
+    'Maestro',
+    {12, 13, 14, 15, 16, 17, 18, 19},
+    3,
+    16,
+    [4, 8, 12],
+    'CVC',
+  ),
+  troy('Troy', {16}, 3, 16, [4, 8, 12], 'CVV'),
+  elo('Elo', {16}, 3, 16, [4, 8, 12], 'CVE'),
+  mir('Mir', {16, 17, 18, 19}, 3, 16, [4, 8, 12], 'CVP2'),
+  hiper('Hiper', {16}, 3, 16, [4, 8, 12], 'CVC'),
+  hipercard('Hipercard', {16}, 3, 16, [4, 8, 12], 'CVC'),
+  naranja('Naranja', {16}, 3, 16, [4, 8, 12], 'CVV'),
+  verve('Verve', {16, 18, 19}, 3, 16, [4, 8, 12], 'CVV'),
+  unknown('Card', {12, 13, 14, 15, 16, 17, 18, 19}, 3, 16, [4, 8, 12], 'CVV');
+
+  const SmartCardBrand(
+    this.displayName,
+    this.lengths,
+    this.cvvLength,
+    this.primaryLength,
+    this.gaps,
+    this.securityCodeName,
+  );
+
+  final String displayName;
+  final Set<int> lengths;
+  final int cvvLength;
+  final int primaryLength;
+  final List<int> gaps;
+
+  /// The name the network prints for its security code, such as `CVC`.
+  final String securityCodeName;
+
+  int get maxLength => lengths.reduce((a, b) => a > b ? a : b);
+
+  int get minLength => lengths.reduce((a, b) => a < b ? a : b);
+}
+
+/// The typed expiry layout: `MM/YY` or `MM/YYYY`.
+enum SmartExpiryFormat { mmYy, mmYyyy }
+
+/// The local state of a card number while it is entered.
+enum SmartCardNumberStatus { empty, incomplete, valid, invalid }
+
+/// Why a card number is not locally valid.
+enum SmartCardNumberIssue {
+  none,
+  invalidCharacters,
+  brandNotAccepted,
+  wrongLength,
+  failsChecksum,
+}
+
+/// How far the leading digits identify a card brand.
+enum SmartCardBrandDetection { unknown, ambiguous, identified }
+
+/// The brand detected from the leading digits of a card number.
+final class SmartCardBrandMatch {
+  const SmartCardBrandMatch({
+    required this.brand,
+    required this.likelyBrand,
+    required this.candidates,
+  });
+
+  final SmartCardBrand brand;
+  final SmartCardBrand? likelyBrand;
+  final List<SmartCardBrand> candidates;
+
+  bool get isCertain => brand != SmartCardBrand.unknown;
+
+  /// `identified` when one brand is left, `ambiguous` while more digits
+  /// are needed to settle the brand, and `unknown` when no brand matches.
+  SmartCardBrandDetection get detection {
+    if (isCertain) {
+      return SmartCardBrandDetection.identified;
+    }
+    return candidates.isEmpty
+        ? SmartCardBrandDetection.unknown
+        : SmartCardBrandDetection.ambiguous;
+  }
+}
+
+/// The result of [SmartCardUtils.assessNumber].
+final class SmartCardNumberAssessment {
+  const SmartCardNumberAssessment({
+    required this.status,
+    required this.issue,
+    required this.match,
+    required this.digitCount,
+    required this.remainingDigits,
+  });
+
+  final SmartCardNumberStatus status;
+  final SmartCardNumberIssue issue;
+  final SmartCardBrandMatch match;
+  final int digitCount;
+  final int? remainingDigits;
+
+  SmartCardBrand get brand => match.brand;
+
+  bool get isLocallyValid => status == SmartCardNumberStatus.valid;
+
+  /// Whether the brand also has a longer valid number length.
+  bool get canBeLonger => digitCount < brand.maxLength;
+
+  /// Whether the number is valid, its brand is identified and no longer
+  /// length exists, so nothing more can be typed.
+  bool get isFinal => isLocallyValid && match.isCertain && !canBeLonger;
+
+  @override
+  String toString() {
+    return 'SmartCardNumberAssessment(status: ${status.name}, '
+        'issue: ${issue.name}, brand: ${brand.name}, digits: $digitCount)';
+  }
+}
+
+final class _Pattern {
+  const _Pattern(this.low, this.high, this.length);
+
+  final int low;
+  final int high;
+  final int length;
+}
+
+final class _BrandPattern {
+  const _BrandPattern(this.slot, this.low, this.high, this.length);
+
+  final int slot;
+  final int low;
+  final int high;
+  final int length;
+}
+
+int _digitCount(int value) {
+  var count = 1;
+  for (var rest = value; rest >= 10; rest ~/= 10) {
+    count++;
+  }
+  return count;
+}
+
+_Pattern _p(int value) => _Pattern(value, value, _digitCount(value));
+
+_Pattern _r(int low, int high) => _Pattern(low, high, _digitCount(low));
+
+final Map<SmartCardBrand, List<_Pattern>> _brandPatterns = {
+  SmartCardBrand.visa: [_p(4)],
+  SmartCardBrand.mastercard: [
+    _r(51, 55),
+    _r(2221, 2229),
+    _r(223, 229),
+    _r(23, 26),
+    _r(270, 271),
+    _p(2720),
+  ],
+  SmartCardBrand.amex: [_p(34), _p(37)],
+  SmartCardBrand.dinersClub: [_r(300, 305), _p(36), _p(38), _p(39)],
+  SmartCardBrand.troy: [
+    _p(9792),
+    _p(650052),
+    _r(650082, 650083),
+    _p(650092),
+    _p(650161),
+    _p(650170),
+    _p(650173),
+    _p(650175),
+    _p(650268),
+    _p(650271),
+    _r(650273, 650274),
+    _r(650456, 650457),
+    _p(650836),
+    _r(650846, 650850),
+    _p(650923),
+    _p(650987),
+    _p(650990),
+    _p(654997),
+    _p(657366),
+    _p(657998),
+    _p(658758),
+    _r(658767, 658768),
+    _r(65083700, 65083704),
+    _r(65085800, 65085804),
+    _r(65085900, 65085901),
+    _p(65086000),
+    _r(65086100, 65086105),
+    _r(65086200, 65086203),
+    _r(65875000, 65875003),
+    _p(65875009),
+    _r(65875101, 65875104),
+    _p(65875200),
+    _p(65875501),
+    _p(65875601),
+    _p(65875900),
+    _r(65876000, 65876002),
+    _r(65876100, 65876103),
+    _p(65876110),
+    _r(65876115, 65876116),
+    _r(65876200, 65876201),
+    _p(65876500),
+    _r(65876504, 65876505),
+    _r(65876600, 65876602),
+    _r(65877100, 65877101),
+    _r(65877600, 65877602),
+    _p(65877700),
+    _r(65877801, 65877802),
+    _r(65878200, 65878202),
+    _r(65878300, 65878311),
+    _r(65878400, 65878405),
+    _r(65878500, 65878505),
+    _r(65878600, 65878601),
+    _p(65879800),
+    _p(65880800),
+    _p(65880900),
+  ],
+  SmartCardBrand.discover: [_p(6011), _r(644, 649), _p(65)],
+  SmartCardBrand.jcb: [_p(2131), _p(1800), _r(3528, 3589)],
+  SmartCardBrand.unionPay: [
+    _p(620),
+    _r(62100, 62182),
+    _r(62184, 62187),
+    _r(62185, 62197),
+    _r(62200, 62205),
+    _r(622010, 622999),
+    _p(622018),
+    _r(62207, 62209),
+    _r(623, 626),
+    _p(6270),
+    _p(6272),
+    _p(6276),
+    _r(627700, 627779),
+    _r(627781, 627799),
+    _r(6282, 6289),
+    _p(6291),
+    _p(6292),
+    _p(810),
+    _r(8110, 8131),
+    _r(8132, 8151),
+    _r(8152, 8163),
+    _r(8164, 8171),
+  ],
+  SmartCardBrand.maestro: [
+    _p(493698),
+    _r(500000, 504174),
+    _r(504176, 506698),
+    _r(506779, 508999),
+    _r(56, 59),
+    _p(63),
+    _p(67),
+    _p(6),
+  ],
+  SmartCardBrand.elo: [
+    _p(401178),
+    _p(401179),
+    _p(438935),
+    _p(457631),
+    _p(457632),
+    _p(431274),
+    _p(451416),
+    _p(457393),
+    _p(504175),
+    _r(506699, 506778),
+    _r(509000, 509999),
+    _p(627780),
+    _p(636297),
+    _p(636368),
+    _r(650031, 650033),
+    _r(650035, 650051),
+    _r(650057, 650081),
+    _r(650405, 650439),
+    _r(650485, 650538),
+    _r(650541, 650598),
+    _r(650700, 650718),
+    _r(650720, 650727),
+    _r(650901, 650978),
+    _r(651652, 651679),
+    _r(651680, 651704),
+    _r(655000, 655019),
+    _r(655021, 655058),
+  ],
+  SmartCardBrand.mir: [_r(2200, 2204)],
+  SmartCardBrand.hiper: [
+    _p(637095),
+    _p(63737423),
+    _p(63743358),
+    _p(637568),
+    _p(637599),
+    _p(637609),
+    _p(637612),
+  ],
+  SmartCardBrand.hipercard: [_p(606282)],
+  SmartCardBrand.naranja: [_p(589562), _p(402918), _p(527572)],
+  SmartCardBrand.verve: [
+    _r(506099, 506127),
+    _p(506129),
+    _r(506133, 506150),
+    _r(506158, 506163),
+    _p(506166),
+    _p(506168),
+    _p(506170),
+    _p(506173),
+    _r(506176, 506180),
+    _p(506184),
+    _r(506187, 506188),
+    _p(506191),
+    _p(506195),
+    _p(506197),
+    _p(507865),
+    _p(507866),
+    _r(507868, 507877),
+    _r(507880, 507888),
+    _p(507900),
+    _p(507941),
+  ],
+};
+
+final List<SmartCardBrand> _patternBrands = List.unmodifiable(
+  _brandPatterns.keys,
+);
+
+final List<_BrandPattern> _patternTable = List.unmodifiable([
+  for (var slot = 0; slot < _patternBrands.length; slot++)
+    for (final pattern in _brandPatterns[_patternBrands[slot]]!)
+      _BrandPattern(slot, pattern.low, pattern.high, pattern.length),
+]);
+
+const int _maxPatternDigits = 8;
+
+const SmartCardBrandMatch _noBrandMatch = SmartCardBrandMatch(
+  brand: SmartCardBrand.unknown,
+  likelyBrand: null,
+  candidates: [],
+);
+
+bool _isDigit(int unit) => unit >= 0x30 && unit <= 0x39;
+
+const List<int> _powersOfTen = [
+  1,
+  10,
+  100,
+  1000,
+  10000,
+  100000,
+  1000000,
+  10000000,
+  100000000,
+];
+
+/// A parsed card expiry month and four-digit year.
+final class SmartCardExpiry {
+  const SmartCardExpiry(this.month, this.year);
+
+  final int month;
+  final int year;
+
+  bool isExpired(DateTime now) {
+    final lastDay = SmartDateUtils.daysInMonth(year, month);
+    final end = DateTime(year, month, lastDay, 23, 59, 59, 999);
+    return now.isAfter(end);
+  }
+}
+
+/// Local card helpers. They make no network request and cannot confirm
+/// that a card exists or will be accepted.
+abstract final class SmartCardUtils {
+  static const int maxCardDigits = 19;
+
+  /// Removes every character that is not an ASCII digit.
+  static String digitsOnly(String value) {
+    final length = value.length;
+    var index = 0;
+    while (index < length && _isDigit(value.codeUnitAt(index))) {
+      index++;
+    }
+    if (index == length) {
+      return value;
+    }
+    final buffer = StringBuffer(value.substring(0, index));
+    for (index++; index < length; index++) {
+      final unit = value.codeUnitAt(index);
+      if (_isDigit(unit)) {
+        buffer.writeCharCode(unit);
+      }
+    }
+    return buffer.toString();
+  }
+
+  static bool _hasOnlyCardCharacters(String value) {
+    for (var index = 0; index < value.length; index++) {
+      final unit = value.codeUnitAt(index);
+      if (!_isDigit(unit) && unit != 0x20 && unit != 0x2d) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// Finds the brands the leading digits can belong to. The brand is set
+  /// only when no other brand is still possible.
+  static SmartCardBrandMatch matchBrand(String value) {
+    return _matchDigits(digitsOnly(value));
+  }
+
+  static SmartCardBrandMatch _matchDigits(String digits) {
+    if (digits.isEmpty) {
+      return _noBrandMatch;
+    }
+    final typedLength = digits.length > _maxPatternDigits
+        ? _maxPatternDigits
+        : digits.length;
+    var typed = 0;
+    for (var index = 0; index < typedLength; index++) {
+      typed = typed * 10 + digits.codeUnitAt(index) - 0x30;
+    }
+    final brandCount = _patternBrands.length;
+    final strength = List<int>.filled(brandCount, 0);
+    var partial = 0;
+    for (final pattern in _patternTable) {
+      final gap = typedLength - pattern.length;
+      if (gap >= 0) {
+        final prefix = typed ~/ _powersOfTen[gap];
+        if (prefix >= pattern.low && prefix <= pattern.high) {
+          final score =
+              pattern.length * 1000000000 - (pattern.high - pattern.low);
+          if (score > strength[pattern.slot]) {
+            strength[pattern.slot] = score;
+          }
+        }
+      } else {
+        final scale = _powersOfTen[-gap];
+        final low = typed * scale;
+        if (low <= pattern.high && low + scale - 1 >= pattern.low) {
+          partial |= 1 << pattern.slot;
+        }
+      }
+    }
+    var best = 0;
+    var strongest = 0;
+    var likelySlot = -1;
+    var matched = 0;
+    for (var slot = 0; slot < brandCount; slot++) {
+      final score = strength[slot];
+      if (score == 0) {
+        continue;
+      }
+      matched++;
+      if (score > best) {
+        best = score;
+        strongest = 1;
+        likelySlot = slot;
+      } else if (score == best) {
+        strongest++;
+      }
+    }
+    if (matched == 0 && partial == 0) {
+      return _noBrandMatch;
+    }
+    final likely = strongest == 1 ? _patternBrands[likelySlot] : null;
+    final candidates = <SmartCardBrand>[];
+    for (var taken = 0; taken < matched; taken++) {
+      var next = -1;
+      for (var slot = 0; slot < brandCount; slot++) {
+        if (strength[slot] > 0 &&
+            (next < 0 || strength[slot] > strength[next])) {
+          next = slot;
+        }
+      }
+      candidates.add(_patternBrands[next]);
+      strength[next] = -1;
+    }
+    var others = false;
+    for (var slot = 0; slot < brandCount; slot++) {
+      if (partial & (1 << slot) == 0) {
+        continue;
+      }
+      if (strength[slot] == 0) {
+        candidates.add(_patternBrands[slot]);
+      }
+      if (likely == null || slot != likelySlot) {
+        others = true;
+      }
+    }
+    final certain = likely != null && !others;
+    return SmartCardBrandMatch(
+      brand: certain ? likely : SmartCardBrand.unknown,
+      likelyBrand: likely,
+      candidates: candidates,
+    );
+  }
+
+  /// The brand of a number, or `unknown`.
+  static SmartCardBrand detectBrand(String value) => matchBrand(value).brand;
+
+  /// Assesses characters, brand, length and the Luhn checksum. A number
+  /// that can still become valid with more digits is `incomplete`; when
+  /// its checksum fails at a length the brand allows but a longer length
+  /// exists, the issue is `failsChecksum`. UnionPay is exempt from the
+  /// checksum.
+  static SmartCardNumberAssessment assessNumber(
+    String value, {
+    Set<SmartCardBrand>? acceptedBrands,
+  }) {
+    if (value.isEmpty) {
+      return const SmartCardNumberAssessment(
+        status: SmartCardNumberStatus.empty,
+        issue: SmartCardNumberIssue.none,
+        match: _noBrandMatch,
+        digitCount: 0,
+        remainingDigits: null,
+      );
+    }
+    final digits = digitsOnly(value);
+    final match = _matchDigits(digits);
+    final count = digits.length;
+    SmartCardNumberAssessment result(
+      SmartCardNumberStatus status, {
+      SmartCardNumberIssue issue = SmartCardNumberIssue.none,
+      int? remaining,
+    }) {
+      return SmartCardNumberAssessment(
+        status: status,
+        issue: issue,
+        match: match,
+        digitCount: count,
+        remainingDigits: remaining,
+      );
+    }
+
+    if (count == 0 || !_hasOnlyCardCharacters(value)) {
+      return result(
+        SmartCardNumberStatus.invalid,
+        issue: SmartCardNumberIssue.invalidCharacters,
+      );
+    }
+    final brand = match.brand;
+    if (acceptedBrands != null &&
+        (match.isCertain
+            ? !acceptedBrands.contains(brand)
+            : !match.candidates.any(acceptedBrands.contains))) {
+      return result(
+        SmartCardNumberStatus.invalid,
+        issue: SmartCardNumberIssue.brandNotAccepted,
+      );
+    }
+    final lengths = brand.lengths;
+    if (count > brand.maxLength) {
+      return result(
+        SmartCardNumberStatus.invalid,
+        issue: SmartCardNumberIssue.wrongLength,
+      );
+    }
+    int? remaining;
+    for (final length in lengths) {
+      if (length > count && (remaining == null || length - count < remaining)) {
+        remaining = length - count;
+      }
+    }
+    if (!lengths.contains(count)) {
+      return result(SmartCardNumberStatus.incomplete, remaining: remaining);
+    }
+    var onlyZeros = true;
+    for (var index = 0; index < count && onlyZeros; index++) {
+      onlyZeros = digits.codeUnitAt(index) == 0x30;
+    }
+    if (onlyZeros) {
+      return result(
+        SmartCardNumberStatus.invalid,
+        issue: SmartCardNumberIssue.failsChecksum,
+      );
+    }
+    final checksum = brand == SmartCardBrand.unionPay || _luhnOfDigits(digits);
+    if (checksum) {
+      if (acceptedBrands != null && !match.isCertain) {
+        return result(
+          SmartCardNumberStatus.invalid,
+          issue: SmartCardNumberIssue.brandNotAccepted,
+        );
+      }
+      return result(SmartCardNumberStatus.valid);
+    }
+    if (remaining == null) {
+      return result(
+        SmartCardNumberStatus.invalid,
+        issue: SmartCardNumberIssue.failsChecksum,
+      );
+    }
+    return result(
+      SmartCardNumberStatus.incomplete,
+      issue: SmartCardNumberIssue.failsChecksum,
+      remaining: remaining,
+    );
+  }
+
+  static bool _luhnOfDigits(String digits) {
+    var sum = 0;
+    var doubleIt = false;
+    for (var index = digits.length - 1; index >= 0; index--) {
+      var digit = digits.codeUnitAt(index) - 0x30;
+      if (doubleIt) {
+        digit *= 2;
+        if (digit > 9) {
+          digit -= 9;
+        }
+      }
+      sum += digit;
+      doubleIt = !doubleIt;
+    }
+    return sum % 10 == 0;
+  }
+
+  /// Whether the digits pass the Luhn checksum. Spaces and hyphens are
+  /// ignored; any other character fails.
+  static bool passesLuhn(String value) {
+    if (!_hasOnlyCardCharacters(value)) {
+      return false;
+    }
+    final digits = digitsOnly(value);
+    return digits.length >= 2 && _luhnOfDigits(digits);
+  }
+
+  static List<int> groupSizes(SmartCardBrand brand, int length) {
+    final gaps = _effectiveGaps(brand, length);
+    final sizes = <int>[];
+    var previous = 0;
+    for (final gap in gaps) {
+      sizes.add(gap - previous);
+      previous = gap;
+    }
+    sizes.add(length > previous ? length - previous : 0);
+    return sizes;
+  }
+
+  static List<int> _effectiveGaps(SmartCardBrand brand, int length) {
+    final gaps = [...brand.gaps];
+    if (gaps.length == 3 && gaps.last == 12) {
+      for (var gap = 16; gap < length; gap += 4) {
+        gaps.add(gap);
+      }
+    }
+    return gaps;
+  }
+
+  static bool _startsGroup(SmartCardBrand brand, int index) {
+    final gaps = brand.gaps;
+    for (final gap in gaps) {
+      if (gap == index) {
+        return true;
+      }
+    }
+    return gaps.length == 3 && gaps.last == 12 && index >= 16 && index % 4 == 0;
+  }
+
+  /// Groups the digits of a number the way its brand prints them.
+  static String format(String value, {SmartCardBrand? brand}) {
+    final digits = digitsOnly(value);
+    final resolved = brand ?? _matchDigits(digits).brand;
+    final buffer = StringBuffer();
+    for (var index = 0; index < digits.length; index++) {
+      if (index > 0 && _startsGroup(resolved, index)) {
+        buffer.writeCharCode(0x20);
+      }
+      buffer.writeCharCode(digits.codeUnitAt(index));
+    }
+    return buffer.toString();
+  }
+
+  /// Masks all but the last four digits.
+  static String maskedNumber(String value, {String maskCharacter = '\u2022'}) {
+    final digits = digitsOnly(value);
+    if (digits.length <= 4) {
+      return digits;
+    }
+    final brand = _matchDigits(digits).brand;
+    final visibleFrom = digits.length - 4;
+    final buffer = StringBuffer();
+    for (var index = 0; index < digits.length; index++) {
+      if (index > 0 && _startsGroup(brand, index)) {
+        buffer.writeCharCode(0x20);
+      }
+      if (index >= visibleFrom) {
+        buffer.writeCharCode(digits.codeUnitAt(index));
+      } else {
+        buffer.write(maskCharacter);
+      }
+    }
+    return buffer.toString();
+  }
+
+  static SmartCardExpiry? tryParseExpiry(
+    String text, {
+    SmartExpiryFormat format = SmartExpiryFormat.mmYy,
+  }) {
+    final match = RegExp(
+      format == SmartExpiryFormat.mmYy
+          ? r'^(\d{2})/(\d{2})$'
+          : r'^(\d{2})/(\d{4})$',
+    ).firstMatch(text);
+    if (match == null) {
+      return null;
+    }
+    final month = int.parse(match.group(1)!);
+    var year = int.parse(match.group(2)!);
+    if (month < 1 || month > 12) {
+      return null;
+    }
+    if (format == SmartExpiryFormat.mmYy) {
+      year += 2000;
+    }
+    return SmartCardExpiry(month, year);
+  }
+
+  static bool isCvvLengthValid(String cvv, SmartCardBrand brand) {
+    if (cvv.isEmpty) {
+      return false;
+    }
+    for (var index = 0; index < cvv.length; index++) {
+      if (!_isDigit(cvv.codeUnitAt(index))) {
+        return false;
+      }
+    }
+    if (brand == SmartCardBrand.unknown) {
+      return cvv.length == 3 || cvv.length == 4;
+    }
+    return cvv.length == brand.cvvLength;
+  }
+}
+
+/// Groups card digits while typing and rejects other characters.
+final class SmartCardNumberFormatter extends TextInputFormatter {
+  const SmartCardNumberFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (smartIsComposing(newValue)) {
+      return newValue;
+    }
+    if (!SmartCardUtils._hasOnlyCardCharacters(newValue.text)) {
+      return smartBeforeComposition(oldValue);
+    }
+    final digits = SmartCardUtils.digitsOnly(newValue.text);
+    if (digits.length > SmartCardUtils.maxCardDigits) {
+      return smartBeforeComposition(oldValue);
+    }
+    final brand = SmartCardUtils.detectBrand(digits);
+    if (digits.length > brand.maxLength) {
+      return smartBeforeComposition(oldValue);
+    }
+    int digitsBefore(int offset) {
+      final clamped = offset.clamp(0, newValue.text.length);
+      return SmartCardUtils.digitsOnly(
+        newValue.text.substring(0, clamped),
+      ).length;
+    }
+
+    final oldDigits = SmartCardUtils.digitsOnly(oldValue.text);
+    var baseDigits = digitsBefore(newValue.selection.baseOffset);
+    var extentDigits = digitsBefore(newValue.selection.extentOffset);
+    var finalDigits = digits;
+    final deletion = digits == oldDigits
+        ? smartSeparatorDeletion(
+            oldValue: oldValue,
+            newValue: newValue,
+            rawCaret: baseDigits,
+            rawLength: digits.length,
+          )
+        : null;
+    final deletedSpace = deletion != null;
+    if (deletion != null) {
+      finalDigits =
+          digits.substring(0, deletion.removeAt) +
+          digits.substring(deletion.removeAt + 1);
+      baseDigits = deletion.caret;
+      extentDigits = baseDigits;
+    }
+    final finalDisplay = SmartCardUtils.format(finalDigits);
+    if (finalDisplay == newValue.text && !deletedSpace) {
+      return newValue;
+    }
+    int finalOffset(int count) {
+      if (count <= 0) {
+        return 0;
+      }
+      var seen = 0;
+      for (var index = 0; index < finalDisplay.length; index++) {
+        if (finalDisplay[index] != ' ') {
+          seen++;
+          if (seen == count) {
+            return index + 1;
+          }
+        }
+      }
+      return finalDisplay.length;
+    }
+
+    return TextEditingValue(
+      text: finalDisplay,
+      selection: TextSelection(
+        baseOffset: finalOffset(baseDigits),
+        extentOffset: finalOffset(extentDigits),
+      ),
+    );
+  }
+}
