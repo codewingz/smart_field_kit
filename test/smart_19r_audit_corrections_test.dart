@@ -1117,12 +1117,10 @@ void main() {
       }
     });
 
-    testWidgets('without a checksum the field waits for the longest length', (
+    testWidgets('a 16-digit Visa with a wrong checksum keeps the focus', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        _page(SmartField.creditCard(validateLuhn: false), width: 420),
-      );
+      await tester.pumpWidget(_page(SmartField.creditCard(), width: 420));
       await tester.showKeyboard(find.byType(EditableText).first);
       await typeDigits(tester, '4111111111111112');
       expect(focused(tester, 0), isTrue);

@@ -475,24 +475,6 @@ void main() {
         SmartCardNumberStatus.valid,
       );
       expect(SmartValidators.cardNumber()(bad), isNull);
-      final enforced = SmartCardUtils.assessNumber(
-        bad,
-        luhnExemptBrands: const {},
-      );
-      expect(enforced.status, SmartCardNumberStatus.incomplete);
-      expect(enforced.issue, SmartCardNumberIssue.failsChecksum);
-      expect(
-        SmartValidators.cardNumber(luhnExemptBrands: const {})(bad),
-        isNotNull,
-      );
-      expect(
-        SmartValidators.cardNumber(luhnExemptBrands: const {})(bad),
-        isNotNull,
-      );
-      expect(
-        SmartCardUtils.assessNumber(bad, validateLuhn: false).status,
-        SmartCardNumberStatus.valid,
-      );
     });
 
     test(
@@ -759,14 +741,13 @@ void main() {
       expect(validator('12'), isNotNull);
     });
 
-    test('developer policy overrides brand rules', () {
+    test('the brand rule cannot be overridden', () {
       final validator = SmartValidators.cardCvv(
         brand: () => SmartCardBrand.visa,
-        allowedLengths: {4},
-        message: 'four only',
+        message: 'three only',
       );
-      expect(validator('123'), 'four only');
-      expect(validator('1234'), isNull);
+      expect(validator('1234'), 'three only');
+      expect(validator('123'), isNull);
     });
   });
 
@@ -893,10 +874,7 @@ void main() {
                 numberStatusBuilder: (a) =>
                     a.isLocallyValid ? 'Looks fine' : null,
               ),
-              SmartField.creditCard(
-                now: _now,
-                luhnExemptBrands: const {SmartCardBrand.unionPay},
-              ),
+              SmartField.creditCard(now: _now),
             ],
           ),
         ),

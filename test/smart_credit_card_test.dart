@@ -150,7 +150,7 @@ void main() {
       expect(december.isExpired(DateTime(2025, 1, 1)), isTrue);
     });
 
-    test('cvv length per brand and policy', () {
+    test('cvv length per brand', () {
       expect(
         SmartCardUtils.isCvvLengthValid('123', SmartCardBrand.visa),
         isTrue,
@@ -183,14 +183,6 @@ void main() {
         SmartCardUtils.isCvvLengthValid('12a', SmartCardBrand.visa),
         isFalse,
       );
-      expect(
-        SmartCardUtils.isCvvLengthValid(
-          '1234',
-          SmartCardBrand.visa,
-          allowedLengths: {4},
-        ),
-        isTrue,
-      );
     });
   });
 
@@ -210,10 +202,10 @@ void main() {
       expect(validator('378282246310006'), 'Check the card number.');
     });
 
-    test('Luhn can be disabled and brands restricted', () {
+    test('brands can be restricted and the checksum cannot be disabled', () {
       expect(
-        SmartValidators.cardNumber(validateLuhn: false)('4111111111111112'),
-        isNull,
+        SmartValidators.cardNumber()('4111111111111112'),
+        'Check the card number.',
       );
       final onlyVisa = SmartValidators.cardNumber(
         acceptedBrands: {SmartCardBrand.visa},

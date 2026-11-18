@@ -38,7 +38,6 @@ class _PaymentsDatesPageState extends State<PaymentsDatesPage> {
   final _number = TextEditingController();
   SmartCardBrand _brand = SmartCardBrand.unknown;
   SmartCardNumberStatus _status = SmartCardNumberStatus.empty;
-  bool _luhnUnionPay = false;
   String _dateRaw = '';
   String _timeRaw = '';
   String _dateTimeRaw = '';
@@ -84,22 +83,9 @@ class _PaymentsDatesPageState extends State<PaymentsDatesPage> {
                     ),
                 ],
               ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Enforce Luhn on UnionPay too'),
-                subtitle: const Text(
-                  'UnionPay is exempt from the checksum by default.',
-                ),
-                value: _luhnUnionPay,
-                onChanged: (value) => setState(() => _luhnUnionPay = value),
-              ),
               const SizedBox(height: 8),
               SmartField.creditCard(
-                key: ValueKey(_luhnUnionPay),
                 numberController: _number,
-                luhnExemptBrands: _luhnUnionPay
-                    ? const {}
-                    : const {SmartCardBrand.unionPay},
                 onChanged: (card) => setState(() {
                   _brand = card.brand;
                   _status = card.numberStatus;

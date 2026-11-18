@@ -187,8 +187,6 @@ abstract final class SmartValidators {
   /// It does not confirm that the card exists.
   static SmartValidator cardNumber({
     Set<SmartCardBrand>? acceptedBrands,
-    bool validateLuhn = true,
-    Set<SmartCardBrand> luhnExemptBrands = const {SmartCardBrand.unionPay},
     String message = 'Enter a valid card number.',
     String? brandMessage,
     String? luhnMessage,
@@ -200,8 +198,6 @@ abstract final class SmartValidators {
       final assessment = SmartCardUtils.assessNumber(
         value,
         acceptedBrands: acceptedBrands,
-        validateLuhn: validateLuhn,
-        luhnExemptBrands: luhnExemptBrands,
       );
       if (assessment.isLocallyValid) {
         return null;
@@ -239,7 +235,6 @@ abstract final class SmartValidators {
   /// Checks the security-code length for the card brand.
   static SmartValidator cardCvv({
     required SmartCardBrand Function() brand,
-    Set<int>? allowedLengths,
     String? message,
   }) {
     return (value) {
@@ -247,18 +242,12 @@ abstract final class SmartValidators {
         return null;
       }
       final resolved = brand();
-      if (SmartCardUtils.isCvvLengthValid(
-        value,
-        resolved,
-        allowedLengths: allowedLengths,
-      )) {
+      if (SmartCardUtils.isCvvLengthValid(value, resolved)) {
         return null;
       }
-      final lengths =
-          allowedLengths ??
-          (resolved == SmartCardBrand.unknown
-              ? const {3, 4}
-              : {resolved.cvvLength});
+      final lengths = resolved == SmartCardBrand.unknown
+          ? const {3, 4}
+          : {resolved.cvvLength};
       final text = (lengths.toList()..sort()).join(' or ');
       return message ?? 'Enter the $text-digit security code.';
     };
@@ -394,16 +383,19 @@ abstract final class SmartValidators {
   }
 
   /// Requires the value to equal the text returned by the callback, for
-  /// example a confirm-password field.
+  /// example a confirm-password field. An empty value is accepted unless
+  /// [requireWhenOtherFilled] is true and the callback returns text.
   static SmartValidator matches(
     String? Function() other, {
     String message = 'Values do not match.',
+    bool requireWhenOtherFilled = false,
   }) {
     return (value) {
+      final original = other() ?? '';
       if (value == null || value.isEmpty) {
-        return null;
+        return requireWhenOtherFilled && original.isNotEmpty ? message : null;
       }
-      return value == (other() ?? '') ? null : message;
+      return value == original ? null : message;
     };
   }
 

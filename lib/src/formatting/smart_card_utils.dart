@@ -510,12 +510,10 @@ abstract final class SmartCardUtils {
   /// that can still become valid with more digits is `incomplete`; when
   /// its checksum fails at a length the brand allows but a longer length
   /// exists, the issue is `failsChecksum`. UnionPay is exempt from the
-  /// checksum unless [luhnExemptBrands] says otherwise.
+  /// checksum.
   static SmartCardNumberAssessment assessNumber(
     String value, {
     Set<SmartCardBrand>? acceptedBrands,
-    bool validateLuhn = true,
-    Set<SmartCardBrand> luhnExemptBrands = const {SmartCardBrand.unionPay},
   }) {
     if (value.isEmpty) {
       return const SmartCardNumberAssessment(
@@ -585,10 +583,7 @@ abstract final class SmartCardUtils {
         issue: SmartCardNumberIssue.failsChecksum,
       );
     }
-    final checksum =
-        !validateLuhn ||
-        luhnExemptBrands.contains(brand) ||
-        _luhnOfDigits(digits);
+    final checksum = brand == SmartCardBrand.unionPay || _luhnOfDigits(digits);
     if (checksum) {
       if (acceptedBrands != null && !match.isCertain) {
         return result(
@@ -729,11 +724,7 @@ abstract final class SmartCardUtils {
     return SmartCardExpiry(month, year);
   }
 
-  static bool isCvvLengthValid(
-    String cvv,
-    SmartCardBrand brand, {
-    Set<int>? allowedLengths,
-  }) {
+  static bool isCvvLengthValid(String cvv, SmartCardBrand brand) {
     if (cvv.isEmpty) {
       return false;
     }
@@ -741,9 +732,6 @@ abstract final class SmartCardUtils {
       if (!_isDigit(cvv.codeUnitAt(index))) {
         return false;
       }
-    }
-    if (allowedLengths != null) {
-      return allowedLengths.contains(cvv.length);
     }
     if (brand == SmartCardBrand.unknown) {
       return cvv.length == 3 || cvv.length == 4;

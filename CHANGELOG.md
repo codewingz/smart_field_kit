@@ -2,6 +2,7 @@
 
 ### Added
 
+* Confirm-password fields are invalid when empty while the original is filled, and revalidate on original edits only as `autovalidateMode` allows. `SmartValidators.matches` gains `requireWhenOtherFilled`.
 * Add `SmartCardBrandMatch.detection` (`identified`, `ambiguous`, `unknown`), `SmartCardBrand.securityCodeName`, and `SmartCardNumberAssessment.canBeLonger` and `isFinal`.
 * Add `SmartAsyncValidation.revalidationKey` to drop results and re-check when the validation rule changes.
 * Add opt-in `normalizeDigits` on number, amount, percentage, phone, OTP, card, date, time, and date-time fields, with `SmartDigitNormalizationFormatter` and `SmartTextUtils.normalizeDigits`, for Arabic-Indic, Persian, and fullwidth digits.
@@ -44,7 +45,7 @@
 * Refactor SmartField internals into a shared core with one owned controller and focus node path and a shared design resolver.
 * Make SmartPhonePolicy.auto validate international numbers with the parser-inferred country when no country is selected.
 * Refactor SmartField internals: one shared private base class with default values, constructors that build their configuration directly, shared listener, input-handle, validation-mode, raw-value, and suffix helpers, and smaller field state (phone, amount display, search debounce, and password strength moved to focused helpers). No public API changes.
-* Credit card: UnionPay is now exempt from the Luhn checksum by default because its numbers are not required to pass it; pass `luhnExemptBrands: const {}` to enforce Luhn, and every other brand still requires it. Strength indicator is skipped while a mask is shown, as before the feature refactor.
+* Credit card: UnionPay is now exempt from the Luhn checksum by default because its numbers are not required to pass it; every other brand always requires it. The checksum, the brand lengths and the security-code lengths cannot be disabled or overridden; `acceptedBrands` only narrows the brands. Strength indicator is skipped while a mask is shown, as before the feature refactor.
 * Group the card number, expiry, and security-code fields for platform autofill.
 * Lower the Dart SDK constraint to `^3.12.0` after verifying analysis, tests, and the example build on Flutter 3.44.0.
 * Asynchronous validation no longer compares validator functions: a parent rebuild keeps the pending check and the completed result, and `validateAsync(force: true)` applies a changed rule with one new request, also while a check is pending.

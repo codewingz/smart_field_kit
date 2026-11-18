@@ -155,6 +155,7 @@ void main() {
                 SmartField.password(
                   controller: confirm,
                   label: 'Confirm',
+                  autovalidateMode: AutovalidateMode.always,
                   matchController: password,
                   mismatchErrorText: 'Must match',
                 ),
@@ -165,8 +166,10 @@ void main() {
       );
       password.text = 'secret1';
       await tester.pump();
-      expect(find.text('Must match'), findsNothing);
+      expect(find.text('Must match'), findsOneWidget);
       confirm.text = 'secret1';
+      await tester.pump();
+      expect(find.text('Must match'), findsNothing);
       expect(formKey.currentState!.validate(), isTrue);
       password.text = 'secret2';
       await tester.pump();
@@ -182,11 +185,131 @@ void main() {
       expect(find.text('Must match'), findsNothing);
     });
 
+    testWidgets('confirmation: filled/empty, different, equal, both empty', (
+      tester,
+    ) async {
+      final formKey = GlobalKey<FormState>();
+      final password = TextEditingController();
+      final confirm = TextEditingController();
+      addTearDown(password.dispose);
+      addTearDown(confirm.dispose);
+      await tester.pumpWidget(
+        _app(
+          Form(
+            key: formKey,
+            child: Column(
+              children: [
+                SmartField.password(controller: password, label: 'Password'),
+                SmartField.password(
+                  controller: confirm,
+                  label: 'Confirm',
+                  matchController: password,
+                  mismatchErrorText: 'Must match',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      expect(formKey.currentState!.validate(), isTrue);
+      password.text = 'Secret1!';
+      expect(formKey.currentState!.validate(), isFalse);
+      await tester.pump();
+      expect(find.text('Must match'), findsOneWidget);
+      confirm.text = 'Secret2!';
+      expect(formKey.currentState!.validate(), isFalse);
+      confirm.text = 'Secret1!';
+      expect(formKey.currentState!.validate(), isTrue);
+      password.text = '';
+      confirm.text = '';
+      expect(formKey.currentState!.validate(), isTrue);
+    });
+
+    testWidgets('an explicitly required confirmation stays required', (
+      tester,
+    ) async {
+      final formKey = GlobalKey<FormState>();
+      final password = TextEditingController();
+      addTearDown(password.dispose);
+      await tester.pumpWidget(
+        _app(
+          Form(
+            key: formKey,
+            child: SmartField.password(
+              label: 'Confirm',
+              isRequired: true,
+              requiredErrorText: 'Required here',
+              matchController: password,
+            ),
+          ),
+        ),
+      );
+      expect(formKey.currentState!.validate(), isFalse);
+      await tester.pump();
+      expect(find.text('Required here'), findsOneWidget);
+    });
+
+    testWidgets('editing the original respects autovalidateMode', (
+      tester,
+    ) async {
+      final password = TextEditingController();
+      final confirm = TextEditingController(text: 'abc');
+      addTearDown(password.dispose);
+      addTearDown(confirm.dispose);
+      Future<void> pumpWith(AutovalidateMode? mode) async {
+        await tester.pumpWidget(
+          _app(
+            Form(
+              child: Column(
+                children: [
+                  SmartField.password(controller: password, label: 'Password'),
+                  SmartField.password(
+                    key: ValueKey(mode),
+                    controller: confirm,
+                    label: 'Confirm',
+                    autovalidateMode: mode,
+                    matchController: password,
+                    mismatchErrorText: 'Must match',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      await pumpWith(null);
+      password.text = 'x';
+      await tester.pump();
+      expect(find.text('Must match'), findsNothing);
+      password.text = '';
+      await pumpWith(AutovalidateMode.disabled);
+      password.text = 'y';
+      await tester.pump();
+      expect(find.text('Must match'), findsNothing);
+      password.text = '';
+      await pumpWith(AutovalidateMode.always);
+      password.text = 'z';
+      await tester.pump();
+      expect(find.text('Must match'), findsOneWidget);
+    });
+
     test('matches validator utility', () {
       final validator = SmartValidators.matches(() => 'abc', message: 'no');
       expect(validator(''), isNull);
       expect(validator('abc'), isNull);
       expect(validator('abd'), 'no');
+      final confirm = SmartValidators.matches(
+        () => 'abc',
+        message: 'no',
+        requireWhenOtherFilled: true,
+      );
+      expect(confirm(''), 'no');
+      expect(confirm(null), 'no');
+      expect(
+        SmartValidators.matches(() => '', requireWhenOtherFilled: true)(''),
+        isNull,
+      );
     });
   });
 

@@ -237,13 +237,6 @@ void main() {
         SmartCardUtils.assessNumber('6200000000000000').status,
         SmartCardNumberStatus.valid,
       );
-      expect(
-        SmartCardUtils.assessNumber(
-          '6200000000000000001',
-          luhnExemptBrands: const {},
-        ).status,
-        SmartCardNumberStatus.invalid,
-      );
       expect(SmartValidators.cardNumber()('0' * 16), 'Check the card number.');
     });
 

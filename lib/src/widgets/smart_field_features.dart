@@ -74,8 +74,15 @@ final class _MatchFeature extends _FieldFeature {
   late final SmartListenerBinding _binding;
 
   void _revalidate() {
-    if (host.mounted && host.currentText.isNotEmpty) {
-      host.fieldKey.currentState?.validate();
+    final state = host.fieldKey.currentState;
+    if (!host.mounted || state == null) {
+      return;
+    }
+    final mode = host.field.autovalidateMode;
+    if (mode == AutovalidateMode.always ||
+        (mode == AutovalidateMode.onUserInteraction &&
+            state.hasInteractedByUser)) {
+      state.validate();
     }
   }
 

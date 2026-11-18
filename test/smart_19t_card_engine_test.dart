@@ -370,13 +370,6 @@ void main() {
           reason: '$length',
         );
       }
-      expect(
-        SmartCardUtils.assessNumber(
-          _spoil(_complete('6200', 19)),
-          luhnExemptBrands: const {},
-        ).status,
-        SmartCardNumberStatus.invalid,
-      );
     });
 
     test('incomplete and ambiguous numbers are not errors', () {

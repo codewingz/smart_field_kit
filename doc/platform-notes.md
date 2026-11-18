@@ -19,12 +19,12 @@ Most field controls use Flutter's Material widgets. Some features depend on mobi
 | Decimal separator | With `decimalSeparator: ','` the comma is the only decimal key by default; a typed `.` is not treated as the decimal, so a keypad that offers only `.` cannot enter the decimal part. Set `acceptDotAsDecimal: true` on `SmartField.amount` to accept one typed `.` as the decimal. It has no effect when the grouping separator is `.` |
 | 12-hour time | The markers default to `AM` and `PM`. Set `amLabel` and `pmLabel` on `SmartField.time` and `SmartField.dateTime` to change them. The Material clock dialog takes its own text from the app's locale |
 | Narrow layouts and large text | When a phone field's flag and dial code would take more than half of the space available to them, they are drawn smaller instead of overflowing. The masked text of a masked phone, number, or amount field is drawn smaller, down to 60% of its size, when it would not fit between the field's icons; beyond that its start is cut off and its last digits stay visible. Date dropdowns are drawn smaller together when the field is too narrow for the three controls (about 210 px at normal text size with a clear button). No control is hidden; where the dropdowns are scaled their touch areas are smaller than 48 px |
-| Contact picker | Depends on the native system picker and requires available platform behavior |
+| Contact picker | Uses the system picker only. Android starts `Intent.ACTION_PICK` and iOS shows `CNContactPickerViewController`; neither needs a contacts permission or an `Info.plist` entry in your app. Plugin manifest and sources checked at 0.0.13. Not exercised on a physical device |
 | OTP autofill | Keyboard/platform hints may assist autofill; this package does not itself read SMS or WhatsApp |
 | Date-time | Local/timezone-naive date-time at minute precision; the consuming app owns timezone conversion and DST policy |
 | State restoration | Password and OTP are intentionally excluded; fields with owned or app-supplied controllers have documented limits |
 | RuPay | No specific RuPay card-brand mapping has been claimed; uncertain prefixes remain unknown or match other supported brands |
-| Luhn exceptions | UnionPay exempt by default; developer can override |
+| Luhn exceptions | UnionPay is the only exempt brand; not configurable |
 | Card auto-advance | Only at the identified brand's longest valid length; a 16-digit Visa number waits for Next or Tab |
 | Date-time picker modes | `dateTime()` supports manual and picker, not a date-time wheel mode |
 | Accessibility | RTL and text scaling are designed into the UI, but full TalkBack/VoiceOver platform checks are still required |
@@ -46,7 +46,6 @@ Most field controls use Flutter's Material widgets. Some features depend on mobi
 | An OTP isn't auto-read from messages | This package does not implement SMS/WhatsApp reading |
 | A masked input reveals its raw text | Editable masked fields can reveal on focus; check `revealMaskOnFocus` |
 | A card passes Luhn but payment fails | Luhn does not prove card existence, balance or issuer approval |
-| UnionPay should be strict | Pass `luhnExemptBrands: const {}` to enable Luhn for UnionPay |
 | Date-time shifts after converting to UTC | Date/time values are local and timezone-naive; apply app-specific timezone logic |
 | Contact picker doesn't open | Test device support, native integration and platform setup |
 | A controller is unexpectedly disposed | Confirm who created the controller; application-created controllers remain application-owned |

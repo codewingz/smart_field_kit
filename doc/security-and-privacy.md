@@ -15,7 +15,7 @@ Part of the [smart_field_kit documentation](../README.md).
 | Masks | Hide portions of the display | Encrypt, authorize, store securely and avoid leaking values into logs or analytics |
 | Async validation | Call your supplied checker at the right time, reject stale responses | Protect API endpoints and treat all remote results as untrusted |
 
-**Card-checking details:** Luhn is a local checksum and does not authenticate a card. UnionPay is exempt from Luhn by default in the reported implementation; `luhnExemptBrands: const {}` opts into checking it. `validateLuhn: false` turns the checksum off and should not be used for real payments. Card checks run offline in pure Dart; only a payment provider can authorize a card. Unknown brands and co-branded prefixes are handled cautiously. RuPay is not explicitly supported in the reported card-brand table. Actual card details must never be used as tests.
+**Card-checking details:** Luhn is a local checksum and does not authenticate a card. UnionPay is the only brand exempt from Luhn, and the checksum and length rules cannot be disabled. Card checks run offline in pure Dart; only a payment provider can authorize a card. Unknown brands and co-branded prefixes are handled cautiously. RuPay is not explicitly supported in the reported card-brand table. Actual card details must never be used as tests.
 
 **Debugging:** The package reported redaction for its own card-related diagnostics. Application-owned controllers, error reporting, analytics, crash dumps, and custom callbacks can still leak values if an application logs them. Avoid printing values from `onChanged`, `onSaved`, or async validators for secret fields.
 

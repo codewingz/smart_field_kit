@@ -95,7 +95,7 @@ SmartField.password(
 )
 ```
 
-An empty confirmation passes unless `isRequired` is set. The confirmation revalidates when the original changes (typing, programmatic changes, or `FormState.reset`) as long as it is not empty. Passwords are never logged or stored. `SmartValidators.matches()` is the standalone helper.
+The confirmation is invalid when it differs from the original, including when it is empty while the original is filled. Both empty is valid unless `isRequired` is set on the confirmation. When the original changes, the confirmation revalidates only if its `autovalidateMode` is `always`, or `onUserInteraction` after the user has edited it; with the default (disabled) it does not, so call `FormState.validate()`. Passwords are never logged or stored. `SmartValidators.matches()` is the standalone helper.
 
 ## Asynchronous validation
 

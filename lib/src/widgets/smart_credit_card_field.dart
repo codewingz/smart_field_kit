@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/formatting/smart_card_utils.dart';
@@ -60,15 +59,12 @@ final class SmartCreditCardConfig {
     this.expiryFocusNode,
     this.cvvFocusNode,
     this.acceptedBrands,
-    this.validateLuhn = true,
-    this.luhnExemptBrands = const {SmartCardBrand.unionPay},
     this.showNumberStatus = true,
     this.numberStatusBuilder,
     this.brandErrorText = 'This card type is not accepted.',
     this.luhnErrorText = 'Check the card number.',
     this.expiryFormat = SmartExpiryFormat.mmYy,
     this.now = DateTime.now,
-    this.cvvLengths,
     this.concealCvv = true,
     this.showBrand = true,
     this.autoAdvance = true,
@@ -98,8 +94,6 @@ final class SmartCreditCardConfig {
   final FocusNode? expiryFocusNode;
   final FocusNode? cvvFocusNode;
   final Set<SmartCardBrand>? acceptedBrands;
-  final bool validateLuhn;
-  final Set<SmartCardBrand> luhnExemptBrands;
   final bool showNumberStatus;
   final String? Function(SmartCardNumberAssessment assessment)?
   numberStatusBuilder;
@@ -107,7 +101,6 @@ final class SmartCreditCardConfig {
   final String luhnErrorText;
   final SmartExpiryFormat expiryFormat;
   final DateTime Function() now;
-  final Set<int>? cvvLengths;
   final bool concealCvv;
   final bool showBrand;
   final bool autoAdvance;
@@ -185,11 +178,7 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
     _assessment = null;
     final numberRebound = _syncInputs();
     _refreshNumberDisplay();
-    final cvvPolicyChanged = !setEquals(
-      oldWidget.config.cvvLengths,
-      _config.cvvLengths,
-    );
-    if ((numberRebound || cvvPolicyChanged) && _cvvBrandError != null) {
+    if (numberRebound && _cvvBrandError != null) {
       _updateCvvForBrand();
     } else {
       _refreshCvvDisplay();
@@ -241,8 +230,6 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
     return _assessment = SmartCardUtils.assessNumber(
       text,
       acceptedBrands: _config.acceptedBrands,
-      validateLuhn: _config.validateLuhn,
-      luhnExemptBrands: _config.luhnExemptBrands,
     );
   }
 
@@ -277,7 +264,6 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
     } else {
       final validator = SmartValidators.cardCvv(
         brand: () => _brand,
-        allowedLengths: _config.cvvLengths,
         message: _config.cvvErrorText,
       );
       _cvvBrandError = validator(text);
@@ -417,8 +403,6 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
       inputFormatters: [...digitFormatters, const SmartCardNumberFormatter()],
       validator: SmartValidators.cardNumber(
         acceptedBrands: _config.acceptedBrands,
-        validateLuhn: _config.validateLuhn,
-        luhnExemptBrands: _config.luhnExemptBrands,
         message: _config.numberErrorText,
         brandMessage: _config.brandErrorText,
         luhnMessage: _config.luhnErrorText,
@@ -488,7 +472,6 @@ class _SmartCreditCardFieldState extends State<SmartCreditCardField> {
     );
     final cvvValidator = SmartValidators.cardCvv(
       brand: () => _brand,
-      allowedLengths: _config.cvvLengths,
       message: _config.cvvErrorText,
     );
     final cvvHint =

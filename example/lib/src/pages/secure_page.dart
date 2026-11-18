@@ -81,7 +81,7 @@ class _SecurePageState extends State<SecurePage> {
           title: 'Confirm password',
           description:
               'The second field compares against the first field\'s controller. '
-              'Editing the first field revalidates a non-empty confirmation.',
+              'An empty confirmation is invalid while the first field is filled.',
           snippet:
               "SmartField.password(controller: password)\nSmartField.password(matchController: password)",
           child: Form(
