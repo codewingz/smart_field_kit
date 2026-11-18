@@ -1,7 +1,7 @@
 import 'package:example/main.dart';
 import 'package:example/src/app_shell.dart';
 import 'package:example/src/settings.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Future<void> _openPage(WidgetTester tester, String label) async {
@@ -60,9 +60,8 @@ void main() {
         builder: (context, child) => Directionality(
           textDirection: TextDirection.rtl,
           child: MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: const TextScaler.linear(2)),
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: const TextScaler.linear(2)),
             child: child!,
           ),
         ),

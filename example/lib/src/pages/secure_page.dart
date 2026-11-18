@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
 
 import '../demo_widgets.dart';
@@ -60,8 +60,7 @@ class _SecurePageState extends State<SecurePage> {
           description:
               'Informational feedback with developer-defined criteria. It is '
               'separate from validation.',
-          snippet:
-              "SmartField.password(\n  showStrengthIndicator: true,\n  showStrengthChecklist: true,\n  strengthCriteria: [\n    SmartPasswordCriterion.minLength(10),\n    SmartPasswordCriterion.digit,\n  ],\n)",
+          snippet: "SmartField.password(\n  showStrengthIndicator: true,\n  showStrengthChecklist: true,\n  strengthCriteria: [\n    SmartPasswordCriterion.minLength(10),\n    SmartPasswordCriterion.digit,\n  ],\n)",
           child: SmartField.password(
             label: 'New password',
             showStrengthIndicator: true,
@@ -82,8 +81,7 @@ class _SecurePageState extends State<SecurePage> {
           description:
               'The second field compares against the first field\'s controller. '
               'An empty confirmation is invalid while the first field is filled.',
-          snippet:
-              "SmartField.password(controller: password)\nSmartField.password(matchController: password)",
+          snippet: "SmartField.password(controller: password)\nSmartField.password(matchController: password)",
           child: Form(
             key: _formKey,
             autovalidateMode: AutovalidateMode.onUserInteraction,

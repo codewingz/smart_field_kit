@@ -1,10 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
+
 import 'support/web_skips.dart';
 
 String _complete(String prefix, int length) {
@@ -691,9 +692,8 @@ void main() {
       expect(february.isExpired(DateTime(2024, 2, 29, 23, 59)), isFalse);
       expect(february.isExpired(DateTime(2024, 3, 1)), isTrue);
       expect(
-        SmartCardUtils.tryParseExpiry(
-          '02/23',
-        )!.isExpired(DateTime(2023, 2, 28, 23, 59)),
+        SmartCardUtils.tryParseExpiry('02/23')!
+            .isExpired(DateTime(2023, 2, 28, 23, 59)),
         isFalse,
       );
     });

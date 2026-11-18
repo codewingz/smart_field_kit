@@ -15,7 +15,7 @@ SmartField.amount(label: 'Amount', decimalLength: 2, useGrouping: true);
 SmartField.otp(length: 6, onCompleted: (value) {});
 ```
 
-> **Release status:** Version 0.0.1 is published on [pub.dev](https://pub.dev/packages/smart_field_kit). Requires Flutter 3.44.0 or later and Dart 3.12.0 or later. Tested platforms and known limits are listed in [Platform notes](#platform-notes).
+> **Requirements:** Flutter 3.47.0 or later and Dart 3.13.0 or later. Version 0.1.0 builds on [`material_ui`](https://pub.dev/packages/material_ui), Flutter's standalone Material package; see [Moving from 0.0.1](#moving-from-001). Tested platforms and known limits are listed in [Platform notes](#platform-notes).
 
 **Why this package?** Use a single, familiar set of input widgets while keeping Flutter's `Form`, `TextEditingController`, `FocusNode`, `InputDecoration`, keyboard, theme, and validation conventions. Ordinary text stays unrestricted by default; special rules are opt-in or specific to a selected field type.
 
@@ -87,7 +87,7 @@ Or add it to `pubspec.yaml` and run `flutter pub get`:
 
 ```yaml
 dependencies:
-  smart_field_kit: ^0.0.1
+  smart_field_kit: ^0.1.0
 ```
 
 ### From a local clone
@@ -113,7 +113,7 @@ No `lib/src/` import should be necessary for a consumer application.
 This example uses Flutter's regular `Form` API. It validates required fields, keeps controller ownership in the application, and doesn't print or store passwords.
 
 ```dart
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
 
 void main() => runApp(const MaterialApp(home: ContactFormExample()));
@@ -234,7 +234,7 @@ Explore the full, exact behavior of each constructor below. Examples show suppor
 `SmartField` is a normal text field by default. It allows empty input and unrestricted normal text, including letters, numbers, spaces, punctuation, Unicode, and emoji. Required and length validation are opt-in. It adds no character filters or default length limits.
 
 ```dart
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
 SmartField(
   label: 'Full Name',
@@ -1321,7 +1321,7 @@ Original legacy preset:
 }
 ```
 
-The contact button is shown only on Android and iOS. It opens the operating system's native one-number picker and does not request broad contact-list access, enumerate the address book, upload data, or contact a server. Cancellation leaves the field unchanged. Other failures use `onContactPickerError` when supplied or accessible `SnackBar` feedback. Adding the option does not make the native dependency optional at install time. The package requires Flutter 3.44 or later because `flutter_native_contact_picker` 0.0.13 does, and that plugin requires iOS 13 or later; the example targets iOS 15.
+The contact button is shown only on Android and iOS. It opens the operating system's native one-number picker and does not request broad contact-list access, enumerate the address book, upload data, or contact a server. Cancellation leaves the field unchanged. Other failures use `onContactPickerError` when supplied or accessible `SnackBar` feedback. Adding the option does not make the native dependency optional at install time. The native picker comes from `flutter_native_contact_picker` 0.0.13, which requires iOS 13 or later; the example targets iOS 15. The plugin's code is loaded only where `dart:io` exists and is called only on Android and iOS. On web, Windows, Linux and macOS the contact button is not shown, and a `contactPicker` callback you supply still works everywhere.
 
 Country names work in English without extra setup. Apps that need translated country names can add `CountryLocalizations.delegate` from `country_picker` to their `MaterialApp` localization delegates.
 
@@ -1516,12 +1516,12 @@ Most field controls use Flutter's Material widgets. Some features depend on mobi
 
 | Area | Current behavior or limitation |
 |---|---|
-| Flutter and Dart versions | Requires Flutter 3.44.0 or later and Dart 3.12.0 or later. Analysis, all package tests, the example tests, and the example web build pass on Flutter 3.44.0 (Dart 3.12.0) and on Flutter 3.47.8 (Dart 3.13.7). Flutter 3.44 is the oldest version the bundled contact-picker plugin accepts |
-| Flutter web | The package test suite runs on Chrome (1,212 tests pass; 53 are skipped there, each with a stated reason: 40 need the native contact picker, which is not offered on web, 11 read project files through `dart:io`, and 2 send native undo key events that the browser handles itself). The example web build passes. On web, Flutter selects all text when a field gains focus programmatically, and the browser owns the undo shortcut |
+| Flutter and Dart versions | Requires Flutter 3.47.0 or later and Dart 3.13.0 or later, the first release with the standalone `material_ui` package. Analysis, all package tests, the example tests, and the example web build are run on the minimum (3.47.0), on 3.47.8, and on the latest stable Flutter in CI |
+| Flutter web and WebAssembly | The package compiles for web and WebAssembly (`flutter build web --wasm` in CI); the contact-picker plugin is not part of the web build. The package test suite runs on Chrome (1,212 tests pass; 53 are skipped there, each with a stated reason: 40 need the native contact picker, which is not offered on web, 11 read project files through `dart:io`, and 2 send native undo key events that the browser handles itself). The example web build passes. On web, Flutter selects all text when a field gains focus programmatically, and the browser owns the undo shortcut |
 | iOS | The example integration tests (card entry, amount formatting, RTL digit order, calendar and country pickers, dropdown dates, password toggle, masking) pass on an iPhone 17 simulator. The native contact picker, the system keyboard, SMS code autofill, and VoiceOver were not exercised |
 | Android | The same integration tests pass on an Android API 36 emulator. The merged example manifest declares no contacts permission. The integration tests also pass on a physical Android 14 phone. Third-party keyboards, SMS code autofill, and TalkBack were not exercised |
 | macOS | The example builds and the integration tests pass on macOS desktop with `flutter test integration_test -d macos`. Run them from an interactive desktop session; in an unattended session the run has sometimes stalled before the first test. The contact button is not shown on desktop |
-| Windows and Linux | The package analysis and tests pass on a hosted GitHub Actions Windows runner (commit 55ef287). Windows is not declared as a supported platform and no Windows or Linux app was run. Linux is untested |
+| Windows and Linux | Declared in `pubspec.yaml`. The package analysis and tests run on hosted GitHub Actions Windows and Linux runners, and the example is built for both there. No Windows or Linux app was driven by hand. The contact button is not shown, and the native picker plugin is never called |
 | Keyboards that compose text (IME) | Text is not changed while the keyboard is still composing. When the composed text is committed and the field's input rule rejects it, the field returns to the text it held before that composition, with the caret where the composition began. This is covered by simulated composition tests; hardware and third-party keyboards were not tested |
 | Digits | By default number, amount, percentage, OTP, card, date, and time fields accept ASCII digits `0`-`9` only: Arabic-Indic (`١٢٣`), Persian (`۱۲۳`), and fullwidth digits are not entered and no message is shown, and a phone field keeps them and reports the number as invalid. Set `normalizeDigits: true` on those fields, or on a phone field, to replace these three digit sets with ASCII digits as they are typed or pasted, before any rule runs. Other numerals, and the Arabic decimal and thousands separators, are not converted. Text set through a controller is not rewritten |
 | Decimal separator | With `decimalSeparator: ','` the comma is the only decimal key by default; a typed `.` is not treated as the decimal, so a keypad that offers only `.` cannot enter the decimal part. Set `acceptDotAsDecimal: true` on `SmartField.amount` to accept one typed `.` as the decimal. It has no effect when the grouping separator is `.` |
@@ -1567,6 +1567,15 @@ flutter test integration_test -d <device>
 ```
 
 The folder holds one test entry file, `all_test.dart`, which runs every case in a single app launch; `flutter test integration_test/all_test.dart -d <device>` is the same run. The cases live in `credit_card_cases.dart` and `fields_cases.dart`, which can also be run on their own by path. They are deliberately not named `*_test.dart`: on desktop the Flutter tool starts a new copy of the app for every test file in a folder, and the second launch fails with `Unable to start the app on the device`. That is how the tool behaves on desktop and does not depend on the package.
+
+### Moving from 0.0.1
+
+Version 0.1.0 uses `package:material_ui` instead of `package:flutter/material.dart`, which Flutter 3.50 deprecates. This is a breaking change for apps that still use the in-framework Material library:
+
+- Flutter 3.47.0 or later is required (0.0.1 accepted 3.44).
+- Public parameters that take Material types, such as `InputDecoration`, now take the `material_ui` versions. In your app, change `import 'package:flutter/material.dart';` to `import 'package:material_ui/material_ui.dart';`, or run `dart fix --apply --code=migrate_design_widgets`.
+- An app that is not migrated can wrap itself in `MaterialUiCompatibilityBridge` so themes reach the fields; values of the old types still cannot be passed to `SmartField`. See [Flutter's migration guide](https://docs.flutter.dev/release/breaking-changes/material-ui-and-cupertino-ui).
+- The country picker sheet is now part of this package and uses your `material_ui` theme.
 
 ## Example application and development
 

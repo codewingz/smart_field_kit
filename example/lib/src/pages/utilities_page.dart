@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
 
 import '../demo_widgets.dart';
@@ -39,8 +39,7 @@ class _UtilitiesPageState extends State<UtilitiesPage> {
               'Independent of the widget. They return masked copies and never '
               'change their input. Masking is a visual privacy aid, not '
               'encryption. Use only sample values here.',
-          snippet:
-              "maskMobile('03001234567')\nmaskAccountNumber('000012345678')\nmaskAmount('12,345.67 PKR')",
+          snippet: "maskMobile('03001234567')\nmaskAccountNumber('000012345678')\nmaskAmount('12,345.67 PKR')",
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

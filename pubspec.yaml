@@ -1,6 +1,6 @@
 name: smart_field_kit
 description: "Flutter form fields on native Material behavior: validation, formatting, masking, phone, OTP, amount, card, and date inputs in one API."
-version: 0.0.1
+version: 0.1.0
 homepage: https://github.com/codewingz/smart_field_kit
 repository: https://github.com/codewingz/smart_field_kit
 issue_tracker: https://github.com/codewingz/smart_field_kit/issues
@@ -21,10 +21,12 @@ platforms:
   ios:
   macos:
   web:
+  windows:
+  linux:
 
 environment:
-  sdk: ^3.12.0
-  flutter: ">=3.44.0"
+  sdk: ^3.13.0
+  flutter: ">=3.47.0"
 
 dependencies:
   characters: ^1.4.1
@@ -32,8 +34,10 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_native_contact_picker: ^0.0.13
+  material_ui: ^1.0.0
   phone_numbers_parser: ^9.0.29
 
+  cupertino_ui: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

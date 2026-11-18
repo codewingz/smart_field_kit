@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
 import 'package:smart_field_kit/src/widgets/smart_amount_display.dart';
@@ -35,13 +35,22 @@ const _expectedApiSnapshot = <String>[
   'text+mask|null|none|true|true|null|null|null|1|false|false|false|This field is required.|both|0|SmartMaskFormatter+SmartTextCaseFormatter|null|false|false|null|null|true',
 ];
 
+String? _describeKeyboard(TextInputType? type) {
+  if (type == null) {
+    return null;
+  }
+  final json = type.toJson();
+  return 'TextInputType(name: ${json['name']}, signed: ${json['signed']}, '
+      'decimal: ${json['decimal']})';
+}
+
 String _describe(String name, SmartField f) {
   final formatters = (f.inputFormatters ?? const <Object>[])
       .map((e) => e.runtimeType.toString())
       .join('+');
   return [
     name,
-    f.keyboardType,
+    _describeKeyboard(f.keyboardType),
     f.textCapitalization.name,
     f.autocorrect,
     f.enableSuggestions,

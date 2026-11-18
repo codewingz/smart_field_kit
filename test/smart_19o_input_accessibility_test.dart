@@ -1,5 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoPicker;
-import 'package:flutter/material.dart';
+import 'package:cupertino_ui/cupertino_ui.dart' show CupertinoPicker;
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
 
@@ -13,9 +13,8 @@ Widget _page(
   theme: ThemeData(brightness: brightness),
   home: Builder(
     builder: (context) => MediaQuery(
-      data: MediaQuery.of(
-        context,
-      ).copyWith(textScaler: TextScaler.linear(scale)),
+      data: MediaQuery.of(context)
+          .copyWith(textScaler: TextScaler.linear(scale)),
       child: Directionality(
         textDirection: direction,
         child: Scaffold(

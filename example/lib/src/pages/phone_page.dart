@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
 
 import '../demo_widgets.dart';
@@ -38,8 +38,7 @@ class _PhonePageState extends State<PhonePage> {
               'Pick a policy and try these numbers: +923001234567 (valid '
               'international), 03001234567 with Pakistan selected, '
               '12345 (syntax passes, country rules reject it).',
-          snippet:
-              "SmartField.phone(\n  policy: SmartPhonePolicy.auto,\n  showCountryPicker: true,\n  initialCountryCode: 'PK',\n  onPhoneChanged: (phone) {},\n)",
+          snippet: "SmartField.phone(\n  policy: SmartPhonePolicy.auto,\n  showCountryPicker: true,\n  initialCountryCode: 'PK',\n  onPhoneChanged: (phone) {},\n)",
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

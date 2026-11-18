@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:smart_field_kit/src/smart_default_texts.dart';
 import 'package:smart_field_kit/src/validation/smart_password_strength.dart';
 

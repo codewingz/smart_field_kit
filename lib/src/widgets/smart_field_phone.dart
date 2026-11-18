@@ -172,29 +172,17 @@ final class _PhoneFeature extends _FieldFeature {
 
   void _showCountryPicker() {
     final config = _config;
-    final theme = Theme.of(host.context);
     final favorites = config.favoriteCountryCodes
         ?.where(_isCountryAllowed)
         .toList(growable: false);
     final generation = _pickerGeneration;
     final target = host.textController;
-    country_picker.showCountryPicker(
+    showSmartCountryPicker(
       context: host.context,
-      showPhoneCode: true,
-      countryFilter: config.allowedCountryCodes,
-      favorite: favorites ?? const [],
-      customFlagBuilder: config.showFlag
-          ? null
-          : (country) => const SizedBox.shrink(),
-      countryListTheme: country_picker.CountryListThemeData(
-        backgroundColor: theme.colorScheme.surface,
-        textStyle: theme.textTheme.bodyLarge,
-        searchTextStyle: theme.textTheme.bodyLarge,
-        inputDecoration: InputDecoration(
-          hintText: config.countrySearchHint,
-          prefixIcon: const Icon(Icons.search),
-        ),
-      ),
+      searchHint: config.countrySearchHint,
+      showFlag: config.showFlag,
+      allowedCountryCodes: config.allowedCountryCodes,
+      favoriteCountryCodes: favorites ?? const [],
       onSelect: (country) {
         if (!_isCurrentPick(generation, target) ||
             !_isCountryAllowed(country.countryCode)) {
@@ -258,11 +246,11 @@ final class _PhoneFeature extends _FieldFeature {
     try {
       String? number;
       if (config.contactPicker == null) {
-        final contact = await FlutterNativeContactPicker().selectPhoneNumber();
+        final contact = await selectNativePhoneNumber();
         if (!_isCurrentPick(generation, target) || contact == null) {
           return;
         }
-        number = contact.selectedPhoneNumber;
+        number = contact.phoneNumber;
         if (number == null) {
           _reportPhonePickerError(
             const SmartPhonePickerError(

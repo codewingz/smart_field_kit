@@ -2,9 +2,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
+
 import 'support/web_skips.dart';
 
 Widget _app(Widget child, {ThemeData? theme}) {
@@ -439,9 +440,8 @@ void main() {
         ? 'Reads project files through dart:io, which is unavailable in a browser.'
         : null,
     () {
-      final manifest = File(
-        'example/android/app/src/main/AndroidManifest.xml',
-      ).readAsStringSync();
+      final manifest = File('example/android/app/src/main/AndroidManifest.xml')
+          .readAsStringSync();
       expect(manifest, isNot(contains('READ_CONTACTS')));
       expect(manifest, isNot(contains('READ_SMS')));
       expect(manifest, isNot(contains('RECEIVE_SMS')));
@@ -456,9 +456,9 @@ void main() {
         ? 'Reads project files through dart:io, which is unavailable in a browser.'
         : null,
     () {
-      final sources = Directory(
-        'lib',
-      ).listSync(recursive: true).whereType<File>();
+      final sources = Directory('lib')
+          .listSync(recursive: true)
+          .whereType<File>();
       for (final file in sources) {
         final text = file.readAsStringSync();
         expect(text, isNot(contains('permission_handler')), reason: file.path);

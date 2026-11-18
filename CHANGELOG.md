@@ -1,3 +1,17 @@
+## 0.1.0
+
+### Changed
+
+* **Breaking:** use `package:material_ui` (Flutter's standalone Material package) instead of the in-framework `package:flutter/material.dart`, which Flutter 3.50 deprecates. Public parameters that take Material types now take the `material_ui` types. Migrate your app with `dart fix --apply --code=migrate_design_widgets`.
+* **Breaking:** require Flutter 3.47.0 or later and Dart 3.13.0 or later (0.0.1 required Flutter 3.44.0).
+* Show the phone country picker in a sheet built by this package, so it follows your `material_ui` theme. Country data still comes from `country_picker`. Search hint, flags, favorites, allowed countries and selection callbacks behave as before.
+* Load the native contact-picker plugin only where `dart:io` exists, so the package compiles for web and WebAssembly. The contact button is still shown only on Android and iOS.
+
+### Added
+
+* Declare Windows and Linux as supported platforms. The package analysis and tests run on hosted Windows and Linux runners, and the example is built for both.
+* Build the example for WebAssembly, Linux, Windows and macOS in CI, and run the package on the latest stable Flutter.
+
 ## 0.0.1
 
 ### Added

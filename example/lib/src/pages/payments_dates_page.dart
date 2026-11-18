@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
 
 import '../demo_widgets.dart';
@@ -67,8 +67,7 @@ class _PaymentsDatesPageState extends State<PaymentsDatesPage> {
               'field and the security code can be revealed with its toggle; '
               'neither is stored, logged, or echoed elsewhere by this app. Do '
               'not enter real card data in a demo.',
-          snippet:
-              "SmartField.creditCard(\n  acceptedBrands: {SmartCardBrand.visa, SmartCardBrand.mastercard},\n  onChanged: (card) => card.brand,\n)",
+          snippet: "SmartField.creditCard(\n  acceptedBrands: {SmartCardBrand.visa, SmartCardBrand.mastercard},\n  onChanged: (card) => card.brand,\n)",
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -108,8 +107,7 @@ class _PaymentsDatesPageState extends State<PaymentsDatesPage> {
               'Four modes: manual (masked typing), calendar, dropdowns, and '
               'wheel. Raw values are ISO text; the typed text stays in your '
               'chosen format.',
-          snippet:
-              "SmartField.date(\n  mode: SmartDateMode.calendar,\n  restriction: SmartDateRestriction.pastOnly,\n  onRawChanged: (iso) {},\n)",
+          snippet: "SmartField.date(\n  mode: SmartDateMode.calendar,\n  restriction: SmartDateRestriction.pastOnly,\n  onRawChanged: (iso) {},\n)",
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

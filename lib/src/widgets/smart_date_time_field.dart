@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:smart_field_kit/src/formatting/smart_date_utils.dart';
 import 'package:smart_field_kit/src/formatting/smart_input_mask.dart';
@@ -832,9 +832,8 @@ class _SmartDateTimeFieldState extends State<SmartDateTimeField> {
       initialTime: _currentTime(),
       builder: (context, child) {
         return MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(alwaysUse24HourFormat: _config.timeFormat.use24Hour),
+          data: MediaQuery.of(context)
+              .copyWith(alwaysUse24HourFormat: _config.timeFormat.use24Hour),
           child: child!,
         );
       },

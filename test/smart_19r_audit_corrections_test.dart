@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
@@ -16,9 +16,8 @@ Widget _page(
   return MaterialApp(
     home: Builder(
       builder: (context) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(scale)),
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(scale)),
         child: Directionality(
           textDirection: direction,
           child: Scaffold(
@@ -35,13 +34,12 @@ Widget _page(
   );
 }
 
-typedef _Build =
-    Widget Function({
-      TextEditingController? controller,
-      required bool seeded,
-      required FormFieldSetter<String> onSaved,
-      required FormFieldSetter<String> onRawSaved,
-    });
+typedef _Build = Widget Function({
+  TextEditingController? controller,
+  required bool seeded,
+  required FormFieldSetter<String> onSaved,
+  required FormFieldSetter<String> onRawSaved,
+});
 
 class _Mask {
   _Mask(this.painted, this.room, this.natural);

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_field_kit/smart_field_kit.dart';
 
@@ -316,9 +316,8 @@ void main() {
         ? 'Reads project files through dart:io, which is unavailable in a browser.'
         : null,
     () {
-      final manifest = File(
-        'example/android/app/src/main/AndroidManifest.xml',
-      ).readAsStringSync();
+      final manifest = File('example/android/app/src/main/AndroidManifest.xml')
+          .readAsStringSync();
       expect(manifest, isNot(contains('READ_SMS')));
       expect(manifest, isNot(contains('RECEIVE_SMS')));
       final pubspec = File('pubspec.yaml').readAsStringSync();
