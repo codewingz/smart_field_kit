@@ -15,7 +15,7 @@ SmartField.amount(label: 'Amount', decimalLength: 2, useGrouping: true);
 SmartField.otp(length: 6, onCompleted: (value) {});
 ```
 
-> **Release status:** Version 0.0.1 is unreleased; the package has not been published to pub.dev. Requires Flutter 3.44.0 or later and Dart 3.12.0 or later. Tested platforms and known limits are listed in [Platform notes](#platform-notes).
+> **Release status:** Version 0.0.1 is published on [pub.dev](https://pub.dev/packages/smart_field_kit). Requires Flutter 3.44.0 or later and Dart 3.12.0 or later. Tested platforms and known limits are listed in [Platform notes](#platform-notes).
 
 **Why this package?** Use a single, familiar set of input widgets while keeping Flutter's `Form`, `TextEditingController`, `FocusNode`, `InputDecoration`, keyboard, theme, and validation conventions. Ordinary text stays unrestricted by default; special rules are opt-in or specific to a selected field type.
 
@@ -77,35 +77,28 @@ The package is an **input toolkit**, not a complete authentication server, payme
 
 ## Installation
 
-### Before publication: local development
-
-Until the package is published, add a **local path dependency** from a consuming Flutter app's `pubspec.yaml`:
-
-```yaml
-dependencies:
-  flutter:
-    sdk: flutter
-  smart_field_kit:
-    path: ../smart_field_kit
-```
-
-Then run:
-
-```bash
-flutter pub get
-```
-
-The relative path must point to your actual cloned package directory. If the package is moved, update the path.
-
-### After publication on pub.dev
-
-Once a verified public release exists, install it using:
+### From pub.dev
 
 ```bash
 flutter pub add smart_field_kit
 ```
 
-Do not use this public-installation command to imply the package is already published.
+Or add it to `pubspec.yaml` and run `flutter pub get`:
+
+```yaml
+dependencies:
+  smart_field_kit: ^0.0.1
+```
+
+### From a local clone
+
+To develop against a local copy, use a path dependency that points to your cloned package directory:
+
+```yaml
+dependencies:
+  smart_field_kit:
+    path: ../smart_field_kit
+```
 
 Import the public entry point in your Dart file:
 
@@ -1607,7 +1600,7 @@ flutter analyze
 flutter build web
 ```
 
-For publishing preparation, **dry run only** until the project owner authorizes a release:
+Before a release, check the package with a dry run:
 
 ```bash
 flutter pub publish --dry-run
